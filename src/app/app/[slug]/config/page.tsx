@@ -1,0 +1,53 @@
+import { notFound, redirect } from 'next/navigation';
+import { Settings } from 'lucide-react';
+import { getOrderForProfessionalApp } from '@/lib/professional-app-service';
+import { getBusinessHours, getScheduleBlocks } from '@/lib/scheduling/config-service';
+import { ConfigAccordion } from '@/components/config/ConfigAccordion';
+import { PageTitleBar } from '@/components/app-shell/PageTitleBar';
+
+interface ConfigPageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function ConfigPage({ params }: ConfigPageProps) {
+  const { slug } = await params;
+  const order = await getOrderForProfessionalApp(slug);
+
+  if (!order) notFound();
+  // Produto "Catálogo apenas" (2026-10-27): Config fica inacessível mesmo por
+  // URL direta, não só escondida da navegação (ver BottomNav/layout.tsx).
+  if (order.show_full_app === false) redirect(`/app/${slug}/inicio`);
+
+  const [businessHours, scheduleBlocks] = await Promise.all([
+    getBusinessHours(order.id),
+    getScheduleBlocks(order.id),
+  ]);
+
+  return (
+    <>
+      <PageTitleBar title="Configurações" icon={<Settings className="w-5 h-5 text-ink-soft" />} slug={slug} />
+      <main className="max-w-md mx-auto px-5 pt-6 pb-6 flex flex-col gap-5">
+        <ConfigAccordion
+          slug={slug}
+          businessHours={businessHours}
+          scheduleBlocks={scheduleBlocks}
+          planTier={order.plan_tier}
+          subscriptionStatus={order.subscription_status}
+          billingEmail={order.billing_email}
+          billingCpfCnpj={order.billing_cpf_cnpj}
+          paymentMethod={order.payment_method}
+          bookingEnabled={order.booking_enabled}
+          agendaPaused={order.agenda_paused}
+          authUserId={order.auth_user_id}
+          manualPlan={order.manual_plan}
+          hasRealSubscription={order.has_real_subscription}
+          billingPriceOverride={order.billing_price_override}
+          catalogBillingMode={order.catalog_billing_mode}
+          agendaBillingMode={order.agenda_billing_mode}
+          agendaPriceOverride={order.agenda_price_override}
+          lifetimePriceOverride={order.lifetime_price_override}
+        />
+      </main>
+    </>
+  );
+}

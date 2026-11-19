@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400;1,9..144,500&family=Italiana&family=Jost:wght@300;400;500;600;700&display=swap');
+@import '../styles/catalog-theme.css';
+@import '../styles/landing-lpb.css';
+@import '../styles/landing-classica.css';
+@import '../styles/landing-selfserve.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+:root {
+
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 253, 248, 249;
+  --background-end-rgb: 247, 237, 240;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Tipografia do app da profissional (/app/[slug], docs/historico/REESTRUTURACAO_VISUAL_APP.md)
+   — usa as fontes que o projeto já carrega (linha 1 deste arquivo), não as
+   classes `font-serif`/`font-sans` do Tailwind (essas apontam pra Playfair
+   Display/Inter, que não estão carregadas em lugar nenhum do projeto). */
+.font-serif-pro {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+.font-body-pro {
+  font-family: 'Jost', system-ui, -apple-system, sans-serif;
+}
+
+/* `catalog-theme.css` (importado no topo deste arquivo) zera a borda de
+   todo <button> globalmente, pra estilizar os temas do catálogo público —
+   `button { border: none; }`. Isso também apaga visualmente qualquer botão
+   do app da profissional que usa a utilitária `border` do Tailwind: ela só
+   define `border-width`, não `border-style`, então herdava o `none` do
+   reset acima mesmo com `border-width: 1px` aplicado (a borda "existe" mas
+   renderiza com largura computada 0, por definição do CSS quando o estilo
+   é `none`). Restaurado aqui, escopado só à árvore do app (`.pro-app-shell`,
+   ver `src/app/app/[slug]/layout.tsx`) pra não alterar nada do catálogo. */
+.pro-app-shell button.border {
+  border-style: solid;
+}
+
+.glass-panel-rose {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(243, 218, 225, 0.6);
+}
+
+.glass-panel-luxury {
+  background: rgba(22, 22, 26, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee-scroll 32s linear infinite;
+}

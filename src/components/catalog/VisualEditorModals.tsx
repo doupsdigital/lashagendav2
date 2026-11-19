@@ -1,0 +1,368 @@
+'use client';
+
+import React, { useState } from 'react';
+import { CatalogOrderData, ProcedureItem, CatalogInstructionItem } from '@/types/catalog';
+import { compressImageFile } from '@/lib/image-compress';
+import { CoverModal } from './modals/CoverModal';
+import { ProcedureModal } from './modals/ProcedureModal';
+import { SocialModal } from './modals/SocialModal';
+import { InstructionItemModal } from './modals/InstructionItemModal';
+import { CategoryModal } from './modals/CategoryModal';
+import { ConfirmModals } from './modals/ConfirmModals';
+
+interface VisualEditorModalsProps {
+  catalogData: CatalogOrderData;
+  initialCatalogData?: CatalogOrderData;
+  editToken: string;
+  categories: string[];
+  activeModal:
+    | 'none'
+    | 'cover'
+    | 'procedure'
+    | 'social'
+    | 'instruction_item'
+    | 'instruction_delete_confirm'
+    | 'category'
+    | 'save_confirm'
+    | 'save_success'
+    | 'save_error'
+    | 'category_delete_confirm'
+    | 'category_delete_blocked'
+    | 'proc_delete_confirm'
+    | 'discard_confirm';
+  errorMessage?: string;
+  editingProc: ProcedureItem | null;
+  editingProcIndex: number | null;
+  editingSocialType: 'whatsapp' | 'instagram' | 'address' | 'maps' | null;
+  editingInstructionItem: CatalogInstructionItem | null;
+  editingInstructionItemIndex: number | null;
+  categoryToDelete?: { name: string; count: number } | null;
+  procToDelete?: ProcedureItem | null;
+  instructionItemToDelete?: CatalogInstructionItem | null;
+  onClose: () => void;
+  onSaveProcedure: (proc: ProcedureItem, index: number | null) => void;
+  onSaveCoverUrl: (url: string) => void;
+  onSaveSocial: (values: { whatsapp: string; instagram: string; address: string; maps: string }) => void;
+  onSaveInstructionItem: (item: { title: string; description: string }, index: number | null) => void;
+  onAddCategory: (categoryName: string) => void;
+  onConfirmDeleteCategory?: () => void;
+  onConfirmDeleteProc?: () => void;
+  onConfirmDeleteInstructionItem?: () => void;
+  onConfirmDiscard?: () => void;
+  onOpenAddCatModal?: () => void;
+  onConfirmSaveDatabase: () => void;
+  onUploadError?: (message: string) => void;
+  isSaving: boolean;
+}
+
+export const VisualEditorModals: React.FC<VisualEditorModalsProps> = ({
+  catalogData,
+  initialCatalogData,
+  editToken,
+  categories = [],
+  activeModal,
+  errorMessage = '',
+  editingProc,
+  editingProcIndex,
+  editingInstructionItem,
+  editingInstructionItemIndex,
+  categoryToDelete,
+  procToDelete,
+  instructionItemToDelete,
+  onClose,
+  onSaveProcedure,
+  onSaveCoverUrl,
+  onSaveSocial,
+  onSaveInstructionItem,
+  onAddCategory,
+  onConfirmDeleteCategory,
+  onConfirmDeleteProc,
+  onConfirmDeleteInstructionItem,
+  onConfirmDiscard,
+  onOpenAddCatModal,
+  onConfirmSaveDatabase,
+  onUploadError,
+  isSaving,
+}) => {
+  const safeCategories = React.useMemo(() => {
+    const list = categories && categories.length > 0 ? [...categories] : ['Extensão de Cílios', 'Lash Lifting', 'Sobrancelhas'];
+    if (editingProc?.category && !list.includes(editingProc.category)) {
+      list.push(editingProc.category);
+    }
+    return list;
+  }, [categories, editingProc]);
+
+  const [isUploading, setIsUploading] = useState(false);
+  // Qual quadrado de foto do procedimento está carregando agora (pedido
+  // real, 2026-10-22: spinner centralizado no quadrado certo, não um
+  // indicador genérico — `isUploading` sozinho não diz QUAL foto). 'main' =
+  // foto principal, número = índice da foto extra, null = nenhuma.
+  const [uploadingProcSlot, setUploadingProcSlot] = useState<'main' | number | null>(null);
+
+  // Gerar resumo de alterações da sessão de edição
+  const getChangesSummary = (): string[] => {
+    const initial = initialCatalogData || catalogData;
+    const current = catalogData;
+    const changes: string[] = [];
+
+    if (initial.client_name !== current.client_name) {
+      changes.push(`✏️ Nome do Catálogo: ${current.client_name}`);
+    }
+    if (initial.hero_phrase !== current.hero_phrase) {
+      changes.push(`💬 Frase de Destaque: Alterada`);
+    }
+    if (initial.whatsapp_number !== current.whatsapp_number) {
+      changes.push(`📱 WhatsApp: ${current.whatsapp_number}`);
+    }
+    if (initial.instagram_handle !== current.instagram_handle) {
+      changes.push(`📸 Instagram: @${(current.instagram_handle || '').replace(/^@/, '')}`);
+    }
+    if (initial.address !== current.address) {
+      changes.push(`📍 Localização: ${current.address}`);
+    }
+    if (initial.cover_media_url !== current.cover_media_url) {
+      changes.push(`📷 Foto de Capa: Nova imagem selecionada`);
+    }
+
+    const initialProcs = initial.procedures || [];
+    const currentProcs = current.procedures || [];
+
+    if (currentProcs.length < initialProcs.length) {
+      changes.push(`🗑️ Procedimentos removidos: ${initialProcs.length - currentProcs.length} item(ns)`);
+    } else if (currentProcs.length > initialProcs.length) {
+      changes.push(`✨ Novos procedimentos: ${currentProcs.length - initialProcs.length} item(ns)`);
+    }
+
+    // Bug real, 2026-10-22: comparar só uma lista fixa de campos (título,
+    // preço, duração, foto, categoria, descrição) fazia qualquer mudança
+    // em campo de fora dela (ex: `extra_photos`, `specs`, `badge`) passar
+    // batido e mostrar "Nenhuma alteração pendente" mesmo tendo mudado de
+    // verdade. Comparação do objeto inteiro cobre qualquer campo, hoje ou
+    // no futuro, sem precisar lembrar de atualizar uma lista toda vez que
+    // um campo novo for adicionado ao procedimento.
+    let modifiedCount = 0;
+    currentProcs.forEach((proc, idx) => {
+      const orig = initialProcs[idx];
+      if (orig && JSON.stringify(proc) !== JSON.stringify(orig)) {
+        modifiedCount++;
+      }
+    });
+
+    if (modifiedCount > 0) {
+      changes.push(`✏️ Procedimentos alterados: ${modifiedCount} item(ns)`);
+    }
+
+    if (changes.length === 0) {
+      changes.push('Nenhuma alteração pendente');
+    }
+
+    return changes;
+  };
+
+  // Proc Form State
+  const [procForm, setProcForm] = useState<ProcedureItem & { maintenance?: string; visualEffect?: string }>(
+    editingProc
+      ? {
+          ...editingProc,
+          maintenance: editingProc.specs?.find(([k]) => k === 'Manutenção')?.[1] || '',
+          visualEffect: editingProc.specs?.find(([k]) => k === 'Efeito Visual')?.[1] || '',
+        }
+      : {
+          id: '',
+          title: '',
+          price: '',
+          duration: '',
+          category: safeCategories[0] || 'Extensão de Cílios',
+          description: '',
+          image_url: '',
+          badge: '',
+          is_highlight: false,
+          maintenance: '',
+          visualEffect: '',
+        }
+  );
+
+  // Social Form State
+  const [socialForm, setSocialForm] = useState({
+    whatsapp: catalogData.whatsapp_number || '',
+    instagram: catalogData.instagram_handle || '',
+    address: catalogData.address || '',
+    maps: catalogData.maps_url || '',
+  });
+
+  // Instruction Item Form State (um item por vez: título + descrição)
+  const [instructionItemForm, setInstructionItemForm] = useState({
+    title: editingInstructionItem?.title || '',
+    description: editingInstructionItem?.description || '',
+  });
+
+  // Category State
+  const [newCatName, setNewCatName] = useState('');
+
+  // Form Error State
+  const [procFormError, setProcFormError] = useState('');
+
+  // Sincronizar form proc se prop mudar
+  React.useEffect(() => {
+    if (editingProc) {
+      setProcForm({
+        ...editingProc,
+        maintenance: editingProc.specs?.find(([k]) => k === 'Manutenção')?.[1] || '',
+        visualEffect: editingProc.specs?.find(([k]) => k === 'Efeito Visual')?.[1] || '',
+      });
+    } else {
+      setProcForm({
+        id: '',
+        title: '',
+        price: '',
+        duration: '',
+        category: safeCategories[0] || 'Extensão de Cílios',
+        description: '',
+        image_url: '',
+        badge: '',
+        is_highlight: false,
+        maintenance: '',
+        visualEffect: '',
+      });
+    }
+  }, [editingProc, activeModal]);
+
+  // Sincronizar form social se props mudarem
+  React.useEffect(() => {
+    setSocialForm({
+      whatsapp: catalogData.whatsapp_number || '',
+      instagram: catalogData.instagram_handle || '',
+      address: catalogData.address || '',
+      maps: catalogData.maps_url || '',
+    });
+  }, [catalogData]);
+
+  // Sincronizar form do item de orientação (mesmo padrão do procForm acima —
+  // reage a qual item está sendo editado, não ao catalogData inteiro, senão
+  // digitar no campo seria sobrescrito a cada re-render).
+  React.useEffect(() => {
+    setInstructionItemForm({
+      title: editingInstructionItem?.title || '',
+      description: editingInstructionItem?.description || '',
+    });
+  }, [editingInstructionItem, activeModal]);
+
+  // Upload de Imagem para Supabase Storage — comprime no navegador antes de
+  // enviar (capa maior que a foto de um procedimento, pois ocupa a tela
+  // inteira no topo do catálogo). A rota de upload comprime de novo no
+  // servidor, então isso aqui é sobre velocidade de envio, não segurança.
+  const handleFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    target: 'cover' | 'proc' | 'proc_extra',
+    extraIndex?: number
+  ) => {
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
+
+    setIsUploading(true);
+    if (target === 'proc') setUploadingProcSlot('main');
+    else if (target === 'proc_extra' && typeof extraIndex === 'number') setUploadingProcSlot(extraIndex);
+    try {
+      const file = await compressImageFile(rawFile, { maxDimension: target === 'cover' ? 1600 : 1000 });
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('slug', catalogData.slug);
+      formData.append('edit_token', editToken);
+
+      const res = await fetch('/api/catalog/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await res.json();
+      if (result.success && result.url) {
+        if (target === 'cover') {
+          onSaveCoverUrl(result.url);
+          onClose();
+        } else if (target === 'proc') {
+          setProcForm((prev) => ({ ...prev, image_url: result.url }));
+        } else if (target === 'proc_extra' && typeof extraIndex === 'number') {
+          setProcForm((prev) => {
+            const next = [...(prev.extra_photos || [])];
+            next[extraIndex] = result.url;
+            return { ...prev, extra_photos: next };
+          });
+        }
+      } else {
+        onUploadError?.(result.message || 'Não foi possível enviar a imagem. Tente novamente.');
+      }
+    } catch (err) {
+      onUploadError?.('Falha de conexão ao enviar a imagem. Tente novamente.');
+    } finally {
+      setIsUploading(false);
+      setUploadingProcSlot(null);
+    }
+  };
+
+  if (activeModal === 'none') return null;
+
+  return (
+    <div className="lm-modal-overlay is-open">
+      {activeModal === 'cover' && (
+        <CoverModal isUploading={isUploading} onFileUpload={(e) => handleFileUpload(e, 'cover')} onClose={onClose} />
+      )}
+
+      {activeModal === 'procedure' && (
+        <ProcedureModal
+          procForm={procForm}
+          setProcForm={setProcForm}
+          editingProcIndex={editingProcIndex}
+          safeCategories={safeCategories}
+          procFormError={procFormError}
+          setProcFormError={setProcFormError}
+          onOpenAddCatModal={onOpenAddCatModal}
+          onFileUpload={(e) => handleFileUpload(e, 'proc')}
+          onFileUploadExtra={(e, i) => handleFileUpload(e, 'proc_extra', i)}
+          uploadingProcSlot={uploadingProcSlot}
+          onSaveProcedure={onSaveProcedure}
+          onClose={onClose}
+        />
+      )}
+
+      {activeModal === 'social' && (
+        <SocialModal socialForm={socialForm} setSocialForm={setSocialForm} onSaveSocial={onSaveSocial} onClose={onClose} />
+      )}
+
+      {activeModal === 'instruction_item' && (
+        <InstructionItemModal
+          itemForm={instructionItemForm}
+          setItemForm={setInstructionItemForm}
+          isNew={editingInstructionItem === null}
+          onSaveItem={(values) => onSaveInstructionItem(values, editingInstructionItemIndex)}
+          onClose={onClose}
+        />
+      )}
+
+      {activeModal === 'category' && (
+        <CategoryModal newCatName={newCatName} setNewCatName={setNewCatName} onAddCategory={onAddCategory} onClose={onClose} />
+      )}
+
+      {activeModal !== 'cover' &&
+        activeModal !== 'procedure' &&
+        activeModal !== 'social' &&
+        activeModal !== 'instruction_item' &&
+        activeModal !== 'category' && (
+          <ConfirmModals
+            activeModal={activeModal}
+            changesSummary={getChangesSummary()}
+            isSaving={isSaving}
+            errorMessage={errorMessage}
+            categoryToDelete={categoryToDelete}
+            procToDelete={procToDelete}
+            instructionItemToDelete={instructionItemToDelete}
+            onClose={onClose}
+            onConfirmSaveDatabase={onConfirmSaveDatabase}
+            onConfirmDeleteCategory={onConfirmDeleteCategory}
+            onConfirmDeleteProc={onConfirmDeleteProc}
+            onConfirmDeleteInstructionItem={onConfirmDeleteInstructionItem}
+            onConfirmDiscard={onConfirmDiscard}
+          />
+        )}
+    </div>
+  );
+};

@@ -1,0 +1,157 @@
+import { NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase-admin';
+import { ProcedureItem, NicheType, LayoutModel, ThemeVariant } from '@/types/catalog';
+import { isAdminRequestAuthorized } from '@/lib/admin-session';
+import { buildOrderInsertPayload, buildServicesPayload, resolveProfessionalSlug } from '@/lib/order-payload';
+import { isAllowedImageType } from '@/lib/file-validation';
+import { adaptCoverToPortrait } from '@/lib/cover-image-ai';
+import { optimizeImage } from '@/lib/image-optimize';
+
+const MAX_COVER_SIZE = 8 * 1024 * 1024; // 8MB
+
+export async function POST(request: Request) {
+  try {
+    if (!(await isAdminRequestAuthorized())) {
+      return NextResponse.json({ success: false, message: 'Não autorizado.' }, { status: 403 });
+    }
+
+    const formData = await request.formData();
+    const clientName = (formData.get('clientName') as string) || '';
+    const whatsappNumber = (formData.get('whatsappNumber') as string) || '';
+    const instagramHandle = (formData.get('instagramHandle') as string) || '';
+    const niche = (formData.get('niche') as string) || 'lash';
+    const layoutModel = (formData.get('layoutModel') as string) || 'mosaico';
+    const themeVariant = (formData.get('themeVariant') as string) || 'rose';
+    const proceduresRaw = (formData.get('procedures') as string) || '[]';
+    const coverFile = formData.get('coverFile') as File | null;
+    const aiAdaptCover = formData.get('aiAdaptCover') === '1';
+    const firstOfferTier = formData.get('firstOfferTier') === 'plus' ? 'plus' : 'basico';
+    // Produto "Catálogo apenas" (2026-10-27) — toggles nascem desligados no
+    // formulário (ver criar-com-ia/page.tsx), então a ausência do campo
+    // também deve cair em `false` aqui (e não no `true` de quem nunca manda
+    // o campo, como o onboarding self-serve).
+    const showCover = formData.get('showCover') === 'true';
+    const showInstructions = formData.get('showInstructions') === 'true';
+    const showContactCta = formData.get('showContactCta') === 'true';
+    const showFullApp = formData.get('showFullApp') === 'true';
+
+    if (!clientName || !whatsappNumber) {
+      return NextResponse.json({ success: false, message: 'Nome e WhatsApp são obrigatórios.' }, { status: 400 });
+    }
+
+    let procedures: ProcedureItem[] = [];
+    try {
+      procedures = JSON.parse(proceduresRaw);
+    } catch {
+      return NextResponse.json({ success: false, message: 'Lista de procedimentos inválida.' }, { status: 400 });
+    }
+
+    const slugResult = await resolveProfessionalSlug(clientName);
+    if (!slugResult.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Já existe uma profissional cadastrada com esse nome (${slugResult.attemptedSlug}.studiomenu.art). Acrescente mais um sobrenome ao nome pra diferenciar.`,
+        },
+        { status: 409 }
+      );
+    }
+    const finalSlug = slugResult.slug;
+
+    // Vazio por padrão (não mais o Hero.webp genérico do modelo) — sem foto
+    // própria, `HeaderCover.tsx` já cai pra trás sozinho na foto da tela
+    // final (`cta_bg_url`/`final_screen_bg_url` do preset de nicho, pedido
+    // da usuária 2026-09-22) e só usa o Hero.webp como último recurso. Preencher
+    // aqui de antemão disparava sempre o Hero.webp primeiro (bug real,
+    // 2026-09-30: catálogo criado sem capa própria via /admin/criar-com-ia
+    // saiu com a foto de modelo genérica em vez da foto da tela final).
+    let coverUrl = '';
+
+    if (coverFile) {
+      if (!isAllowedImageType(coverFile.type)) {
+        return NextResponse.json({ success: false, message: 'Formato de imagem não suportado. Use JPG, PNG, WEBP ou GIF.' }, { status: 400 });
+      }
+      if (coverFile.size > MAX_COVER_SIZE) {
+        return NextResponse.json({ success: false, message: 'Foto de capa muito grande. O limite é 8MB.' }, { status: 400 });
+      }
+
+      let buffer: Buffer = Buffer.from(await coverFile.arrayBuffer());
+      let contentType = coverFile.type;
+
+      const adapted = aiAdaptCover ? await adaptCoverToPortrait(buffer, coverFile.type) : null;
+      if (adapted) {
+        buffer = adapted.buffer;
+        contentType = adapted.contentType;
+      }
+
+      // Sem etapa de compressão no navegador nesse fluxo (é o admin subindo,
+      // não o editor da profissional) — aqui é a única otimização que essa
+      // capa recebe. Roda depois da IA de propósito: a resposta dela vem em
+      // PNG grande (1024x1536), e comprimir antes só pra IA reprocessar de
+      // novo seria trabalho em dobro.
+      const optimized = await optimizeImage(buffer, contentType);
+      buffer = optimized.buffer;
+      contentType = optimized.contentType;
+
+      const fileName = `${finalSlug}/${Date.now()}_cover.${optimized.ext}`;
+
+      const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+        .from('catalog-assets')
+        .upload(fileName, new Uint8Array(buffer), { contentType, upsert: true, cacheControl: '31536000' });
+
+      if (uploadError) {
+        console.error('[Finalize Catalog] Erro no upload da capa:', uploadError);
+        return NextResponse.json({ success: false, message: 'Erro ao enviar a foto de capa.' }, { status: 500 });
+      }
+
+      const { data: publicUrlData } = supabaseAdmin.storage.from('catalog-assets').getPublicUrl(uploadData.path);
+      coverUrl = publicUrlData.publicUrl;
+    }
+
+    const { data: orderData, error: orderErr } = await supabaseAdmin
+      .from('orders')
+      .insert(
+        buildOrderInsertPayload({
+          slug: finalSlug,
+          clientName,
+          whatsappNumber,
+          instagramHandle,
+          niche: niche as NicheType,
+          layoutModel: layoutModel as LayoutModel,
+          themeVariant: themeVariant as ThemeVariant,
+          coverUrl,
+          firstOfferTier,
+          showCover,
+          showInstructions,
+          showContactCta,
+          showFullApp,
+        })
+      )
+      .select()
+      .single();
+
+    if (orderErr) {
+      console.error('[Finalize Catalog] Erro ao criar pedido:', orderErr);
+      return NextResponse.json({ success: false, message: 'Erro ao criar o catálogo. Tente novamente.' }, { status: 500 });
+    }
+
+    if (procedures.length > 0) {
+      const servicesPayload = buildServicesPayload(procedures, orderData.id);
+
+      const { error: servicesErr } = await supabaseAdmin.from('order_services').insert(servicesPayload);
+      if (servicesErr) {
+        console.error('[Finalize Catalog] Erro ao gravar procedimentos:', servicesErr);
+        return NextResponse.json({ success: false, message: 'Erro ao gravar os procedimentos do catálogo.' }, { status: 500 });
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      slug: finalSlug,
+      editToken: orderData.edit_token,
+    });
+  } catch (error: any) {
+    console.error('[Finalize Catalog Exception]:', error);
+    return NextResponse.json({ success: false, message: 'Erro interno ao criar o catálogo.' }, { status: 500 });
+  }
+}

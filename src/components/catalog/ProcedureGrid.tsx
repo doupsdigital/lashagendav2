@@ -1,0 +1,574 @@
+'use client';
+
+import React, { useState, useMemo, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  rectSortingStrategy,
+  verticalListSortingStrategy,
+  arrayMove,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+import { ProcedureItem, LayoutModel, ThemeVariant } from '@/types/catalog';
+import { ProcedureCard } from './ProcedureCard';
+import { ProcedureDetailModal } from './ProcedureDetailModal';
+import { ProcedureImage } from './ProcedureImage';
+
+interface ProcedureGridProps {
+  procedures: ProcedureItem[];
+  allCategories?: string[];
+  whatsappNumber: string;
+  clientName?: string;
+  layoutModel?: LayoutModel;
+  isEditMode?: boolean;
+  onEditProc?: (item: ProcedureItem) => void;
+  onDeleteProc?: (item: ProcedureItem) => void;
+  onReorderProcedures?: (newProcedures: ProcedureItem[]) => void;
+  onOpenAddProcModal?: () => void;
+  onOpenAddCatModal?: () => void;
+  onDeleteCategory?: (categoryName: string, count: number) => void;
+  onMoveCategory?: (categoryName: string, direction: 'left' | 'right') => void;
+  bookingEnabled?: boolean;
+  onRequestBooking?: (item: ProcedureItem) => void;
+  onFakeWhatsapp?: (item: ProcedureItem) => void;
+  /** Só o showroom (`/c/showcase/[niche]`) passa isso (pedido real,
+   *  2026-10-08) — botões Mosaico/Clássico flanqueando a etiqueta do
+   *  cabeçalho, mesma ideia do Rosé/Luxury no `HeaderCover`. `undefined`
+   *  em catálogos reais, que continuam sem alteração nenhuma aqui. */
+  layoutSwitcher?: { value: LayoutModel; onChange: (layout: LayoutModel) => void };
+  /** Mesma ideia do `layoutSwitcher` acima, mas pro tema (Rosé/Luxury) —
+   *  normalmente fica dentro do `HeaderCover` (Capa), que não existe no
+   *  modo "Catálogo apenas" (2026-10-28); passado aqui pra não perder essa
+   *  opção no showroom quando a Capa está escondida. */
+  themeSwitcher?: { value: ThemeVariant; onChange: (variant: ThemeVariant) => void };
+  /** Produto "Catálogo apenas" (2026-10-28) — quando a Capa não renderiza
+   *  (`show_cover === false` ou `hideCoverSection`, ver `CatalogLayout`),
+   *  esse componente vira a primeira tela, então precisa mostrar (e, em
+   *  modo edição, permitir editar) o nome da profissional — senão ela não
+   *  teria lugar nenhum pra fazer isso. */
+  showStudioHeader?: boolean;
+  studioLabel?: string;
+  onUpdateClientName?: (newName: string) => void;
+  onUpdateStudioLabel?: (newLabel: string) => void;
+}
+
+/** Envolve um card de procedimento (mosaico OU clássico) pra deixar arrastar
+ *  pra reordenar — Editar/Excluir ficam centralizados no topo, e a alça de
+ *  arrastar fica isolada no canto inferior direito (perto do preço), longe
+ *  o suficiente pra não disputar espaço/toque com os outros dois. Só a alça
+ *  tem `touch-action: none`/os listeners de arraste; o resto do card
+ *  continua rolando a página normalmente. */
+const SortableProcCard: React.FC<{
+  id: string;
+  isEditMode: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  /** Âncora pro tour guiado do editor (`cat-edit-proc`) — só passada pelo
+   *  primeiro card da lista, já que a barra de ações só existe por card. */
+  dataTour?: string;
+  children: React.ReactNode;
+}> = ({ id, isEditMode, onEdit, onDelete, dataTour, children }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: !isEditMode });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="lm-sortable-proc">
+      {isEditMode && (
+        <>
+          <div className="lm-svc-actions-bar" data-tour={dataTour}>
+            <button type="button" className="lm-svc-btn-action" onClick={onEdit}>
+              ✏️ Editar
+            </button>
+            <button type="button" className="lm-svc-btn-action lm-svc-btn-danger" title="Excluir" onClick={onDelete}>
+              🗑️
+            </button>
+          </div>
+          <span className="lm-proc-drag-handle" aria-hidden="true" {...attributes} {...listeners}>
+            <GripVertical className="w-3.5 h-3.5" />
+          </span>
+        </>
+      )}
+      {children}
+    </div>
+  );
+};
+
+/** Card do layout Clássico (lista) — próprio componente, não inline, pra
+ *  poder ter estado isolado do `onError` da foto por item (pedido real,
+ *  2026-10-09: mesmo tratamento de foto ausente/quebrada do Mosaico, ver
+ *  `ProcedureCard.tsx`). */
+const ServicoCardLista: React.FC<{
+  item: ProcedureItem;
+  clientName?: string;
+  isEditMode: boolean;
+  formatPrice: (val: string) => string;
+  onClick: () => void;
+}> = ({ item, clientName, isEditMode, formatPrice, onClick }) => {
+  return (
+    <div
+      className={`servico-card ${isEditMode ? 'lm-service-card-wrapper' : ''}`}
+      onClick={onClick}
+    >
+      <div className="servico-card__foto-box">
+        <ProcedureImage src={item.image_url} alt={item.title} className="servico-card__foto" variant="thumb" clientName={clientName} />
+      </div>
+      <div className="servico-card__conteudo">
+        {item.category && <span className="servico-card__cat">{item.category}</span>}
+        <h3 className="servico-card__titulo">{item.title}</h3>
+        {item.description && <p className="servico-card__desc">{item.description}</p>}
+      </div>
+      <div className="servico-card__lado-dir">
+        <span className="servico-card__preco">{formatPrice(item.price)}</span>
+        {item.duration && <span className="servico-card__duracao">{item.duration}</span>}
+        <span className="servico-card__seta">→</span>
+      </div>
+    </div>
+  );
+};
+
+export const ProcedureGrid: React.FC<ProcedureGridProps> = ({
+  procedures,
+  allCategories,
+  whatsappNumber,
+  clientName = 'Mariana',
+  layoutModel = 'mosaico',
+  isEditMode = false,
+  onEditProc,
+  onDeleteProc,
+  onReorderProcedures,
+  onOpenAddProcModal,
+  onOpenAddCatModal,
+  onDeleteCategory,
+  onMoveCategory,
+  bookingEnabled = false,
+  onRequestBooking,
+  onFakeWhatsapp,
+  layoutSwitcher,
+  themeSwitcher,
+  showStudioHeader = false,
+  studioLabel,
+  onUpdateClientName,
+  onUpdateStudioLabel,
+}) => {
+  const [selectedProcedure, setSelectedProcedure] = useState<ProcedureItem | null>(null);
+
+  // Avisa o pai (mockup/modal de teste da landing page) se o modal de
+  // detalhe do procedimento está aberto ou não — pedido real, 2026-10-16:
+  // a dica "Clique nos cards" (`MockupModal.tsx`) precisa sumir enquanto
+  // esse modal está por cima, e reaparecer ao fechar. Mesmo padrão de
+  // `window.parent.postMessage` já usado em `ShowcaseClient.tsx` pro
+  // indicador de deslize/toque.
+  useEffect(() => {
+    if (window.parent === window) return;
+    window.parent.postMessage({ type: 'VITRINE_DETAIL_MODAL', open: Boolean(selectedProcedure) }, '*');
+  }, [selectedProcedure]);
+
+  // Extrair categorias únicas existentes (incluindo categorias vazias recém-criadas)
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    if (Array.isArray(allCategories)) {
+      allCategories.forEach((cat) => {
+        if (cat) set.add(cat);
+      });
+    }
+    procedures.forEach((item) => {
+      if (item.category) set.add(item.category);
+    });
+    return ['Todos', ...Array.from(set)];
+  }, [allCategories, procedures]);
+
+  const [activeCategory, setActiveCategory] = useState('Todos');
+
+  const filteredProcedures = useMemo(() => {
+    if (activeCategory === 'Todos') return procedures;
+    return procedures.filter((p) => p.category === activeCategory);
+  }, [procedures, activeCategory]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      // O arraste já só começa a partir do ícone de alça (não do card
+      // inteiro), então não precisa de atraso pra distinguir de scroll —
+      // só uma tolerância mínima de movimento pra não iniciar num toque
+      // parado sem intenção de arrastar.
+      activationConstraint: { distance: 4 },
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !onReorderProcedures) return;
+
+    const oldIndex = filteredProcedures.findIndex((p) => p.id === active.id);
+    const newIndex = filteredProcedures.findIndex((p) => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reorderedFiltered = arrayMove(filteredProcedures, oldIndex, newIndex);
+
+    // Se o filtro ativo é "Todos", a lista filtrada já É a lista completa.
+    // Se é uma categoria específica, recoloca os itens reordenados nas
+    // mesmas posições que ocupavam na lista completa, sem mexer na posição
+    // relativa dos itens de outras categorias.
+    if (activeCategory === 'Todos') {
+      onReorderProcedures(reorderedFiltered);
+      return;
+    }
+    const filteredIds = new Set(filteredProcedures.map((p) => p.id));
+    const queue = [...reorderedFiltered];
+    const newFullList = procedures.map((item) => (filteredIds.has(item.id) ? queue.shift()! : item));
+    onReorderProcedures(newFullList);
+  };
+
+  // Pedido real, 2026-10-23 — antes era circular (voltava pro 1º ao passar
+  // do último), sem noção de posição. Agora tem início e fim de verdade:
+  // o modal de detalhes só mostra a seta "anterior"/"próximo" quando dá
+  // pra ir nessa direção (ver `selectedProcedureIndex` abaixo).
+  const selectedProcedureIndex = selectedProcedure
+    ? filteredProcedures.findIndex((p) => p.id === selectedProcedure.id)
+    : -1;
+
+  const handleNextProcedure = () => {
+    if (selectedProcedureIndex === -1 || selectedProcedureIndex >= filteredProcedures.length - 1) return;
+    setSelectedProcedure(filteredProcedures[selectedProcedureIndex + 1]);
+  };
+
+  const handlePrevProcedure = () => {
+    if (selectedProcedureIndex <= 0) return;
+    setSelectedProcedure(filteredProcedures[selectedProcedureIndex - 1]);
+  };
+
+  const formatPrice = (val: string) => {
+    if (!val) return 'Sob Consulta';
+    const lower = val.toLowerCase();
+    if (lower.includes('r$') || lower.includes('incluso') || lower.includes('guia') || lower.includes('consulta')) {
+      return val;
+    }
+    return `R$ ${val}`;
+  };
+
+  const isClassico = layoutModel === 'classico';
+
+  return (
+    <section className="secao-catalogo is-visible" id="catalogo" data-screen-label={isClassico ? 'Serviços' : 'Mosaico'}>
+      <div className="container">
+
+        <header
+          className={`secao-catalogo__header anim-fade-up delay-1${showStudioHeader ? ' secao-catalogo__header--studio' : ''}`}
+        >
+          {/* Seletores de tema/layout do showroom (2026-10-28, pedido real)
+           *  — ficam acima de tudo, inclusive do "STUDIO", só quando a Capa
+           *  está escondida (único lugar "livre" no topo nesse modo; no modo
+           *  completo eles continuam dentro da Capa/etiqueta, como sempre). */}
+          {showStudioHeader && (layoutSwitcher || themeSwitcher) && (
+            <div className="lm-catalogo-studio-switchers">
+              {themeSwitcher && (
+                <div className="lm-catalogo-switch-group">
+                  <span className="lm-catalogo-switch-group-label">Tema</span>
+                  <div className="lm-catalogo-switch-group-pills">
+                    <button
+                      type="button"
+                      onClick={() => themeSwitcher.onChange('rose')}
+                      className={`layout-pill ${themeSwitcher.value === 'rose' ? 'layout-pill--active' : ''}`}
+                    >
+                      🌸 Rosé
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => themeSwitcher.onChange('luxury')}
+                      className={`layout-pill ${themeSwitcher.value === 'luxury' ? 'layout-pill--active' : ''}`}
+                    >
+                      👑 Luxury
+                    </button>
+                  </div>
+                </div>
+              )}
+              {layoutSwitcher && (
+                <div className="lm-catalogo-switch-group">
+                  <span className="lm-catalogo-switch-group-label">Layout</span>
+                  <div className="lm-catalogo-switch-group-pills">
+                    <button
+                      type="button"
+                      onClick={() => layoutSwitcher.onChange('mosaico')}
+                      className={`layout-pill ${layoutSwitcher.value === 'mosaico' ? 'layout-pill--active' : ''}`}
+                    >
+                      Mosaico
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => layoutSwitcher.onChange('classico')}
+                      className={`layout-pill ${layoutSwitcher.value === 'classico' ? 'layout-pill--active' : ''}`}
+                    >
+                      Clássico
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {showStudioHeader && (
+            <div className="lm-catalogo-studio">
+              <div className="lm-catalogo-studio-line">
+                <span
+                  className="lm-catalogo-studio-label"
+                  data-lm-editable={isEditMode ? 'true' : undefined}
+                  contentEditable={isEditMode}
+                  suppressContentEditableWarning={true}
+                  suppressHydrationWarning={isEditMode}
+                  onBlur={(e) => {
+                    if (isEditMode && onUpdateStudioLabel) {
+                      onUpdateStudioLabel(e.currentTarget.innerText.trim());
+                    }
+                  }}
+                >
+                  {studioLabel || 'STUDIO'}
+                </span>
+                <span className="lm-catalogo-studio-divider"></span>
+              </div>
+              <h1
+                className="lm-catalogo-studio-nome"
+                data-tour="cat-text"
+                data-lm-editable={isEditMode ? 'true' : undefined}
+                contentEditable={isEditMode}
+                suppressContentEditableWarning={true}
+                suppressHydrationWarning={isEditMode}
+                onBlur={(e) => {
+                  if (isEditMode && onUpdateClientName) {
+                    onUpdateClientName(e.currentTarget.innerText.trim());
+                  }
+                }}
+              >
+                {clientName}
+              </h1>
+              <span className="lm-catalogo-studio-filete"></span>
+            </div>
+          )}
+          {/* Etiqueta pequena some no mini-cabeçalho "STUDIO" (2026-10-28,
+           *  print do protótipo aprovado) — o texto dela vira o título
+           *  grande abaixo, pra não repetir "Catálogo de Procedimentos" duas
+           *  vezes na mesma tela. Os pills Mosaico/Clássico que ficavam
+           *  aqui foram pro bloco de seletores no topo (ver acima). */}
+          {!showStudioHeader && (
+            <div className={`etiqueta-linha${layoutSwitcher ? ' etiqueta-linha--with-switcher' : ''}`}>
+              {layoutSwitcher && (
+                <button
+                  type="button"
+                  onClick={() => layoutSwitcher.onChange('mosaico')}
+                  className={`layout-pill ${layoutSwitcher.value === 'mosaico' ? 'layout-pill--active' : ''}`}
+                >
+                  Mosaico
+                </button>
+              )}
+              <span className="etiqueta">{isClassico ? 'Menu de Serviços' : 'Catálogo de Procedimentos'}</span>
+              {layoutSwitcher && (
+                <button
+                  type="button"
+                  onClick={() => layoutSwitcher.onChange('classico')}
+                  className={`layout-pill ${layoutSwitcher.value === 'classico' ? 'layout-pill--active' : ''}`}
+                >
+                  Clássico
+                </button>
+              )}
+            </div>
+          )}
+          <h2 className={`secao-catalogo__titulo${showStudioHeader ? ' secao-catalogo__titulo--fit' : ''}`}>
+            {showStudioHeader
+              ? <>Catálogo de <em>procedimentos</em></>
+              : (isClassico ? <>Procedimentos &amp; <em>Valores</em></> : <>Escolha o seu <em>estilo</em></>)}
+          </h2>
+          <p className="secao-catalogo__sub">
+            {isEditMode ? 'Segure e arraste um card pra reordenar.' : 'Toque nos Cards para ver detalhes, tempo e valores.'}
+          </p>
+        </header>
+
+        {/* Filtros em Chips Horizontais */}
+        <nav className="mosaico__filtros anim-fade-up delay-2" aria-label="Filtrar procedimentos">
+          {isEditMode && (
+            <button
+              type="button"
+              className="lm-btn-add-category-chip"
+              onClick={onOpenAddCatModal}
+            >
+              + Nova Categoria
+            </button>
+          )}
+
+          {categories.map((cat, idx) => {
+            const isActive = activeCategory === cat;
+            const count = cat === 'Todos' ? procedures.length : procedures.filter(p => p.category === cat).length;
+            // idx 0 é sempre "Todos" (não reordenável), então a primeira
+            // categoria de verdade é idx 1.
+            const isFirstReal = idx <= 1;
+            const isLastReal = idx === categories.length - 1;
+            return (
+              <button
+                key={cat}
+                type="button"
+                className={`filtro-chip ${isActive ? 'is-ativo' : ''}`}
+                onClick={() => setActiveCategory(cat)}
+              >
+                {isEditMode && cat !== 'Todos' && (
+                  <span
+                    className={`lm-chip-move-icon ${isFirstReal ? 'is-disabled' : ''}`}
+                    title="Mover pra esquerda"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!isFirstReal && onMoveCategory) onMoveCategory(cat, 'left');
+                    }}
+                  >
+                    <ChevronLeft className="w-3 h-3" />
+                  </span>
+                )}
+                <span>{cat} ({count})</span>
+                {isEditMode && cat !== 'Todos' && (
+                  <>
+                    <span
+                      className={`lm-chip-move-icon ${isLastReal ? 'is-disabled' : ''}`}
+                      title="Mover pra direita"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isLastReal && onMoveCategory) onMoveCategory(cat, 'right');
+                      }}
+                    >
+                      <ChevronRight className="w-3 h-3" />
+                    </span>
+                    <span
+                      className="lm-chip-trash-icon"
+                      title={`Excluir Categoria ${cat}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onDeleteCategory) onDeleteCategory(cat, count);
+                      }}
+                    >
+                      ✕
+                    </span>
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="mosaico__status anim-fade-up delay-3">
+          <span className="mosaico__contador">
+            MOSTRANDO {filteredProcedures.length} {filteredProcedures.length === 1 ? 'PROCEDIMENTO' : 'PROCEDIMENTOS'}
+          </span>
+        </div>
+
+        {/* Renderização condicional por modelo (Clássico = Lista / Mosaico = Grid) */}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext
+            items={filteredProcedures.map((p) => p.id)}
+            strategy={isClassico ? verticalListSortingStrategy : rectSortingStrategy}
+          >
+            {isClassico ? (
+              <div className="studio__lista">
+                {filteredProcedures.map((item, idx) => (
+                  <SortableProcCard
+                    key={item.id}
+                    id={item.id}
+                    isEditMode={isEditMode}
+                    onEdit={() => onEditProc?.(item)}
+                    onDelete={() => onDeleteProc?.(item)}
+                    dataTour={idx === 0 ? 'cat-edit-proc' : undefined}
+                  >
+                    <ServicoCardLista
+                      item={item}
+                      clientName={clientName}
+                      isEditMode={isEditMode}
+                      formatPrice={formatPrice}
+                      onClick={() => {
+                        if (!isEditMode) setSelectedProcedure(item);
+                      }}
+                    />
+                  </SortableProcCard>
+                ))}
+              </div>
+            ) : (
+              <div className="mosaico__grid">
+                {filteredProcedures.map((item, idx) => (
+                  <SortableProcCard
+                    key={item.id}
+                    id={item.id}
+                    isEditMode={isEditMode}
+                    onEdit={() => onEditProc?.(item)}
+                    onDelete={() => onDeleteProc?.(item)}
+                    dataTour={idx === 0 ? 'cat-edit-proc' : undefined}
+                  >
+                    <ProcedureCard
+                      item={item}
+                      whatsappNumber={whatsappNumber}
+                      clientName={clientName}
+                      isEditMode={isEditMode}
+                      onSelect={(proc) => setSelectedProcedure(proc)}
+                    />
+                  </SortableProcCard>
+                ))}
+              </div>
+            )}
+          </SortableContext>
+        </DndContext>
+
+        {/* BOTÃO ADICIONAR NOVO PROCEDIMENTO DENTRO DO GRID */}
+        {isEditMode && (
+          <div className="lm-add-service-container">
+            <button
+              type="button"
+              className="lm-btn-add-service"
+              onClick={onOpenAddProcModal}
+            >
+              ➕ Adicionar Novo Procedimento
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Modal de Detalhes do Procedimento */}
+      {selectedProcedure && !isEditMode && (
+        <ProcedureDetailModal
+          item={selectedProcedure}
+          clientName={clientName}
+          whatsappNumber={whatsappNumber}
+          onClose={() => setSelectedProcedure(null)}
+          onPrev={selectedProcedureIndex > 0 ? handlePrevProcedure : undefined}
+          onNext={
+            selectedProcedureIndex !== -1 && selectedProcedureIndex < filteredProcedures.length - 1
+              ? handleNextProcedure
+              : undefined
+          }
+          bookingEnabled={bookingEnabled}
+          onBook={
+            onRequestBooking
+              ? (proc) => {
+                  setSelectedProcedure(null);
+                  onRequestBooking(proc);
+                }
+              : undefined
+          }
+          onFakeWhatsapp={
+            onFakeWhatsapp
+              ? (proc) => {
+                  setSelectedProcedure(null);
+                  onFakeWhatsapp(proc);
+                }
+              : undefined
+          }
+        />
+      )}
+    </section>
+  );
+};
