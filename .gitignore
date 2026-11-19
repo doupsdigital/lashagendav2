@@ -1,0 +1,32 @@
+# dependências
+node_modules/
+**/node_modules/
+
+# build / cache
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+next-env.d.ts
+.vercel/
+
+# variáveis de ambiente e segredos — NUNCA versionar
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+
+# editor / sistema
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# ferramentas locais de IA
+.claude/settings.local.json
+.claude/worktrees/
