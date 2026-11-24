@@ -1,25 +1,20 @@
 import 'server-only';
 import { supabaseAdmin } from '../supabase-admin';
 import { toNumberOrNull } from '../service-format';
+import { legacyWhatsappVariants, normalizeClientWhatsapp } from './client-phone';
 import type { AppointmentOrigin, AppointmentStatus } from '@/types/studio';
 
 /** Gravação de agendamentos no modelo v2 (F2.2): cliente (com dedupe por
  *  WhatsApp) + `appointments` + `appointment_items`. Fonte única usada pelo
  *  agendamento da cliente final e pelo agendamento manual da profissional. */
 
-/** WhatsApp da cliente como o banco guarda: só dígitos, DDD + número, sem o
- *  55 do país — assim "(62) 99999-0000", "62999990000" e "+55 62 99999-0000"
- *  viram a mesma cliente (`clients.whatsapp_digits`). Para links `wa.me`,
- *  use `normalizeWhatsappBR`, que devolve o 55. */
-export function normalizeClientWhatsapp(raw: string | null | undefined): string {
-  const digits = (raw || '').replace(/\D/g, '');
-  if ((digits.length === 12 || digits.length === 13) && digits.startsWith('55')) return digits.slice(2);
-  return digits;
-}
-
-/** Acha a cliente do estúdio pelo WhatsApp ou cria uma nova. Duas
- *  requisições simultâneas criando a mesma cliente: a segunda bate no índice
- *  único (23505) e reaproveita quem ganhou a corrida. */
+/** Acha a cliente do estúdio pelo WhatsApp ou cria uma nova (F5.2).
+ *  - o número é normalizado (`client-phone.ts`): com/sem 55, 0, 9, máscara;
+ *  - cliente existente NÃO tem o nome trocado pelo que foi digitado agora —
+ *    o cadastro é da profissional;
+ *  - duas requisições simultâneas criando a mesma cliente: a segunda bate no
+ *    índice único (23505) e reaproveita quem ganhou a corrida.
+ *  Quem chama valida o número antes (`isValidClientWhatsapp`). */
 export async function findOrCreateClient(
   studioId: string,
   name: string,
@@ -31,13 +26,16 @@ export async function findOrCreateClient(
 
   const findExisting = async () => {
     if (!digits) return null;
+    // A forma atual primeiro; depois as antigas (celular salvo sem o 9).
+    const candidates = [digits, ...legacyWhatsappVariants(digits)];
     const { data } = await supabaseAdmin
       .from('clients')
-      .select('id')
+      .select('id, whatsapp_digits')
       .eq('studio_id', studioId)
-      .eq('whatsapp_digits', digits)
-      .maybeSingle();
-    return (data?.id as string | undefined) ?? null;
+      .in('whatsapp_digits', candidates);
+    const rows = (data || []) as { id: string; whatsapp_digits: string }[];
+    const best = candidates.map((c) => rows.find((r) => r.whatsapp_digits === c)).find(Boolean);
+    return best?.id ?? null;
   };
 
   const existing = await findExisting();

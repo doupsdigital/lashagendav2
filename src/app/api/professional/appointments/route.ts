@@ -4,6 +4,7 @@ import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
 import { getStudioBySlug, normalizeSlug } from '@/lib/studio-service';
 import { isSlotAvailableForBooking } from '@/lib/scheduling/slot-lookup';
 import { createAppointment, findOrCreateClient, loadBookingItem } from '@/lib/scheduling/booking-service';
+import { INVALID_WHATSAPP_MESSAGE, isValidClientWhatsapp, normalizeClientWhatsapp } from '@/lib/scheduling/client-phone';
 
 /** POST /api/professional/appointments
  *  Agendamento manual criado pela própria profissional (walk-in, telefone,
@@ -31,6 +32,10 @@ export async function POST(request: Request) {
 
     if (!slug || !service_id || !starts_at || !client_name?.trim() || !client_whatsapp?.trim()) {
       return NextResponse.json({ success: false, message: 'Preencha serviço, horário, nome e WhatsApp.' }, { status: 400 });
+    }
+
+    if (!isValidClientWhatsapp(normalizeClientWhatsapp(client_whatsapp))) {
+      return NextResponse.json({ success: false, message: INVALID_WHATSAPP_MESSAGE }, { status: 400 });
     }
 
     const normalizedSlug = normalizeSlug(slug);

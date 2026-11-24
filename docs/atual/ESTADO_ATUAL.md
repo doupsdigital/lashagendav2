@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-24 — F5.1 concluída (agendamento com vários serviços).**
+> Última atualização: **2026-11-24 — F5.2 concluída (cliente por WhatsApp).**
 
 ---
 
@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F5 — Agendamento pela cliente** (F5.1 ✅) |
-| **Próxima etapa** | **F5.2 — Cliente por WhatsApp** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fase atual** | **F5 — Agendamento pela cliente** (F5.1 ✅, F5.2 ✅) |
+| **Próxima etapa** | **F5.3 — Modos de agendamento** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -43,7 +43,8 @@
     Manutenção em 3 opções, gravados por `insertStudioServices` em todo estúdio novo (prévia
     ou compra direta). Fotos em `public/modelos/mosaico/assets/img/`.
   - `lib/scheduling/booking-service.ts` — cliente com dedupe por WhatsApp (guardado só com
-    dígitos, sem o 55) + agendamento + itens. `agenda-service.ts` monta o formato da Agenda.
+    dígitos, sem o 55) — regras do número em `client-phone.ts` (F5.2: com o 9 do celular, acha
+    cadastro antigo sem o 9, recusa número inválido) + agendamento + itens. `agenda-service.ts` monta o formato da Agenda.
 - `docs/schema.sql`: **schema v2** (fonte da verdade do banco; 12 tabelas, travas e segurança).
 - `docs/schema_studiomenu_base.sql`: schema do StudioMenu usado na F1 (só referência; já apagado do dev).
 - `docs/referencias/prototipo-inicio-app.html`: protótipo aprovado do Início (base da F9.1).
@@ -56,6 +57,8 @@
   `node --env-file=.env.development.local scripts/dev-seed-studio.mjs`
 - `scripts/test-availability.mjs` (F4.3): testes do motor de horários (almoço, bloqueios, folga,
   antecedência, janela, agendamento manual), sem banco nem servidor. Uso: `npm run test:availability`.
+- `scripts/test-client-phone.mjs` (F5.2): regras do WhatsApp da cliente (55, 0, 9 do celular,
+  fixo, inválidos). `npm test` roda os dois scripts de teste.
 
 ### Ambientes
 

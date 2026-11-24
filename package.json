@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:availability": "node scripts/test-availability.mjs"
+    "test:availability": "node scripts/test-availability.mjs",
+    "test": "node scripts/test-availability.mjs && node scripts/test-client-phone.mjs",
+    "test:phone": "node scripts/test-client-phone.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

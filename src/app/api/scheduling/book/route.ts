@@ -12,6 +12,7 @@ import {
   type BookingItemRef,
 } from '@/lib/scheduling/booking-service';
 import { priceToLabel } from '@/lib/service-format';
+import { INVALID_WHATSAPP_MESSAGE, isValidClientWhatsapp, normalizeClientWhatsapp } from '@/lib/scheduling/client-phone';
 import { sendPushToStudio } from '@/lib/push-notifications';
 
 /** POST /api/scheduling/book
@@ -47,6 +48,10 @@ export async function POST(request: Request) {
 
     if (!slug || refs.length === 0 || !starts_at || !client_name?.trim() || !client_whatsapp?.trim()) {
       return NextResponse.json({ success: false, message: 'Preencha nome, WhatsApp e escolha um horário.' }, { status: 400 });
+    }
+
+    if (!isValidClientWhatsapp(normalizeClientWhatsapp(client_whatsapp))) {
+      return NextResponse.json({ success: false, message: INVALID_WHATSAPP_MESSAGE }, { status: 400 });
     }
 
     const startsAtDate = new Date(starts_at);
