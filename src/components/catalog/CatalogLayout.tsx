@@ -287,11 +287,16 @@ export const CatalogLayout: React.FC<CatalogLayoutProps> = ({
         // ids reais que o banco gerou (ver comentário no endpoint) — sem
         // pushState (não é uma mudança de conteúdo pra entrar no
         // undo/redo, só uma correção interna de id).
-        const idMap = res.idMap as Record<string, string> | undefined;
-        if (idMap && Object.keys(idMap).length > 0) {
+        const idMap = (res.idMap || {}) as Record<string, string>;
+        const variationIdMap = (res.variationIdMap || {}) as Record<string, string>;
+        if (Object.keys(idMap).length > 0 || Object.keys(variationIdMap).length > 0) {
           setCatalogState((prev) => ({
             ...prev,
-            procedures: prev.procedures.map((p) => (idMap[p.id] ? { ...p, id: idMap[p.id] } : p)),
+            procedures: prev.procedures.map((p) => ({
+              ...p,
+              id: idMap[p.id] || p.id,
+              variations: p.variations?.map((v) => (variationIdMap[v.id] ? { ...v, id: variationIdMap[v.id] } : v)),
+            })),
           }));
         }
         if (!options?.silent) setActiveModal('save_success');

@@ -27,6 +27,9 @@ export interface ProcedureItem {
   /** Se false, o procedimento fica de fora do agendamento automático (ex:
    *  "sob consulta"), mesmo com o catálogo tendo `booking_enabled = true`. */
   bookable?: boolean;
+  /** `false` = escondido do catálogo público (continua no editor). Ausente
+   *  conta como ativo. */
+  active?: boolean;
   category?: string;
   image_url?: string;
   /** Fotos extras do procedimento (pedido real, 2026-10-22 — uma cliente

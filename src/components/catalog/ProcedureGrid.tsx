@@ -73,8 +73,11 @@ const SortableProcCard: React.FC<{
   /** Âncora pro tour guiado do editor (`cat-edit-proc`) — só passada pelo
    *  primeiro card da lista, já que a barra de ações só existe por card. */
   dataTour?: string;
+  /** Serviço escondido do catálogo — no editor aparece apagado, com a
+   *  etiqueta "Oculto". */
+  inactive?: boolean;
   children: React.ReactNode;
-}> = ({ id, isEditMode, onEdit, onDelete, dataTour, children }) => {
+}> = ({ id, isEditMode, onEdit, onDelete, dataTour, inactive = false, children }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: !isEditMode });
 
   const style: React.CSSProperties = {
@@ -101,7 +104,14 @@ const SortableProcCard: React.FC<{
           </span>
         </>
       )}
-      {children}
+      {inactive && isEditMode ? (
+        <>
+          <div className="lm-svc-inactive">{children}</div>
+          <span className="lm-svc-inactive-tag">Oculto</span>
+        </>
+      ) : (
+        children
+      )}
     </div>
   );
 };
@@ -472,6 +482,7 @@ export const ProcedureGrid: React.FC<ProcedureGridProps> = ({
                     onEdit={() => onEditProc?.(item)}
                     onDelete={() => onDeleteProc?.(item)}
                     dataTour={idx === 0 ? 'cat-edit-proc' : undefined}
+                    inactive={item.active === false}
                   >
                     <ServicoCardLista
                       item={item}
@@ -494,6 +505,7 @@ export const ProcedureGrid: React.FC<ProcedureGridProps> = ({
                     onEdit={() => onEditProc?.(item)}
                     onDelete={() => onDeleteProc?.(item)}
                     dataTour={idx === 0 ? 'cat-edit-proc' : undefined}
+                    inactive={item.active === false}
                   >
                     <ProcedureCard
                       item={item}

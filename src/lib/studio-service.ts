@@ -4,6 +4,7 @@ import { normalizeWhatsappBR } from './format';
 import { RESERVED_SLUGS } from './reserved-slugs';
 import { parseOnboardingSteps, type OnboardingSteps } from './self-serve-onboarding';
 import { hasPaidAccess, isAccessLapsed, isBookingLive } from './studio-access';
+import { randomUUID } from 'node:crypto';
 import { resolveDurationMinutes, toNumberOrNull } from './service-format';
 import { nichePresetsMap } from '@/data/niche-presets';
 import type { CatalogOrderData, ProcedureItem, ProcedureVariation } from '@/types/catalog';
@@ -77,6 +78,7 @@ export function serviceToProcedure(s: ServiceRow, variations: ServiceVariationRo
     price_from: Boolean(s.price_from),
     duration_minutes: resolveDurationMinutes(s.duration_minutes),
     bookable: s.bookable,
+    active: s.active,
     category: s.category || 'Geral',
     image_url: s.image_url || '',
     extra_photos: Array.isArray(s.extra_photos) ? s.extra_photos : [],
@@ -128,11 +130,45 @@ export function buildServicesPayload(procedures: ProcedureItem[], studioId: stri
       is_highlight: Boolean(p.is_highlight),
       specs: cleanSpecs(p.specs),
       bookable: p.bookable !== false,
-      active: true,
+      active: p.active !== false,
     };
     if (isValidServiceId(p.id)) row.id = p.id;
     return row;
   });
+}
+
+/** Limite de variações por serviço aceito no salvar. */
+export const MAX_VARIATIONS_PER_SERVICE = 20;
+
+/** Linhas de `service_variations` de um serviço a partir do editor. Variação
+ *  com id que já é deste serviço (`ownIds`) mantém o id (agendamentos
+ *  apontam para ela); a nova ganha um UUID gerado aqui, devolvido no
+ *  `idMap` para o editor trocar o id provisório. Sem nome = descartada. */
+export function buildVariationRows(
+  variations: ProcedureVariation[] | undefined,
+  serviceId: string,
+  ownIds: Set<string>,
+  idMap: Record<string, string>
+) {
+  return (variations || [])
+    .filter((v) => (v.name || '').trim())
+    .slice(0, MAX_VARIATIONS_PER_SERVICE)
+    .map((v, index) => {
+      let id = v.id;
+      if (!isValidServiceId(id) || !ownIds.has(id)) {
+        id = randomUUID();
+        if (v.id) idMap[v.id] = id;
+      }
+      const price = toNumberOrNull(v.price);
+      return {
+        id,
+        service_id: serviceId,
+        position: index,
+        name: v.name.trim().slice(0, 80),
+        duration_minutes: resolveDurationMinutes(v.duration_minutes),
+        price: price !== null && price >= 0 ? Math.round(price * 100) / 100 : null,
+      };
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -190,12 +226,17 @@ export function studioToCatalog(
   };
 }
 
-/** Estúdio + serviços ativos (com variações) no formato do catálogo. Inclui o `edit_token` —
- *  quem renderiza no navegador tem de removê-lo antes (ver `/c/[slug]`). */
-export async function getCatalogBySlug(slug: string): Promise<CatalogOrderData | null> {
+/** Estúdio + serviços (com variações) no formato do catálogo. Por padrão só
+ *  os ativos; o editor pede `includeInactive` — salvar apaga o que não veio,
+ *  então o editor tem de receber todos. Inclui o `edit_token` — quem
+ *  renderiza no navegador tem de removê-lo antes (ver `/c/[slug]`). */
+export async function getCatalogBySlug(
+  slug: string,
+  options?: { includeInactive?: boolean }
+): Promise<CatalogOrderData | null> {
   const studio = await getStudioBySlug(slug);
   if (!studio) return null;
-  const services = await getStudioServices(studio.id);
+  const services = await getStudioServices(studio.id, options);
   const variations = await getServiceVariations(services.map((s) => s.id));
   return studioToCatalog(studio, services, variations);
 }

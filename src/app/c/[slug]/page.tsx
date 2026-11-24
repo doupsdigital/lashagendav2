@@ -78,7 +78,9 @@ export async function generateMetadata({ params }: CatalogPageProps): Promise<Me
 export default async function CatalogPage({ params, searchParams }: CatalogPageProps) {
   const { slug } = await params;
   const { edit, new: isNew, embed } = await searchParams;
-  const catalog = await getCatalogBySlug(slug);
+  // Com os inativos: se for o editor (token certo), ele precisa de todos;
+  // para a visitante eles saem logo abaixo, antes de ir para o navegador.
+  const catalog = await getCatalogBySlug(slug, { includeInactive: true });
 
   if (!catalog) {
     return (
@@ -160,7 +162,10 @@ export default async function CatalogPage({ params, searchParams }: CatalogPageP
   // Nunca repassar o edit_token real pro client component — ele nunca é lido no
   // client (que usa o token vindo da própria URL), e enviá-lo exporia a credencial
   // de edição de todo catálogo a qualquer visitante, não só a quem tem o link mágico.
-  const { edit_token: _editToken, ...publicCatalog } = catalog;
+  const { edit_token: _editToken, ...catalogWithoutToken } = catalog;
+  const publicCatalog = isEditAuthorized
+    ? catalogWithoutToken
+    : { ...catalogWithoutToken, procedures: catalogWithoutToken.procedures.filter((p) => p.active !== false) };
 
   // Prévia grátis (2026-11-18): ganha os botões de Tema/Modelo do showroom,
   // que só trocam a aparência na tela — nada vai pro banco.

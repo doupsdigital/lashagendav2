@@ -10,7 +10,7 @@ interface CatalogoPageProps {
 
 export default async function CatalogoPage({ params }: CatalogoPageProps) {
   const { slug } = await params;
-  const catalog = await getCatalogBySlug(slug);
+  const catalog = await getCatalogBySlug(slug, { includeInactive: true });
 
   if (!catalog || !catalog.edit_token) notFound();
 

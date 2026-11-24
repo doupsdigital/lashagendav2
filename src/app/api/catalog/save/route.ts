@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { CatalogOrderData } from '@/types/catalog';
-import { buildServicesPayload, buildStudioUpdateFromCatalog, isValidServiceId, normalizeSlug } from '@/lib/studio-service';
+import {
+  buildServicesPayload,
+  buildStudioUpdateFromCatalog,
+  buildVariationRows,
+  isValidServiceId,
+  normalizeSlug,
+} from '@/lib/studio-service';
 import { isPreviewStudio } from '@/lib/studio-access';
 
 export async function POST(request: Request) {
@@ -65,6 +71,8 @@ export async function POST(request: Request) {
     // Devolve o mapa id-provisório → id-real para o editor trocar na hora
     // (sem isso, salvar duas vezes o mesmo serviço novo duplicava a linha).
     const idMap: Record<string, string> = {};
+    // Mesmo papel do `idMap`, para as variações novas.
+    const variationIdMap: Record<string, string> = {};
 
     if (Array.isArray(catalogData.procedures)) {
       const { data: existingRows, error: existingErr } = await supabaseAdmin
@@ -129,9 +137,51 @@ export async function POST(request: Request) {
         const { error: deleteErr } = await supabaseAdmin.from('services').delete().in('id', toDelete);
         if (deleteErr) console.error('[API Catalog Save] Erro ao apagar serviços removidos:', deleteErr);
       }
+
+      // 4. Variações (F3.3) — só dos serviços que vieram com a lista
+      // `variations` (ausente = não mexe). Mesma ideia do upsert dos
+      // serviços: id estável para as que já existem, apaga as que saíram.
+      const withVariations = catalogData.procedures
+        .map((p) => ({ p, serviceId: ownIds.has(p.id) ? p.id : idMap[p.id] }))
+        .filter((x): x is { p: (typeof x)['p']; serviceId: string } => Boolean(x.serviceId) && Array.isArray(x.p.variations));
+
+      if (withVariations.length > 0) {
+        const serviceIds = withVariations.map((x) => x.serviceId);
+        const { data: existingVars, error: varsErr } = await supabaseAdmin
+          .from('service_variations')
+          .select('id, service_id')
+          .in('service_id', serviceIds);
+
+        if (varsErr) {
+          console.error('[API Catalog Save] Erro ao listar variações:', varsErr);
+          return NextResponse.json({ success: false, message: 'Erro ao salvar as opções dos serviços.' }, { status: 500 });
+        }
+
+        const varRows = withVariations.flatMap(({ p, serviceId }) => {
+          const own = new Set((existingVars || []).filter((v) => v.service_id === serviceId).map((v) => v.id as string));
+          return buildVariationRows(p.variations, serviceId, own, variationIdMap);
+        });
+        const keepVarIds = new Set(varRows.map((r) => r.id));
+
+        if (varRows.length > 0) {
+          const { error: varUpsertErr } = await supabaseAdmin.from('service_variations').upsert(varRows, { onConflict: 'id' });
+          if (varUpsertErr) {
+            console.error('[API Catalog Save] Erro ao gravar variações:', varUpsertErr);
+            return NextResponse.json({ success: false, message: 'Erro ao salvar as opções dos serviços.' }, { status: 500 });
+          }
+        }
+
+        const varsToDelete = (existingVars || []).map((v) => v.id as string).filter((id) => !keepVarIds.has(id));
+        if (varsToDelete.length > 0) {
+          // `appointment_items.variation_id` vira NULL; o item guarda cópia
+          // do nome/duração/preço, então o histórico não muda.
+          const { error: varDeleteErr } = await supabaseAdmin.from('service_variations').delete().in('id', varsToDelete);
+          if (varDeleteErr) console.error('[API Catalog Save] Erro ao apagar variações removidas:', varDeleteErr);
+        }
+      }
     }
 
-    return NextResponse.json({ success: true, message: 'Catálogo publicado com sucesso!', idMap });
+    return NextResponse.json({ success: true, message: 'Catálogo publicado com sucesso!', idMap, variationIdMap });
   } catch (error: unknown) {
     console.error('[API Catalog Save Exception]:', error);
     return NextResponse.json(

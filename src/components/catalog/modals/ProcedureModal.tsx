@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { ProcedureItem } from '@/types/catalog';
+import type { ProcedureItem, ProcedureVariation } from '@/types/catalog';
 import { formatCurrencyBRL } from '@/lib/format';
 import { parsePriceLabel } from '@/lib/service-format';
 import { useFilePickerFallback } from '@/lib/use-file-picker-fallback';
@@ -12,11 +12,79 @@ type ProcForm = ProcedureItem & { maintenance?: string; visualEffect?: string };
 const DURATION_HOUR_OPTIONS = [0, 1, 2, 3, 4, 5, 6];
 const DURATION_MINUTE_OPTIONS = [0, 15, 30, 45];
 
-/** Arredonda pro múltiplo de 15 mais próximo — cobre o raro caso de um
- *  catálogo antigo ter uma duração "torta" (ex: extraída por IA de um
- *  texto incomum) que não bate certinho com as opções do seletor. */
-function roundToNearestQuarter(minutes: number): number {
-  return Math.round(minutes / 15) * 15;
+/** Seletor de duração (horas + minutos), sem estado próprio: o valor vem
+ *  sempre do serviço/variação. Uma duração fora das opções (ex.: 50 min de um
+ *  serviço antigo) entra como opção extra em vez de sumir do seletor. */
+function DurationSelect({ value, onChange }: { value: number; onChange: (minutes: number) => void }) {
+  const hours = Math.floor((value || 0) / 60);
+  const minutes = (value || 0) % 60;
+  const hourOptions = DURATION_HOUR_OPTIONS.includes(hours) ? DURATION_HOUR_OPTIONS : [...DURATION_HOUR_OPTIONS, hours];
+  const minuteOptions = DURATION_MINUTE_OPTIONS.includes(minutes)
+    ? DURATION_MINUTE_OPTIONS
+    : [...DURATION_MINUTE_OPTIONS, minutes].sort((a, b) => a - b);
+  return (
+    <div className="lm-duration-select">
+      <select
+        className="lm-form-select"
+        aria-label="Horas"
+        value={hours}
+        onChange={(e) => onChange(Number(e.target.value) * 60 + minutes)}
+      >
+        {hourOptions.map((h) => (
+          <option key={h} value={h}>
+            {h}h
+          </option>
+        ))}
+      </select>
+      <select
+        className="lm-form-select"
+        aria-label="Minutos"
+        value={minutes}
+        onChange={(e) => onChange(hours * 60 + Number(e.target.value))}
+      >
+        {minuteOptions.map((m) => (
+          <option key={m} value={m}>
+            {m}min
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/** Linha com chave liga/desliga (botão, não checkbox: o CSS dos campos do
+ *  editor estica qualquer `input` para 100% da largura). */
+function SwitchRow({
+  label,
+  hint,
+  checked,
+  disabled = false,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      className={`lm-switch-row${checked ? ' is-on' : ''}`}
+      onClick={() => onChange(!checked)}
+    >
+      <span className="lm-switch-row__text">
+        <span className="lm-switch-row__label">{label}</span>
+        {hint && <span className="lm-switch-row__hint">{hint}</span>}
+      </span>
+      <span className="lm-switch" aria-hidden="true">
+        <span className="lm-switch__knob" />
+      </span>
+    </button>
+  );
 }
 
 const MAX_EXTRA_PHOTOS = 2;
@@ -24,6 +92,12 @@ const MAX_EXTRA_PHOTOS = 2;
 /** Preço do serviço (número) → texto do campo com máscara ("R$ 150,00"). */
 function priceToInput(price: number | null | undefined): string {
   return typeof price === 'number' ? formatCurrencyBRL(String(Math.round(price * 100))) : '';
+}
+
+/** Texto digitado no campo de preço → número (vazio = `null`, sob consulta). */
+function inputToPrice(text: string): number | null {
+  const masked = formatCurrencyBRL(text);
+  return masked ? parsePriceLabel(masked).price : null;
 }
 
 interface ProcedureModalProps {
@@ -62,11 +136,29 @@ export const ProcedureModal: React.FC<ProcedureModalProps> = ({
   onSaveProcedure,
   onClose,
 }) => {
-  const initialTotalMinutes = roundToNearestQuarter(procForm.duration_minutes || 0);
-  // O campo de preço mostra o texto com máscara; o serviço guarda o número.
-  const [priceText, setPriceText] = useState(() => priceToInput(procForm.price));
-  const [durationHours, setDurationHours] = useState(() => Math.min(6, Math.floor(initialTotalMinutes / 60)));
-  const [durationMinutesPart, setDurationMinutesPart] = useState(() => initialTotalMinutes % 60);
+  // Variações (F3.3): editadas dentro do próprio serviço; ids novos são
+  // provisórios até salvar (o servidor devolve os reais).
+  const variations = procForm.variations || [];
+  const setVariations = (next: ProcedureVariation[]) => setProcForm((prev) => ({ ...prev, variations: next }));
+  const updateVariation = (index: number, patch: Partial<ProcedureVariation>) =>
+    setVariations(variations.map((v, i) => (i === index ? { ...v, ...patch } : v)));
+  const moveVariation = (index: number, delta: number) => {
+    const target = index + delta;
+    if (target < 0 || target >= variations.length) return;
+    const next = [...variations];
+    [next[index], next[target]] = [next[target], next[index]];
+    setVariations(next);
+  };
+  const addVariation = () =>
+    setVariations([
+      ...variations,
+      {
+        id: `nova-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: '',
+        duration_minutes: procForm.duration_minutes || 60,
+        price: procForm.price,
+      },
+    ]);
   const { showStuckHint, copied, handleLabelClick, handleChange: handleFileChange, copyPageLink } = useFilePickerFallback(onFileUpload);
   // Quantas linhas de foto extra já estão reveladas — uma por clique em
   // "+ Adicionar mais fotos" (pedido real, 2026-10-22: mesmo formato da
@@ -84,7 +176,6 @@ export const ProcedureModal: React.FC<ProcedureModalProps> = ({
   // mas muda de novo quando o pai corrige — refazendo este efeito).
   useEffect(() => {
     setExtraRowCount(procForm.extra_photos?.length || 0);
-    setPriceText(priceToInput(procForm.price));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [procForm.id]);
   const extraSlot0 = useFilePickerFallback((e) => onFileUploadExtra?.(e, 0));
@@ -166,11 +257,6 @@ export const ProcedureModal: React.FC<ProcedureModalProps> = ({
     removeExtraPhoto(index);
   };
 
-  const applyDuration = (hours: number, minutesPart: number) => {
-    const total = hours * 60 + minutesPart;
-    setProcForm({ ...procForm, duration_minutes: total });
-  };
-
   return (
     <div className="lm-modal-card lm-modal-card--procedure">
       <h3 className="lm-modal-title lm-modal-title--banner">
@@ -210,13 +296,16 @@ export const ProcedureModal: React.FC<ProcedureModalProps> = ({
         <input
           type="text"
           inputMode="decimal"
-          value={priceText}
-          onChange={(e) => {
-            const masked = formatCurrencyBRL(e.target.value);
-            setPriceText(masked);
-            setProcForm({ ...procForm, price: masked ? parsePriceLabel(masked).price : null });
-          }}
+          value={priceToInput(procForm.price)}
+          onChange={(e) => setProcForm({ ...procForm, price: inputToPrice(e.target.value) })}
           placeholder="Vazio = Sob consulta"
+        />
+        <SwitchRow
+          label="Mostrar “A partir de”"
+          hint={procForm.price === null ? 'Sem preço, o catálogo mostra “Sob consulta”.' : `Fica “A partir de ${priceToInput(procForm.price)}”.`}
+          checked={procForm.price !== null && Boolean(procForm.price_from)}
+          disabled={procForm.price === null}
+          onChange={(checked) => setProcForm({ ...procForm, price_from: checked })}
         />
       </div>
 
@@ -228,38 +317,81 @@ export const ProcedureModal: React.FC<ProcedureModalProps> = ({
          *  no catálogo) e `duration_minutes` (o que o agendamento automático
          *  usa) são sempre derivados juntos daqui — nunca mais digitados
          *  separadamente. */}
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <select
-            className="lm-form-select"
-            value={durationHours}
-            onChange={(e) => {
-              const hours = Number(e.target.value);
-              setDurationHours(hours);
-              applyDuration(hours, durationMinutesPart);
-            }}
-          >
-            {DURATION_HOUR_OPTIONS.map((h) => (
-              <option key={h} value={h}>
-                {h}h
-              </option>
-            ))}
-          </select>
-          <select
-            className="lm-form-select"
-            value={durationMinutesPart}
-            onChange={(e) => {
-              const minutesPart = Number(e.target.value);
-              setDurationMinutesPart(minutesPart);
-              applyDuration(durationHours, minutesPart);
-            }}
-          >
-            {DURATION_MINUTE_OPTIONS.map((m) => (
-              <option key={m} value={m}>
-                {m}min
-              </option>
-            ))}
-          </select>
-        </div>
+        <DurationSelect
+          value={procForm.duration_minutes || 0}
+          onChange={(minutes) => setProcForm({ ...procForm, duration_minutes: minutes })}
+        />
+      </div>
+
+      <div className="lm-form-group">
+        <label>OPÇÕES DO SERVIÇO (OPCIONAL)</label>
+        <p className="lm-field-hint">
+          Ex.: Manutenção “Fio a fio” e “Volume”. A cliente escolhe uma ao agendar, cada uma com a própria duração e preço.
+        </p>
+        {variations.map((v, i) => (
+          <div className="lm-variation" key={v.id}>
+            <div className="lm-variation__top">
+              <input
+                type="text"
+                value={v.name}
+                maxLength={80}
+                aria-label={`Nome da opção ${i + 1}`}
+                placeholder="Nome da opção"
+                onChange={(e) => updateVariation(i, { name: e.target.value })}
+              />
+              <div className="lm-variation__actions">
+                <button type="button" aria-label="Subir opção" disabled={i === 0} onClick={() => moveVariation(i, -1)}>
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  aria-label="Descer opção"
+                  disabled={i === variations.length - 1}
+                  onClick={() => moveVariation(i, 1)}
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  aria-label="Remover opção"
+                  className="lm-variation__remove"
+                  onClick={() => setVariations(variations.filter((_, j) => j !== i))}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="lm-variation__bottom">
+              <DurationSelect value={v.duration_minutes} onChange={(minutes) => updateVariation(i, { duration_minutes: minutes })} />
+              <input
+                type="text"
+                inputMode="decimal"
+                aria-label={`Preço da opção ${i + 1}`}
+                value={priceToInput(v.price)}
+                placeholder="Sob consulta"
+                onChange={(e) => updateVariation(i, { price: inputToPrice(e.target.value) })}
+              />
+            </div>
+          </div>
+        ))}
+        <button type="button" className="lm-btn-add-cat-inline" onClick={addVariation}>
+          + Adicionar opção
+        </button>
+      </div>
+
+      <div className="lm-form-group">
+        <SwitchRow
+          label="Mostrar no catálogo"
+          hint="Desligado, o serviço some do catálogo mas continua salvo aqui."
+          checked={procForm.active !== false}
+          onChange={(checked) => setProcForm({ ...procForm, active: checked })}
+        />
+        <SwitchRow
+          label="Cliente pode agendar online"
+          hint="Desligado, o botão de agendar leva para o seu WhatsApp."
+          checked={procForm.bookable !== false}
+          onChange={(checked) => setProcForm({ ...procForm, bookable: checked })}
+        />
       </div>
 
       <div className="lm-form-group">
@@ -461,6 +593,14 @@ export const ProcedureModal: React.FC<ProcedureModalProps> = ({
             }
             if (!procForm.duration_minutes || procForm.duration_minutes < 5) {
               setProcFormError('Por favor escolha a duração do procedimento.');
+              return;
+            }
+            if (variations.some((v) => !v.name.trim())) {
+              setProcFormError('Dê um nome para cada opção (ou remova a que estiver vazia).');
+              return;
+            }
+            if (variations.some((v) => !v.duration_minutes || v.duration_minutes < 5)) {
+              setProcFormError('Escolha a duração de cada opção.');
               return;
             }
             setProcFormError('');
