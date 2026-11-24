@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-24 — F3.1 concluída (catálogo público no modelo novo).**
+> Última atualização: **2026-11-24 — F3.2 concluída (variações no catálogo).**
 
 ---
 
@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F3 — Catálogo público + editor visual** (F3.1 ✅) |
-| **Próxima etapa** | **F3.2 — Variações no catálogo** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fase atual** | **F3 — Catálogo público + editor visual** (F3.1 ✅, F3.2 ✅) |
+| **Próxima etapa** | **F3.3 — Editor visual** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -102,8 +102,8 @@ Web Push.
 - [ ] Herdado do StudioMenu, a resolver nas fases indicadas (anotado na F2.2):
   - **F3.3:** o editor de serviço só ganhou o ajuste mínimo na F3.1 (preço vazio = "Sob
     consulta", duração obrigatória); falta marcar "a partir de" e o resto do editor novo.
-  - **F3.2/F5:** as variações já existem no banco e nas APIs de horário/agendamento
-    (`variation_id`), mas o catálogo ainda não mostra nem envia.
+  - **F3.3:** o catálogo mostra e agenda variações (F3.2), mas o editor ainda não cria nem
+    edita variações (só o seed tem).
   - **F4:** o motor de horários (`lib/scheduling/availability.ts`) ainda lê **uma faixa por
     dia**; o banco já aceita várias (pausa de almoço). Também falta aplicar
     `min_notice_minutes`/`booking_window_days` do estúdio (hoje usa a folga fixa de 30 min).

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ProcedureItem } from '@/types/catalog';
 import { ProcedureImage } from './ProcedureImage';
 import { ProcedureImageGallery } from './ProcedureImageGallery';
-import { durationToLabel, procedurePriceLabel } from '@/lib/service-format';
+import { durationToLabel, priceToLabel, procedurePriceLabel, procedureWithVariation } from '@/lib/service-format';
 
 interface ProcedureDetailModalProps {
   item: ProcedureItem;
@@ -40,6 +40,22 @@ export const ProcedureDetailModal: React.FC<ProcedureDetailModalProps> = ({
   const [galleryOpen, setGalleryOpen] = useState(false);
   const photos = [item.image_url, ...(item.extra_photos || [])].filter((url): url is string => Boolean(url));
 
+  // Variações (F3.2): a cliente escolhe uma antes de agendar. Com uma só, já
+  // vem marcada. As setas ← → trocam o `item` sem desmontar o modal, por isso
+  // a escolha é refeita quando muda o serviço.
+  const variations = item.variations || [];
+  const [selectedVariationId, setSelectedVariationId] = useState<string | null>(
+    variations.length === 1 ? variations[0].id : null
+  );
+  useEffect(() => {
+    const list = item.variations || [];
+    setSelectedVariationId(list.length === 1 ? list[0].id : null);
+  }, [item.id, item.variations]);
+  const selectedVariation = variations.find((v) => v.id === selectedVariationId) || null;
+  const needsVariationChoice = variations.length > 0 && !selectedVariation;
+  // O que segue para o agendamento/WhatsApp: o serviço ou a variação escolhida.
+  const bookingTarget = selectedVariation ? procedureWithVariation(item, selectedVariation) : item;
+
   // Lock body scroll when modal is active
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -62,21 +78,27 @@ export const ProcedureDetailModal: React.FC<ProcedureDetailModalProps> = ({
   }, [onClose, galleryOpen]);
 
   // Investimento e Duração sempre saem dos números do serviço; os `specs`
-  // (Manutenção, Efeito Visual…) entram depois.
+  // (Manutenção, Efeito Visual…) entram depois. Com variações, cada opção
+  // já mostra a própria duração e preço — as duas linhas saem.
   const getSpecs = (): [string, string][] => [
-    ['Investimento', procedurePriceLabel(item)],
-    ['Duração', durationToLabel(item.duration_minutes)],
+    ...(variations.length > 0
+      ? []
+      : ([
+          ['Investimento', procedurePriceLabel(item)],
+          ['Duração', durationToLabel(item.duration_minutes)],
+        ] as [string, string][])),
     ...(item.specs || []),
   ];
 
   const firstName = clientName?.trim() ? clientName.trim().split(' ')[0] : '';
   const greeting = firstName ? `Olá, ${firstName}!` : 'Olá!';
   const messageText = encodeURIComponent(
-    `${greeting} Estava vendo seu catálogo digital e gostaria de agendar o procedimento: *${item.title}*.`
+    `${greeting} Estava vendo seu catálogo digital e gostaria de agendar o procedimento: *${bookingTarget.title}*.`
   );
   const whatsappUrl = `https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${messageText}`;
 
-  const canBook = bookingEnabled && item.bookable !== false && !!item.duration_minutes && item.duration_minutes > 0;
+  const canBook =
+    bookingEnabled && item.bookable !== false && !!bookingTarget.duration_minutes && bookingTarget.duration_minutes > 0;
 
   return (
     <div className="modal-detalhe" role="dialog" aria-modal="true" aria-label={item.title}>
@@ -118,14 +140,42 @@ export const ProcedureDetailModal: React.FC<ProcedureDetailModalProps> = ({
           <h3 className="modal__titulo">{item.title}</h3>
           {item.description && <p className="modal__desc">{item.description}</p>}
 
-          <div className="modal__specs">
-            {getSpecs().map(([k, v]) => (
-              <div key={k} className="modal__spec">
-                <span className="modal__spec-k">{k}</span>
-                <span className="modal__spec-v">{v}</span>
-              </div>
-            ))}
-          </div>
+          {variations.length > 0 && (
+            <div className="modal__opcoes" role="radiogroup" aria-label="Escolha uma opção">
+              <span className="modal__opcoes-titulo">Escolha uma opção</span>
+              {variations.map((v) => {
+                const checked = v.id === selectedVariationId;
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={checked}
+                    className={`modal__opcao${checked ? ' is-selected' : ''}`}
+                    onClick={() => setSelectedVariationId(v.id)}
+                  >
+                    <span className="modal__opcao-marca" aria-hidden="true" />
+                    <span className="modal__opcao-nome">{v.name}</span>
+                    <span className="modal__opcao-info">
+                      <span className="modal__opcao-preco">{priceToLabel(v.price)}</span>
+                      <span className="modal__opcao-duracao">{durationToLabel(v.duration_minutes)}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {getSpecs().length > 0 && (
+            <div className="modal__specs">
+              {getSpecs().map(([k, v]) => (
+                <div key={k} className="modal__spec">
+                  <span className="modal__spec-k">{k}</span>
+                  <span className="modal__spec-v">{v}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="modal__acoes">
             {/* Navegar pros outros procedimentos sem fechar o modal (pedido
@@ -149,11 +199,15 @@ export const ProcedureDetailModal: React.FC<ProcedureDetailModalProps> = ({
              *  a altura fixa do botão (48px) e quebrava numa segunda linha
              *  apertada. Texto curto nunca quebra, não importa o tamanho do
              *  nome do serviço. */}
-            {canBook ? (
+            {needsVariationChoice ? (
+              <button type="button" className="modal__cta" disabled>
+                Escolha uma opção
+              </button>
+            ) : canBook ? (
               <button
                 type="button"
                 className="modal__cta"
-                onClick={() => onBook?.(item)}
+                onClick={() => onBook?.(bookingTarget)}
               >
                 Agendar agora →
               </button>
@@ -161,7 +215,7 @@ export const ProcedureDetailModal: React.FC<ProcedureDetailModalProps> = ({
               <button
                 type="button"
                 className="modal__cta"
-                onClick={() => onFakeWhatsapp(item)}
+                onClick={() => onFakeWhatsapp(bookingTarget)}
               >
                 Agendar agora →
               </button>

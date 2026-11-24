@@ -1,6 +1,7 @@
 /** Formatação de preço e duração dos serviços (números do banco v2 → texto
  *  das telas). Arquivo puro, sem `server-only` — o catálogo usa no navegador. */
 import { formatMinutesToLabel, parseDurationToMinutes } from './format';
+import type { ProcedureItem, ProcedureVariation } from '@/types/catalog';
 
 export const PRICE_ON_REQUEST_LABEL = 'Sob Consulta';
 
@@ -54,6 +55,21 @@ export function parsePriceLabel(label: string | null | undefined): { price: numb
 /** Texto do preço de um serviço do catálogo. */
 export function procedurePriceLabel(item: { price: number | null; price_from?: boolean }): string {
   return priceToLabel(item.price, Boolean(item.price_from));
+}
+
+/** O serviço "virado" na variação escolhida, para o agendamento e as telas
+ *  seguintes: título "Serviço — Variação", duração e preço da variação. O
+ *  `id` continua o do serviço; a variação vai em `variation_id`. */
+export function procedureWithVariation(item: ProcedureItem, variation: ProcedureVariation): ProcedureItem {
+  return {
+    ...item,
+    title: `${item.title} — ${variation.name}`,
+    price: variation.price,
+    price_from: false,
+    duration_minutes: variation.duration_minutes,
+    variations: undefined,
+    variation_id: variation.id,
+  };
 }
 
 /** Minutos do banco → texto curto ("1h30min"). */

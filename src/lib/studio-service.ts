@@ -6,8 +6,8 @@ import { parseOnboardingSteps, type OnboardingSteps } from './self-serve-onboard
 import { hasPaidAccess, isAccessLapsed, isBookingLive } from './studio-access';
 import { resolveDurationMinutes, toNumberOrNull } from './service-format';
 import { nichePresetsMap } from '@/data/niche-presets';
-import type { CatalogOrderData, ProcedureItem } from '@/types/catalog';
-import type { BookingMode, CaktoPlan, PlanStatus, ServiceRow, StudioRow } from '@/types/studio';
+import type { CatalogOrderData, ProcedureItem, ProcedureVariation } from '@/types/catalog';
+import type { BookingMode, CaktoPlan, PlanStatus, ServiceRow, ServiceVariationRow, StudioRow } from '@/types/studio';
 
 /** Camada de dados do estúdio (F2.2) — substitui `catalog-service.ts`,
  *  `professional-app-service.ts` e `order-payload.ts` do StudioMenu.
@@ -43,11 +43,32 @@ export async function getStudioServices(studioId: string, options?: { includeIna
   return (data as ServiceRow[] | null) ?? [];
 }
 
+/** Variações dos serviços informados, na ordem do catálogo. */
+export async function getServiceVariations(serviceIds: string[]): Promise<ServiceVariationRow[]> {
+  if (serviceIds.length === 0) return [];
+  const { data, error } = await supabaseAdmin
+    .from('service_variations')
+    .select('*')
+    .in('service_id', serviceIds)
+    .order('position', { ascending: true });
+  if (error) console.error('[studio-service] getServiceVariations:', error);
+  return (data as ServiceVariationRow[] | null) ?? [];
+}
+
 // ---------------------------------------------------------------------------
 // Serviço <-> ProcedureItem (formato das telas do catálogo)
 // ---------------------------------------------------------------------------
 
-export function serviceToProcedure(s: ServiceRow): ProcedureItem {
+function variationToProcedure(v: ServiceVariationRow): ProcedureVariation {
+  return {
+    id: v.id,
+    name: v.name,
+    duration_minutes: resolveDurationMinutes(v.duration_minutes),
+    price: toNumberOrNull(v.price),
+  };
+}
+
+export function serviceToProcedure(s: ServiceRow, variations: ServiceVariationRow[] = []): ProcedureItem {
   return {
     id: s.id,
     title: s.title,
@@ -62,6 +83,7 @@ export function serviceToProcedure(s: ServiceRow): ProcedureItem {
     badge: s.badge || '',
     is_highlight: s.is_highlight,
     specs: cleanSpecs(s.specs),
+    variations: variations.filter((v) => v.service_id === s.id).map(variationToProcedure),
   };
 }
 
@@ -124,7 +146,11 @@ const DEFAULT_INSTRUCTIONS = [
   { id: 'pagamento', title: 'Pagamento', description: 'Dinheiro, Pix, cartão de débito ou crédito.' },
 ];
 
-export function studioToCatalog(studio: StudioRow, services: ServiceRow[]): CatalogOrderData {
+export function studioToCatalog(
+  studio: StudioRow,
+  services: ServiceRow[],
+  variations: ServiceVariationRow[] = []
+): CatalogOrderData {
   const ownerName = studio.owner_name || studio.slug;
   return {
     id: studio.id,
@@ -155,7 +181,7 @@ export function studioToCatalog(studio: StudioRow, services: ServiceRow[]): Cata
     final_screen_bg_url: studio.final_screen_bg_url || undefined,
     cta_bg_url: studio.cta_bg_url || undefined,
     categories: Array.isArray(studio.categories) ? studio.categories : [],
-    procedures: services.map(serviceToProcedure),
+    procedures: services.map((s) => serviceToProcedure(s, variations)),
     instructions: {
       items: Array.isArray(studio.instructions_items) ? studio.instructions_items : DEFAULT_INSTRUCTIONS,
     },
@@ -164,13 +190,14 @@ export function studioToCatalog(studio: StudioRow, services: ServiceRow[]): Cata
   };
 }
 
-/** Estúdio + serviços ativos no formato do catálogo. Inclui o `edit_token` —
+/** Estúdio + serviços ativos (com variações) no formato do catálogo. Inclui o `edit_token` —
  *  quem renderiza no navegador tem de removê-lo antes (ver `/c/[slug]`). */
 export async function getCatalogBySlug(slug: string): Promise<CatalogOrderData | null> {
   const studio = await getStudioBySlug(slug);
   if (!studio) return null;
   const services = await getStudioServices(studio.id);
-  return studioToCatalog(studio, services);
+  const variations = await getServiceVariations(services.map((s) => s.id));
+  return studioToCatalog(studio, services, variations);
 }
 
 /** Colunas de `studios` que o editor visual do catálogo grava. */

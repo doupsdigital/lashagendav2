@@ -2,6 +2,16 @@ export type NicheType = 'lash';
 export type LayoutModel = 'mosaico' | 'classico';
 export type ThemeVariant = 'rose' | 'luxury';
 
+/** Variação de um serviço (`service_variations`) — ex.: Manutenção "Fio a
+ *  fio" e "Volume", cada uma com duração e preço próprios. */
+export interface ProcedureVariation {
+  id: string;
+  name: string;
+  duration_minutes: number;
+  /** `null` = "Sob consulta". */
+  price: number | null;
+}
+
 export interface ProcedureItem {
   id: string;
   title: string;
@@ -28,6 +38,11 @@ export interface ProcedureItem {
   badge?: string;
   is_highlight?: boolean;
   specs?: [string, string][];
+  /** Variações na ordem do catálogo; vazio/ausente = serviço sem variação. */
+  variations?: ProcedureVariation[];
+  /** Só no item montado para agendar uma variação escolhida
+   *  (`procedureWithVariation`) — o agendamento envia junto com o `id`. */
+  variation_id?: string;
 }
 
 export interface CatalogInstructionItem {

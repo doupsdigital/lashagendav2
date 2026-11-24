@@ -99,6 +99,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setSelectedSlot(null);
     try {
       const params = new URLSearchParams({ slug, service_id: service.id, date: dateKey });
+      if (service.variation_id) params.set('variation_id', service.variation_id);
       const res = await fetch(`/api/scheduling/availability?${params.toString()}`);
       const json = await res.json();
       if (!json.success) {
@@ -132,6 +133,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         body: JSON.stringify({
           slug,
           service_id: service.id,
+          variation_id: service.variation_id,
           starts_at: selectedSlot.startsAt,
           client_name: clientName.trim(),
           client_whatsapp: clientWhatsapp.trim(),

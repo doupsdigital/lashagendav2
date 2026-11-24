@@ -2020,6 +2020,83 @@ button {
   text-align: right;
 }
 
+/* Variações do serviço (F3.2) — lista de escolha única antes de agendar. */
+.modal__opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.modal__opcoes-titulo {
+  font-size: 10.5px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--modal-spec-k-color);
+  margin-bottom: 2px;
+}
+
+.modal__opcao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--modal-spec-border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--modal-spec-v-color);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .2s ease, background-color .2s ease;
+}
+
+.modal__opcao.is-selected {
+  border-color: var(--modal-cta-bg);
+}
+
+.modal__opcao-marca {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--modal-spec-k-color);
+}
+
+.modal__opcao.is-selected .modal__opcao-marca {
+  border-color: var(--modal-cta-bg);
+  box-shadow: inset 0 0 0 4px var(--modal-cta-bg);
+}
+
+.modal__opcao-nome {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.modal__opcao-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.modal__opcao-preco {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 16px;
+}
+
+.modal__opcao-duracao {
+  font-size: 11.5px;
+  color: var(--modal-spec-k-color);
+}
+
+.modal__cta:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
 .modal__acoes {
   display: flex;
   gap: 10px;
@@ -2041,7 +2118,7 @@ button {
   transition: background-color .25s ease;
 }
 
-.modal__cta:hover {
+.modal__cta:hover:not(:disabled) {
   background: var(--modal-cta-hover-bg);
 }
 
