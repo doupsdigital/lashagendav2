@@ -106,6 +106,9 @@ export async function loadBookingItem(
   };
 }
 
+/** Tamanho máximo da observação da cliente. */
+export const MAX_CLIENT_NOTES = 500;
+
 /** Máximo de serviços num mesmo agendamento pela cliente (F5.1). */
 export const MAX_BOOKING_ITEMS = 5;
 
@@ -187,7 +190,7 @@ export async function createAppointment(input: CreateAppointmentInput): Promise<
       status: input.status,
       origin: input.origin,
       total_price: totalPrice(input.items),
-      client_notes: input.clientNotes?.trim() || null,
+      client_notes: input.clientNotes?.trim().slice(0, MAX_CLIENT_NOTES) || null,
     })
     .select('id, starts_at, ends_at, status, manage_token')
     .single();

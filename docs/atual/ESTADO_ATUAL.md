@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-24 — F5.2 concluída (cliente por WhatsApp).**
+> Última atualização: **2026-11-24 — F5.3 concluída (modos de agendamento).**
 
 ---
 
@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F5 — Agendamento pela cliente** (F5.1 ✅, F5.2 ✅) |
-| **Próxima etapa** | **F5.3 — Modos de agendamento** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fase atual** | **F5 — Agendamento pela cliente** (F5.1 ✅, F5.2 ✅, F5.3 ✅) |
+| **Próxima etapa** | **F5.4 — Tela de sucesso + link único** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -59,6 +59,9 @@
   antecedência, janela, agendamento manual), sem banco nem servidor. Uso: `npm run test:availability`.
 - `scripts/test-client-phone.mjs` (F5.2): regras do WhatsApp da cliente (55, 0, 9 do celular,
   fixo, inválidos). `npm test` roda os dois scripts de teste.
+- `scripts/dev-set-booking-mode.mjs` (F5.3): troca o modo de um estúdio do dev (`auto` ou
+  `aprovacao`) até existir a tela de regras (F10.2). Uso:
+  `node --env-file=.env.development.local scripts/dev-set-booking-mode.mjs auto`
 
 ### Ambientes
 

@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     }
 
     if (!isBookingLive(studio)) {
-      return NextResponse.json({ success: false, message: 'Agendamento automático não está ativo pra este catálogo.' }, { status: 400 });
+      return NextResponse.json({ success: false, message: 'A agenda online está fechada no momento. Fale com a profissional pelo WhatsApp.' }, { status: 400 });
     }
 
     const items = await loadBookingItems(studio.id, refs, { requireBookable: true });

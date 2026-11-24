@@ -31,7 +31,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     const { data: appointment, error: apptErr } = await supabaseAdmin
       .from('appointments')
-      .select('id, studios(slug)')
+      .select('id, status, studios(slug)')
       .eq('id', id)
       .maybeSingle();
 
@@ -44,6 +44,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ success: false, message: 'Sessão inválida ou expirada.' }, { status: 401 });
     }
 
+    // Cancelado não volta: o horário pode já ter sido ocupado por outra
+    // cliente (para remarcar, cria-se um agendamento novo).
+    if (appointment.status === 'canceled' && status !== 'canceled') {
+      return NextResponse.json({ success: false, message: 'Esse agendamento já foi cancelado.' }, { status: 409 });
+    }
+
     const update: Record<string, unknown> = { status };
     if (status === 'canceled') {
       update.canceled_at = new Date().toISOString();
@@ -52,6 +58,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     const { error: updateErr } = await supabaseAdmin.from('appointments').update(update).eq('id', id);
     if (updateErr) {
+      if (updateErr.code === '23P01') {
+        return NextResponse.json({ success: false, message: 'Já existe outro agendamento nesse horário.' }, { status: 409 });
+      }
       console.error('[API Professional Appointment Update] Erro:', updateErr);
       return NextResponse.json({ success: false, message: 'Erro ao atualizar o agendamento.' }, { status: 500 });
     }

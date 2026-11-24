@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     }
 
     if (!isBookingLive(studio)) {
-      return NextResponse.json({ success: false, message: 'Agendamento automático não está ativo pra este catálogo.' }, { status: 400 });
+      return NextResponse.json({ success: false, message: 'A agenda online está fechada no momento. Fale com a profissional pelo WhatsApp.' }, { status: 400 });
     }
 
     const items = await loadBookingItems(studio.id, refs, { requireBookable: true });
@@ -116,10 +116,13 @@ export async function POST(request: Request) {
     const dayMonth = startsAtDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' });
     const time = startsAtDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
 
+    // Modo automático: já está confirmado, o aviso só informa. Com aprovação:
+    // o aviso leva direto para a lista de "aguardando".
+    const confirmed = result.appointment.status === 'confirmed';
     await sendPushToStudio(studio.id, {
-      title: '📅 Novo agendamento',
+      title: confirmed ? '📅 Novo agendamento confirmado' : '⏳ Novo agendamento para confirmar',
       body: `${client_name.trim()} · ${items.map((i) => i.title).join(' + ')} · ${weekday}, ${dayMonth} às ${time}`,
-      url: `/app/${studio.slug}/agenda#pendentes`,
+      url: confirmed ? `/app/${studio.slug}/agenda` : `/app/${studio.slug}/agenda#pendentes`,
     });
 
     const { manage_token: _manageToken, ...appointment } = result.appointment;
