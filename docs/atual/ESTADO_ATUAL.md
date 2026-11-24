@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F2 — Modelo de dados v2 + camada de serviço** (não iniciada) |
-| **Próxima etapa** | **F2.1** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fase atual** | **F2 — Modelo de dados v2 + camada de serviço** |
+| **Próxima etapa** | **F2.2 — Tipos e serviços de dados** (F2.1 ✅: `docs/schema.sql` aprovado e aplicado no dev em 2026-11-24) |
 | **Fases concluídas** | F0, F1 |
 | **Bloqueios** | Nenhum |
 
@@ -23,19 +23,21 @@
 - **App Next.js** (`src/`, `public/`, configs na raiz): base do StudioMenu (`desenv` @ `092022e`)
   já limpa (sem Asaas, upsells, X1, nichos, admin de marketing, formulário de onboarding,
   pixel) e com a marca LashAgenda (paleta do v1, ícones do v1, textos, domínio
-  `lashagenda.com` em `lib/public-url.ts`). **Ainda usa o modelo de dados do StudioMenu
-  (`orders`)** — a troca é a F2.
-- `docs/schema_studiomenu_base.sql`: schema provisório aplicado no banco dev (só referência).
+  `lashagenda.com` em `lib/public-url.ts`). **O código ainda usa o modelo do StudioMenu
+  (`orders`)**, mas o banco dev já está no modelo v2 → **catálogo e app ficam quebrados (local e
+  preview) até a F2.2/F2.3** reescreverem a camada de dados e o script de teste.
+- `docs/schema.sql`: **schema v2** (fonte da verdade do banco; 12 tabelas, travas e segurança).
+- `docs/schema_studiomenu_base.sql`: schema do StudioMenu usado na F1 (só referência; já apagado do dev).
 - `docs/referencias/prototipo-inicio-app.html`: protótipo aprovado do Início (base da F9.1).
-- `scripts/dev-create-test-catalog.mjs`: cria/atualiza o catálogo de teste `teste-lash` no
-  banco dev (recusa rodar fora do `lashagendav2-dev`).
+- `scripts/dev-create-test-catalog.mjs`: script da F1 (modelo `orders`) — **não funciona mais**;
+  será substituído pelo `dev-seed-studio.mjs` na F2.3.
 
 ### Ambientes
 
 | | |
 |---|---|
 | **Node** | 22 (o `@supabase/supabase-js` atual quebra no Node 20). |
-| **Banco dev** | Supabase `lashagendav2-dev` (ref `psixalpmgcuydqfxlrto`), schema do StudioMenu. |
+| **Banco dev** | Supabase `lashagendav2-dev` (ref `psixalpmgcuydqfxlrto`), **schema v2** (`docs/schema.sql`, aplicado em 2026-11-24). |
 | **Local** | `.env.development.local` (3 chaves do Supabase dev) + `.env.local` (segredos de sessão e senha do admin). Ambos fora do Git. |
 | **Vercel** | Projeto `lashagendav2` (time "doupsdigital's projects", Hobby), Node 22.x, Vercel Authentication ligado. Variáveis só no **Preview** (as 6 do local, apontando para o dev; as secretas como Secret). A `main` ainda não tem o app, então o deploy de produção falha — esperado até a F13. |
 | **Preview fixo da `desenv`** | `https://lashagendav2-git-desenv-doupsdigital-s-projects.vercel.app` — catálogo em `/c/teste-lash`; app pelo link mágico `/api/professional/login?slug=teste-lash&token=…` (token impresso pelo script). No celular, logar na Vercel **antes** de abrir o link mágico (o redirect do login perde os parâmetros). |
