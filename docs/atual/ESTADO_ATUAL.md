@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-24 — Fase 1 concluída.**
+> Última atualização: **2026-11-24 — Fase 2 concluída.**
 
 ---
 
@@ -11,9 +11,9 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F2 — Modelo de dados v2 + camada de serviço** |
-| **Próxima etapa** | **F2.3 — Script de estúdio de teste** (F2.1 ✅ schema v2 aplicado no dev · F2.2 ✅ código no modelo v2, 2026-11-24) |
-| **Fases concluídas** | F0, F1 |
+| **Fase atual** | **F3 — Catálogo público + editor visual** (não iniciada) |
+| **Próxima etapa** | **F3.1 — Catálogo público sobre o modelo novo** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fases concluídas** | F0, F1, F2 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
 ## 2. O que existe no repositório
@@ -36,13 +36,16 @@
     Consulta") e duração. Ponte provisória até a F3.
   - `lib/scheduling/booking-service.ts` — cliente com dedupe por WhatsApp (guardado só com
     dígitos, sem o 55) + agendamento + itens. `agenda-service.ts` monta o formato da Agenda.
-- **Nada visível para testar até a F2.3** (o banco dev está vazio; o script de teste da F1
-  não funciona mais).
 - `docs/schema.sql`: **schema v2** (fonte da verdade do banco; 12 tabelas, travas e segurança).
 - `docs/schema_studiomenu_base.sql`: schema do StudioMenu usado na F1 (só referência; já apagado do dev).
 - `docs/referencias/prototipo-inicio-app.html`: protótipo aprovado do Início (base da F9.1).
-- `scripts/dev-create-test-catalog.mjs`: script da F1 (modelo `orders`) — **não funciona mais**;
-  será substituído pelo `dev-seed-studio.mjs` na F2.3.
+- `scripts/dev-seed-studio.mjs` (F2.3): cria/recria no banco dev o estúdio `teste-lash`
+  ("Fernanda Teste", liberado à mão, modo com aprovação) com 7 serviços (um "a partir de", um
+  "sob consulta"), 2 variações, horários seg–sáb 09–18, almoço bloqueado e uma folga, 5
+  clientes e 9 agendamentos (passados, cancelado, falta, histórico, futuros confirmados e
+  aguardando). Rodar de novo recria os dados e **mantém o link mágico**. Recusa rodar fora do
+  `lashagendav2-dev`. Uso:
+  `node --env-file=.env.development.local scripts/dev-seed-studio.mjs`
 
 ### Ambientes
 
