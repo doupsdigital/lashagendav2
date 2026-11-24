@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { ProcedureItem } from '@/types/catalog';
-import { formatCurrencyBRL, formatMinutesToLabel, parseDurationToMinutes } from '@/lib/format';
+import { formatCurrencyBRL } from '@/lib/format';
+import { parsePriceLabel } from '@/lib/service-format';
 import { useFilePickerFallback } from '@/lib/use-file-picker-fallback';
 import { isKnownInAppBrowser } from '@/lib/in-app-browser';
 
@@ -19,6 +20,11 @@ function roundToNearestQuarter(minutes: number): number {
 }
 
 const MAX_EXTRA_PHOTOS = 2;
+
+/** Preço do serviço (número) → texto do campo com máscara ("R$ 150,00"). */
+function priceToInput(price: number | null | undefined): string {
+  return typeof price === 'number' ? formatCurrencyBRL(String(Math.round(price * 100))) : '';
+}
 
 interface ProcedureModalProps {
   procForm: ProcForm;
@@ -56,7 +62,9 @@ export const ProcedureModal: React.FC<ProcedureModalProps> = ({
   onSaveProcedure,
   onClose,
 }) => {
-  const initialTotalMinutes = roundToNearestQuarter(procForm.duration_minutes ?? parseDurationToMinutes(procForm.duration) ?? 0);
+  const initialTotalMinutes = roundToNearestQuarter(procForm.duration_minutes || 0);
+  // O campo de preço mostra o texto com máscara; o serviço guarda o número.
+  const [priceText, setPriceText] = useState(() => priceToInput(procForm.price));
   const [durationHours, setDurationHours] = useState(() => Math.min(6, Math.floor(initialTotalMinutes / 60)));
   const [durationMinutesPart, setDurationMinutesPart] = useState(() => initialTotalMinutes % 60);
   const { showStuckHint, copied, handleLabelClick, handleChange: handleFileChange, copyPageLink } = useFilePickerFallback(onFileUpload);
@@ -76,6 +84,7 @@ export const ProcedureModal: React.FC<ProcedureModalProps> = ({
   // mas muda de novo quando o pai corrige — refazendo este efeito).
   useEffect(() => {
     setExtraRowCount(procForm.extra_photos?.length || 0);
+    setPriceText(priceToInput(procForm.price));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [procForm.id]);
   const extraSlot0 = useFilePickerFallback((e) => onFileUploadExtra?.(e, 0));
@@ -159,7 +168,7 @@ export const ProcedureModal: React.FC<ProcedureModalProps> = ({
 
   const applyDuration = (hours: number, minutesPart: number) => {
     const total = hours * 60 + minutesPart;
-    setProcForm({ ...procForm, duration_minutes: total || null, duration: formatMinutesToLabel(total) });
+    setProcForm({ ...procForm, duration_minutes: total });
   };
 
   return (
@@ -197,13 +206,17 @@ export const ProcedureModal: React.FC<ProcedureModalProps> = ({
       </div>
 
       <div className="lm-form-group">
-        <label>PREÇO (R$) *</label>
+        <label>PREÇO (R$)</label>
         <input
           type="text"
           inputMode="decimal"
-          value={procForm.price}
-          onChange={(e) => setProcForm({ ...procForm, price: formatCurrencyBRL(e.target.value) })}
-          placeholder="R$ 0,00"
+          value={priceText}
+          onChange={(e) => {
+            const masked = formatCurrencyBRL(e.target.value);
+            setPriceText(masked);
+            setProcForm({ ...procForm, price: masked ? parsePriceLabel(masked).price : null });
+          }}
+          placeholder="Vazio = Sob consulta"
         />
       </div>
 
@@ -442,8 +455,12 @@ export const ProcedureModal: React.FC<ProcedureModalProps> = ({
           type="button"
           className="lm-modal-btn lm-modal-btn-confirm"
           onClick={() => {
-            if (!procForm.title || !procForm.price) {
-              setProcFormError('Por favor informe o título e o preço do procedimento.');
+            if (!procForm.title.trim()) {
+              setProcFormError('Por favor informe o nome do procedimento.');
+              return;
+            }
+            if (!procForm.duration_minutes || procForm.duration_minutes < 5) {
+              setProcFormError('Por favor escolha a duração do procedimento.');
               return;
             }
             setProcFormError('');

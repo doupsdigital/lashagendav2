@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-24 — Fase 2 concluída.**
+> Última atualização: **2026-11-24 — F3.1 concluída (catálogo público no modelo novo).**
 
 ---
 
@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F3 — Catálogo público + editor visual** (não iniciada) |
-| **Próxima etapa** | **F3.1 — Catálogo público sobre o modelo novo** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fase atual** | **F3 — Catálogo público + editor visual** (F3.1 ✅) |
+| **Próxima etapa** | **F3.2 — Variações no catálogo** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -32,8 +32,9 @@
     prévia, acesso pago (`paid_until` + folga de 3 dias, liberação manual), `isBookingLive`.
   - `lib/studio-service.ts` — estúdio + serviços ↔ formato do catálogo/editor; criação de
     estúdio e slug pelo nome; dados do app da profissional.
-  - `lib/service-format.ts` — preço numérico ↔ texto ("R$ 180", "A partir de…", "Sob
-    Consulta") e duração. Ponte provisória até a F3.
+  - `lib/service-format.ts` — texto do preço ("R$ 180", "A partir de…", "Sob Consulta")
+    e da duração a partir dos números. `ProcedureItem` (catálogo/editor) já usa
+    `price: number | null`, `price_from` e `duration_minutes` obrigatório (F3.1).
   - `lib/scheduling/booking-service.ts` — cliente com dedupe por WhatsApp (guardado só com
     dígitos, sem o 55) + agendamento + itens. `agenda-service.ts` monta o formato da Agenda.
 - `docs/schema.sql`: **schema v2** (fonte da verdade do banco; 12 tabelas, travas e segurança).
@@ -99,10 +100,8 @@ Web Push.
       para coisas escondidas atrás dela. O tour deveria esperar as boas-vindas terminarem.
       Corrigir junto com o Início novo (F9.1) ou antes, se atrapalhar os testes.
 - [ ] Herdado do StudioMenu, a resolver nas fases indicadas (anotado na F2.2):
-  - **F3:** `CatalogLayout` ainda lê `show_cover`/`show_instructions`/`show_contact_cta`
-    ("Catálogo apenas"); o v2 nunca preenche, então tudo aparece. Remover a lógica. O editor
-    ainda trabalha com preço em texto e duração opcional (a ponte em `service-format.ts`
-    converte; sem número, a duração vira 60 min).
+  - **F3.3:** o editor de serviço só ganhou o ajuste mínimo na F3.1 (preço vazio = "Sob
+    consulta", duração obrigatória); falta marcar "a partir de" e o resto do editor novo.
   - **F3.2/F5:** as variações já existem no banco e nas APIs de horário/agendamento
     (`variation_id`), mas o catálogo ainda não mostra nem envia.
   - **F4:** o motor de horários (`lib/scheduling/availability.ts`) ainda lê **uma faixa por

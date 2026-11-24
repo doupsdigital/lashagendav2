@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ProcedureItem } from '@/types/catalog';
 import { ProcedureImage } from './ProcedureImage';
 import { ProcedureImageGallery } from './ProcedureImageGallery';
+import { durationToLabel, procedurePriceLabel } from '@/lib/service-format';
 
 interface ProcedureDetailModalProps {
   item: ProcedureItem;
@@ -60,26 +61,13 @@ export const ProcedureDetailModal: React.FC<ProcedureDetailModalProps> = ({
     };
   }, [onClose, galleryOpen]);
 
-  const formatPrice = (val: string) => {
-    if (!val) return 'Sob Consulta';
-    const lower = val.toLowerCase();
-    if (lower.includes('r$') || lower.includes('incluso') || lower.includes('guia') || lower.includes('consulta')) {
-      return val;
-    }
-    return `R$ ${val}`;
-  };
-
-  const getSpecs = (): [string, string][] => {
-    if (item.specs && item.specs.length > 0) {
-      return item.specs;
-    }
-    const list: [string, string][] = [];
-    list.push(['Investimento', formatPrice(item.price)]);
-    if (item.duration) {
-      list.push(['Duração', item.duration]);
-    }
-    return list;
-  };
+  // Investimento e Duração sempre saem dos números do serviço; os `specs`
+  // (Manutenção, Efeito Visual…) entram depois.
+  const getSpecs = (): [string, string][] => [
+    ['Investimento', procedurePriceLabel(item)],
+    ['Duração', durationToLabel(item.duration_minutes)],
+    ...(item.specs || []),
+  ];
 
   const firstName = clientName?.trim() ? clientName.trim().split(' ')[0] : '';
   const greeting = firstName ? `Olá, ${firstName}!` : 'Olá!';

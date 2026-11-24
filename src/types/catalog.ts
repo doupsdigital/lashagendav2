@@ -6,12 +6,14 @@ export interface ProcedureItem {
   id: string;
   title: string;
   description?: string;
-  price: string;
-  duration?: string;
-  /** Duração em minutos, usada pelo motor de disponibilidade do agendamento
-   *  automático. `duration` (texto livre acima) continua existindo só pra
-   *  exibição — este campo é o que a régua de horários realmente usa. */
-  duration_minutes?: number | null;
+  /** Preço em reais (`services.price`); `null` = "Sob consulta". O texto
+   *  exibido sai de `procedurePriceLabel` (`lib/service-format.ts`). */
+  price: number | null;
+  /** Mostra "A partir de" antes do preço. */
+  price_from?: boolean;
+  /** Duração em minutos (obrigatória no banco, 5 a 720) — é o que o
+   *  catálogo mostra e o que a régua de horários do agendamento usa. */
+  duration_minutes: number;
   /** Se false, o procedimento fica de fora do agendamento automático (ex:
    *  "sob consulta"), mesmo com o catálogo tendo `booking_enabled = true`. */
   bookable?: boolean;
@@ -91,11 +93,6 @@ export interface CatalogOrderData {
   /** Situação da assinatura (`studios.plan_status`); `preview` = prévia de 24h. */
   plan_status?: 'preview' | 'active' | 'suspended' | 'canceled';
   preview_expires_at?: string | null;
-  /** Herança do produto "Catálogo apenas" do StudioMenu: o v2 nunca preenche
-   *  (tudo visível). A lógica que ainda lê isso no `CatalogLayout` sai na F3. */
-  show_cover?: boolean;
-  show_instructions?: boolean;
-  show_contact_cta?: boolean;
   categories?: string[];
   procedures: ProcedureItem[];
   instructions?: CatalogInstructions;

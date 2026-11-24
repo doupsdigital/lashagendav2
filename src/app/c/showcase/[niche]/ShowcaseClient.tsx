@@ -108,16 +108,15 @@ export function ShowcaseClient({ niche, forceBasico = false, coverOverride, pres
     avatar_url: coverOverride || (layoutModel === 'classico' ? '/modelos/classico/assets/img/Hero.webp' : '/modelos/mosaico/assets/img/Hero.webp'),
     // Liga o botão "Agendar agora" pra mostrar a simulação de agendamento
     // automático (`demoBookingOnly` no CatalogLayout abaixo) — o preset
-    // não tem `booking_enabled`/`duration_minutes` de verdade porque não
-    // existe profissional real por trás; só nesse objeto em memória, não
-    // mexe no preset fonte (2026-09-24).
+    // não tem `booking_enabled` porque não existe profissional real por
+    // trás; só nesse objeto em memória, não mexe no preset fonte.
     booking_enabled: true,
     // Modo Básico do Estúdio de Vídeos (2026-10-02): agenda_paused liga a
     // mesma simulação que um catálogo Plus real usa quando pausa a agenda
     // temporariamente — cai na simulação de WhatsApp em vez do agendamento
     // automático. Default false preserva o link normal da vitrine intacto.
     agenda_paused: forceBasico,
-    procedures: basePreset.procedures.map((p) => ({ ...p, duration_minutes: p.duration_minutes ?? 60 })),
+    procedures: basePreset.procedures,
     // Endereço fictício só pra dar pra mostrar o botão de Localização
     // funcionando na vitrine (não existe profissional real por trás, então
     // não mexe no preset fonte — mesmo espírito do booking_enabled acima).

@@ -52,14 +52,6 @@ interface CatalogLayoutProps {
    *  no topo, sem nenhuma chamada de scroll envolvida. Não muda nada em
    *  catálogos reais nem no showroom normal — default `false`. */
   hideCoverSection?: boolean;
-  /** Preview isolado da oferta "Catálogo Completo" (2026-10-28,
-   *  `/c/[slug]?preview=completo`) — força Capa/Orientações/Contato a
-   *  aparecer (OR com o flag real, nunca substitui) SEM gravar nada em
-   *  `data`/banco. Mesmo padrão de `hideCoverSection` (prop solta, lida de
-   *  `searchParams` em `src/app/c/[slug]/page.tsx`), só que na direção
-   *  contrária: forçar mostrar, não esconder. Default `false` — não muda
-   *  nada em nenhum catálogo real nem no showroom. */
-  forcePreviewFull?: boolean;
   /** Prévia gratuita do funil `/lash` (2026-11-17) — catálogo ainda não
    *  pago. O WhatsApp vira a simulação (`FakeWhatsappScreen`, a mesma do
    *  showroom), porque ainda não existe o número dela; `showBanner` mostra a
@@ -78,7 +70,6 @@ export const CatalogLayout: React.FC<CatalogLayoutProps> = ({
   themeSwitcher,
   layoutSwitcher,
   hideCoverSection = false,
-  forcePreviewFull = false,
   previewMode,
 }) => {
   const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(isNewCatalog);
@@ -420,15 +411,9 @@ export const CatalogLayout: React.FC<CatalogLayoutProps> = ({
       visualEffect?: string;
     };
 
-    // Reconstrói os specs (Investimento/Duração/Manutenção/Efeito Visual) a partir
-    // dos campos do formulário — eram coletados na UI mas nunca chegavam a ser salvos.
-    const priceLabel = !rest.price
-      ? 'Sob Consulta'
-      : rest.price.toLowerCase().includes('r$')
-        ? rest.price
-        : `R$ ${rest.price}`;
-    const specs: [string, string][] = [['Investimento', priceLabel]];
-    if (rest.duration) specs.push(['Duração', rest.duration]);
+    // Manutenção/Efeito Visual viram `specs`. Investimento e Duração não
+    // entram: o detalhe do serviço monta os dois a partir dos números.
+    const specs: [string, string][] = [];
     if (maintenance) specs.push(['Manutenção', maintenance]);
     if (visualEffect) specs.push(['Efeito Visual', visualEffect]);
 
@@ -539,43 +524,15 @@ export const CatalogLayout: React.FC<CatalogLayoutProps> = ({
   // tentar acertar um número de offset. Só o passo de editar/excluir um
   // serviço (que pode estar em qualquer posição da lista) continua rolando
   // de verdade.
-  // Produto "Catálogo apenas" (2026-10-27, achado testando de verdade): com
-  // os 3 flags públicos desligados, Capa/Textos e Orientações nem renderizam
-  // mais no editor (ver guards de `show_cover`/`show_instructions` abaixo) —
-  // sem filtrar os passos daqui, o Joyride tentava apontar pra alvos que não
-  // existem no DOM e os balões saíam "soltos"/fora de posição. Além disso,
-  // a usuária pediu de propósito que esse modo simplificado mostre só 2
-  // passos (editar serviço + tema/layout), sem o de "Salvar" — menos coisa
-  // pra explicar pra cliente com menos intimidade com tecnologia.
-  const catalogOnlyProduct =
-    !forcePreviewFull &&
-    catalogState.show_cover === false &&
-    catalogState.show_instructions === false &&
-    catalogState.show_contact_cta === false;
-
-  // Mesma trava de rolagem do "Catálogo apenas" (ver `mosaico-app--catalog-is-last`
-  // no CSS) também acontece quando a Capa continua visível mas Orientações/
-  // Contato ficam escondidos (vitrine "Capa + Catálogo", pedido real
-  // 2026-11-04) — o Catálogo vira a ÚLTIMA tela do scroll-snap de qualquer
-  // forma, sem próximo ponto de encaixe pra "avançar", travando a rolagem
-  // interna de uma lista de procedimentos mais longa do mesmo jeito.
-  // Por isso não reaproveita `catalogOnlyProduct` (que exige Capa escondida
-  // também, e segue sendo usado só pra decidir os passos do tour do editor).
-  const catalogIsLastSection =
-    !forcePreviewFull &&
-    catalogState.show_instructions === false &&
-    catalogState.show_contact_cta === false;
-
   const catalogEditorSteps = useMemo<Step[]>(() => {
     const steps: Step[] = [];
-    const showsCover = !hideCoverSection && catalogState.show_cover !== false;
+    const showsCover = !hideCoverSection;
     if (showsCover) {
       steps.push({ target: '[data-tour="cat-cover"]', title: 'Troque a foto de capa', content: 'Toque aqui pra escolher uma nova foto de capa do seu catálogo.', skipScroll: true });
     }
-    // "cat-text" aponta pro nome editável — na Capa completa (nome+frase) ou,
-    // no produto "Catálogo apenas" (2026-10-28), pro mini-cabeçalho "STUDIO +
-    // Nome" que o `ProcedureGrid` passa a mostrar sozinho quando a Capa não
-    // renderiza (é o único lugar pra editar o nome nesse modo).
+    // "cat-text" aponta pro nome editável — na Capa (nome+frase) ou, sem a
+    // Capa (vitrine do mockup), pro mini-cabeçalho "STUDIO + Nome" do
+    // `ProcedureGrid`.
     steps.push({
       target: '[data-tour="cat-text"]',
       title: 'Textos editáveis',
@@ -600,19 +557,15 @@ export const CatalogLayout: React.FC<CatalogLayoutProps> = ({
     // item (`InstructionsSection.tsx`), mas sempre aparece aqui no editor
     // — sem esse passo do tour, ninguém saberia por que ela "some" pro
     // lead/cliente final se deixar tudo vazio.
-    if (catalogState.show_instructions !== false) {
-      steps.push({
-        target: '[data-tour="cat-orientacoes"]',
-        title: 'Informações importantes',
-        content: 'Essa tela é opcional: se você deixar todos os campos vazios, ela não aparece pra sua cliente.',
-      });
-    }
+    steps.push({
+      target: '[data-tour="cat-orientacoes"]',
+      title: 'Informações importantes',
+      content: 'Essa tela é opcional: se você deixar todos os campos vazios, ela não aparece pra sua cliente.',
+    });
     steps.push({ target: '[data-tour="cat-theme"]', title: 'Personalize tema e layout', content: 'Esses botões trocam a paleta de cores e o modelo da grade (Mosaico/Clássico).', skipScroll: true });
-    if (!catalogOnlyProduct) {
-      steps.push({ target: '[data-tour="cat-save"]', title: 'Não esqueça de salvar', content: 'As mudanças só valem pra cliente final depois de tocar aqui.', skipScroll: true });
-    }
+    steps.push({ target: '[data-tour="cat-save"]', title: 'Não esqueça de salvar', content: 'As mudanças só valem pra cliente final depois de tocar aqui.', skipScroll: true });
     return steps;
-  }, [catalogState.procedures.length, hideCoverSection, catalogState.show_cover, catalogState.show_instructions, catalogOnlyProduct]);
+  }, [catalogState.procedures.length, hideCoverSection]);
 
   // Reordenar categoria (setas ‹ › nos chips de filtro, modo edição).
   // Usa a lista `categories` completa (não só catalogState.categories) pra
@@ -735,14 +688,12 @@ export const CatalogLayout: React.FC<CatalogLayoutProps> = ({
 
       {/* 3. APP MOBILE CONTAINER COM SUPORTE A EDIÇÃO IN-PLACE */}
       <div
-        className={`mosaico-app is-visible ${isLuxury ? 'is-luxury' : ''}${catalogIsLastSection ? ' mosaico-app--catalog-is-last' : ''}`}
+        className={`mosaico-app is-visible ${isLuxury ? 'is-luxury' : ''}`}
       >
         {/* Hero Section (Foto da Capa, Nome da Profissional, Frase Hero) —
          *  não renderiza quando `hideCoverSection` (ver comentário na prop
-         *  acima) nem quando o produto vendido é "Catálogo apenas"
-         *  (`show_cover === false`, 2026-10-27) — vale em qualquer modo,
-         *  inclusive edição, de propósito (menos tela pra ela mexer). */}
-        {!hideCoverSection && (forcePreviewFull || catalogState.show_cover !== false) && (
+         *  acima). */}
+        {!hideCoverSection && (
           <HeaderCover
             data={catalogState}
             categories={categories}
@@ -772,10 +723,9 @@ export const CatalogLayout: React.FC<CatalogLayoutProps> = ({
           clientName={catalogState.client_name}
           layoutModel={catalogState.layout_model}
           isEditMode={isEditMode}
-          // Produto "Catálogo apenas" (2026-10-28): sem a Capa, esse
-          // componente vira a primeira tela — mostra o mini-cabeçalho
-          // "STUDIO" + nome (único lugar pra editar o nome nesse modo).
-          showStudioHeader={!forcePreviewFull && (hideCoverSection || catalogState.show_cover === false)}
+          // Sem a Capa (vitrine do mockup), esse componente vira a primeira
+          // tela — mostra o mini-cabeçalho "STUDIO" + nome.
+          showStudioHeader={hideCoverSection}
           studioLabel={catalogState.studio_label}
           onUpdateClientName={handleUpdateClientName}
           onUpdateStudioLabel={handleUpdateStudioLabel}
@@ -812,20 +762,15 @@ export const CatalogLayout: React.FC<CatalogLayoutProps> = ({
               : undefined
           }
           layoutSwitcher={layoutSwitcher}
-          // Mesma ideia — no modo "Catálogo apenas" (sem Capa), o
-          // ProcedureGrid vira o único lugar pra mostrar o seletor de tema
-          // do showroom (normalmente fica dentro do HeaderCover).
+          // Mesma ideia — sem a Capa, o ProcedureGrid vira o único lugar pra
+          // mostrar o seletor de tema do showroom (normalmente fica dentro
+          // do HeaderCover).
           themeSwitcher={themeSwitcher}
         />
 
-        {/* Seção Orientações — primeiro checa o flag de produto
-         *  (`show_instructions`, "Catálogo apenas", 2026-10-27), que vale em
-         *  qualquer modo; só dentro disso o `isEditMode` continua decidindo
-         *  se aparece vazia pra ela preencher, ou se some de vez na
-         *  visualização pública quando ela apagou todos os itens (pedido
-         *  real, 2026-10-09). */}
-        {(forcePreviewFull || catalogState.show_instructions !== false) &&
-          (forcePreviewFull || isEditMode || (catalogState.instructions?.items?.length || 0) > 0) && (
+        {/* Seção Orientações — no editor aparece mesmo vazia (pra ela
+         *  preencher); no catálogo público some quando não tem nenhum item. */}
+        {(isEditMode || (catalogState.instructions?.items?.length || 0) > 0) && (
           <InstructionsSection
             instructions={catalogState.instructions}
             bgUrl={catalogState.instructions_bg_url}
@@ -837,20 +782,16 @@ export const CatalogLayout: React.FC<CatalogLayoutProps> = ({
           />
         )}
 
-        {/* Seção Contato & Localização — some quando o produto vendido é
-         *  "Catálogo apenas" (`show_contact_cta === false`, 2026-10-27), em
-         *  qualquer modo. */}
-        {(forcePreviewFull || catalogState.show_contact_cta !== false) && (
-          <CTASection
-            data={catalogState}
-            isEditMode={isEditMode}
-            onOpenSocialModal={(type) => {
-              setEditingSocialType(type);
-              setActiveModal('social');
-            }}
-            demoMode={demoBookingOnly}
-          />
-        )}
+        {/* Seção Contato & Localização */}
+        <CTASection
+          data={catalogState}
+          isEditMode={isEditMode}
+          onOpenSocialModal={(type) => {
+            setEditingSocialType(type);
+            setActiveModal('social');
+          }}
+          demoMode={demoBookingOnly}
+        />
       </div>
 
       {/* Wizard de Agendamento (cliente final, só quando booking_enabled) */}

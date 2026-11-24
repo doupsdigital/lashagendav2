@@ -3,6 +3,7 @@
 import React from 'react';
 import { ArrowLeft, Phone, Video, MoreVertical, Check, CheckCheck } from 'lucide-react';
 import { ProcedureItem } from '@/types/catalog';
+import { procedurePriceLabel } from '@/lib/service-format';
 
 interface FakeWhatsappScreenProps {
   item: ProcedureItem;
@@ -22,15 +23,6 @@ interface FakeDay {
 }
 
 const CLIENT_NAME = 'Cliente Fernanda';
-
-function formatPrice(val: string): string {
-  if (!val) return 'Sob Consulta';
-  const lower = val.toLowerCase();
-  if (lower.includes('r$') || lower.includes('incluso') || lower.includes('guia') || lower.includes('consulta')) {
-    return val;
-  }
-  return `R$ ${val}`;
-}
 
 function currentTimeLabel(): string {
   const now = new Date();
@@ -67,7 +59,7 @@ const HISTORY: FakeDay[] = [
  *  fictício de agendamentos anteriores (2026-10-02) dá a sensação de
  *  cliente recorrente de verdade, em vez de uma conversa vazia. */
 export const FakeWhatsappScreen: React.FC<FakeWhatsappScreenProps> = ({ item, onClose }) => {
-  const message = `Olá! Gostaria de agendar o procedimento: *${item.title}* (${formatPrice(item.price)}).`;
+  const message = `Olá! Gostaria de agendar o procedimento: *${item.title}* (${procedurePriceLabel(item)}).`;
 
   const renderBubble = (msg: FakeMessage, key: string, highlight = false) => {
     const isClient = msg.from === 'client';

@@ -3,6 +3,7 @@
 import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { ProcedureItem } from '@/types/catalog';
+import { procedurePriceLabel } from '@/lib/service-format';
 
 interface BookedFake {
   service: ProcedureItem;
@@ -22,15 +23,6 @@ interface FakeCard {
   serviceTitle: string;
   meta: string;
   status: 'pending' | 'confirmed' | 'completed';
-}
-
-function formatPrice(val: string): string {
-  if (!val) return 'Sob Consulta';
-  const lower = val.toLowerCase();
-  if (lower.includes('r$') || lower.includes('incluso') || lower.includes('guia') || lower.includes('consulta')) {
-    return val;
-  }
-  return `R$ ${val}`;
 }
 
 function addMinutes(time: string, minutes: number): string {
@@ -54,7 +46,7 @@ export const AgendaDemoScreen: React.FC<AgendaDemoScreenProps> = ({ booked, onCl
     endTime: addMinutes(booked.time, booked.service.duration_minutes || 60),
     clientName: 'Cliente Exemplo',
     serviceTitle: booked.service.title,
-    meta: formatPrice(booked.service.price),
+    meta: procedurePriceLabel(booked.service),
     status: 'confirmed',
   };
 

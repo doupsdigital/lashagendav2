@@ -23,6 +23,7 @@ import { ProcedureItem, LayoutModel, ThemeVariant } from '@/types/catalog';
 import { ProcedureCard } from './ProcedureCard';
 import { ProcedureDetailModal } from './ProcedureDetailModal';
 import { ProcedureImage } from './ProcedureImage';
+import { durationToLabel, procedurePriceLabel } from '@/lib/service-format';
 
 interface ProcedureGridProps {
   procedures: ProcedureItem[];
@@ -47,15 +48,11 @@ interface ProcedureGridProps {
    *  em catálogos reais, que continuam sem alteração nenhuma aqui. */
   layoutSwitcher?: { value: LayoutModel; onChange: (layout: LayoutModel) => void };
   /** Mesma ideia do `layoutSwitcher` acima, mas pro tema (Rosé/Luxury) —
-   *  normalmente fica dentro do `HeaderCover` (Capa), que não existe no
-   *  modo "Catálogo apenas" (2026-10-28); passado aqui pra não perder essa
-   *  opção no showroom quando a Capa está escondida. */
+   *  normalmente fica dentro do `HeaderCover` (Capa); passado aqui pra não
+   *  perder essa opção no showroom quando a Capa está escondida. */
   themeSwitcher?: { value: ThemeVariant; onChange: (variant: ThemeVariant) => void };
-  /** Produto "Catálogo apenas" (2026-10-28) — quando a Capa não renderiza
-   *  (`show_cover === false` ou `hideCoverSection`, ver `CatalogLayout`),
-   *  esse componente vira a primeira tela, então precisa mostrar (e, em
-   *  modo edição, permitir editar) o nome da profissional — senão ela não
-   *  teria lugar nenhum pra fazer isso. */
+  /** Quando a Capa não renderiza (`hideCoverSection`, ver `CatalogLayout`),
+   *  esse componente vira a primeira tela e mostra o nome da profissional. */
   showStudioHeader?: boolean;
   studioLabel?: string;
   onUpdateClientName?: (newName: string) => void;
@@ -117,9 +114,8 @@ const ServicoCardLista: React.FC<{
   item: ProcedureItem;
   clientName?: string;
   isEditMode: boolean;
-  formatPrice: (val: string) => string;
   onClick: () => void;
-}> = ({ item, clientName, isEditMode, formatPrice, onClick }) => {
+}> = ({ item, clientName, isEditMode, onClick }) => {
   return (
     <div
       className={`servico-card ${isEditMode ? 'lm-service-card-wrapper' : ''}`}
@@ -134,8 +130,8 @@ const ServicoCardLista: React.FC<{
         {item.description && <p className="servico-card__desc">{item.description}</p>}
       </div>
       <div className="servico-card__lado-dir">
-        <span className="servico-card__preco">{formatPrice(item.price)}</span>
-        {item.duration && <span className="servico-card__duracao">{item.duration}</span>}
+        <span className="servico-card__preco">{procedurePriceLabel(item)}</span>
+        <span className="servico-card__duracao">{durationToLabel(item.duration_minutes)}</span>
         <span className="servico-card__seta">→</span>
       </div>
     </div>
@@ -250,15 +246,6 @@ export const ProcedureGrid: React.FC<ProcedureGridProps> = ({
   const handlePrevProcedure = () => {
     if (selectedProcedureIndex <= 0) return;
     setSelectedProcedure(filteredProcedures[selectedProcedureIndex - 1]);
-  };
-
-  const formatPrice = (val: string) => {
-    if (!val) return 'Sob Consulta';
-    const lower = val.toLowerCase();
-    if (lower.includes('r$') || lower.includes('incluso') || lower.includes('guia') || lower.includes('consulta')) {
-      return val;
-    }
-    return `R$ ${val}`;
   };
 
   const isClassico = layoutModel === 'classico';
@@ -490,7 +477,6 @@ export const ProcedureGrid: React.FC<ProcedureGridProps> = ({
                       item={item}
                       clientName={clientName}
                       isEditMode={isEditMode}
-                      formatPrice={formatPrice}
                       onClick={() => {
                         if (!isEditMode) setSelectedProcedure(item);
                       }}

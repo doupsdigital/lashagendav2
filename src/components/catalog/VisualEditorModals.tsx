@@ -170,8 +170,8 @@ export const VisualEditorModals: React.FC<VisualEditorModalsProps> = ({
       : {
           id: '',
           title: '',
-          price: '',
-          duration: '',
+          price: null,
+          duration_minutes: 0,
           category: safeCategories[0] || 'Extensão de Cílios',
           description: '',
           image_url: '',
@@ -214,8 +214,8 @@ export const VisualEditorModals: React.FC<VisualEditorModalsProps> = ({
       setProcForm({
         id: '',
         title: '',
-        price: '',
-        duration: '',
+        price: null,
+        duration_minutes: 0,
         category: safeCategories[0] || 'Extensão de Cílios',
         description: '',
         image_url: '',

@@ -1,7 +1,5 @@
-/** Tradução entre o preço/duração do banco v2 (numéricos) e o texto que as
- *  telas herdadas do StudioMenu ainda usam (`ProcedureItem.price`/`duration`).
- *  Ponte provisória da F2.2: a F3 passa o editor e o catálogo a trabalhar
- *  direto com os números. Arquivo puro, sem `server-only`. */
+/** Formatação de preço e duração dos serviços (números do banco v2 → texto
+ *  das telas). Arquivo puro, sem `server-only` — o catálogo usa no navegador. */
 import { formatMinutesToLabel, parseDurationToMinutes } from './format';
 
 export const PRICE_ON_REQUEST_LABEL = 'Sob Consulta';
@@ -51,6 +49,11 @@ export function parsePriceLabel(label: string | null | undefined): { price: numb
   const n = Number(raw);
   if (!Number.isFinite(n) || n < 0) return { price: null, price_from: false };
   return { price: Math.round(n * 100) / 100, price_from };
+}
+
+/** Texto do preço de um serviço do catálogo. */
+export function procedurePriceLabel(item: { price: number | null; price_from?: boolean }): string {
+  return priceToLabel(item.price, Boolean(item.price_from));
 }
 
 /** Minutos do banco → texto curto ("1h30min"). */

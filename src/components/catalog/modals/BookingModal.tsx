@@ -6,6 +6,7 @@ import { ProcedureItem } from '@/types/catalog';
 import type { AvailabilitySlot } from '@/lib/scheduling/availability';
 import { formatPhoneBR } from '@/lib/format';
 import { ProcedureImage } from '../ProcedureImage';
+import { procedurePriceLabel } from '@/lib/service-format';
 import '@/styles/scheduling-wizard.css';
 
 interface BookingModalProps {
@@ -50,15 +51,6 @@ function formatDateLabel(dateKey: string): string {
   const d = new Date(`${dateKey}T12:00:00-03:00`);
   const label = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', timeZone: 'America/Sao_Paulo' });
   return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-function formatPrice(val: string): string {
-  if (!val) return 'Sob Consulta';
-  const lower = val.toLowerCase();
-  if (lower.includes('r$') || lower.includes('incluso') || lower.includes('guia') || lower.includes('consulta')) {
-    return val;
-  }
-  return `R$ ${val}`;
 }
 
 export const BookingModal: React.FC<BookingModalProps> = ({
@@ -199,7 +191,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
             <div className="wizard__resumo-linha">
               <span className="wizard__resumo-k">Investimento</span>
-              <span className="wizard__resumo-v">{formatPrice(service.price)}</span>
+              <span className="wizard__resumo-v">{procedurePriceLabel(service)}</span>
             </div>
           </div>
 

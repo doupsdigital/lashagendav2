@@ -234,22 +234,6 @@ button {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Catálogo como ÚLTIMA tela do scroll-snap (pedido real, 2026-10-28,
- *  testado em celular de verdade; generalizado 2026-11-04 pra também cobrir
- *  "Capa + Catálogo", não só "Catálogo apenas") — com Orientações/Contato
- *  escondidos, o Catálogo de procedimentos é sempre o último ponto de
- *  encaixe do `scroll-snap` mandatório (às vezes o único, às vezes o 2º
- *  depois da Capa). Rolar uma lista mais longa (8 procedimentos) dentro
- *  desse ponto com `scroll-snap-stop: always` ficava travando/grudando a
- *  cada tentativa de rolagem, porque o navegador tenta "voltar" pro início
- *  do snap point sempre que a rolagem não ultrapassa pra um PRÓXIMO ponto —
- *  que não existe, sendo o último. Desligar o snap devolve a rolagem nativa
- *  fluida (também solto entre Capa→Catálogo quando as 2 existem, sem
- *  problema — só 2 telas, não precisa de snap pra "guiar" a transição). */
-.mosaico-app--catalog-is-last {
-  scroll-snap-type: none;
-}
-
 .container {
   width: 100%;
   padding: 0 20px;
@@ -810,7 +794,7 @@ button {
   gap: 8px;
 }
 
-/* Produto "Catálogo apenas" (2026-10-28): sem a Capa, esse cabeçalho abre a
+/* Sem a Capa (vitrine do mockup), esse cabeçalho abre a
    tela — alinhado à esquerda (como um cabeçalho de página comum) em vez de
    centralizado, pra acomodar o mini-cabeçalho "STUDIO + Nome" acima dele. */
 .secao-catalogo__header--studio {

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { CheckCircle } from 'lucide-react';
 import { ProcedureItem } from '@/types/catalog';
 import { ProcedureImage } from '../ProcedureImage';
+import { procedurePriceLabel } from '@/lib/service-format';
 import '@/styles/scheduling-wizard.css';
 
 interface BookedFake {
@@ -63,15 +64,6 @@ function formatDateLabel(dateKey: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function formatPrice(val: string): string {
-  if (!val) return 'Sob Consulta';
-  const lower = val.toLowerCase();
-  if (lower.includes('r$') || lower.includes('incluso') || lower.includes('guia') || lower.includes('consulta')) {
-    return val;
-  }
-  return `R$ ${val}`;
-}
-
 export const FakeBookingModal: React.FC<FakeBookingModalProps> = ({ service, professionalName, onClose, onBooked }) => {
   const days = useState(() => buildNextDays(DAYS_AHEAD))[0];
   const [selectedDate, setSelectedDate] = useState<string>(days[0].key);
@@ -105,7 +97,7 @@ export const FakeBookingModal: React.FC<FakeBookingModalProps> = ({ service, pro
             </div>
             <div className="wizard__resumo-linha">
               <span className="wizard__resumo-k">Investimento</span>
-              <span className="wizard__resumo-v">{formatPrice(service.price)}</span>
+              <span className="wizard__resumo-v">{procedurePriceLabel(service)}</span>
             </div>
           </div>
 

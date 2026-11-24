@@ -15,7 +15,6 @@ interface CatalogPageProps {
   searchParams: Promise<{
     edit?: string;
     new?: string;
-    preview?: string;
     embed?: string;
   }>;
 }
@@ -78,7 +77,7 @@ export async function generateMetadata({ params }: CatalogPageProps): Promise<Me
 // 2. Renderização SSR Principal da Página do Catálogo do Cliente
 export default async function CatalogPage({ params, searchParams }: CatalogPageProps) {
   const { slug } = await params;
-  const { edit, new: isNew, preview, embed } = await searchParams;
+  const { edit, new: isNew, embed } = await searchParams;
   const catalog = await getCatalogBySlug(slug);
 
   if (!catalog) {
@@ -157,11 +156,6 @@ export default async function CatalogPage({ params, searchParams }: CatalogPageP
 
   // Prévia nunca entra em modo edição, nem com o token certo na URL.
   const isEditAuthorized = !isPreview && Boolean(edit && catalog.edit_token && edit === catalog.edit_token);
-  // Preview isolado da oferta "Catálogo Completo" (2026-10-28) — só decide o
-  // que o CatalogLayout mostra NESTA requisição; nunca grava nada em
-  // `publicCatalog`/o banco. Mesmo padrão de `hideCoverSection` (showroom),
-  // só que forçando mostrar em vez de esconder.
-  const forcePreviewFull = preview === 'completo';
 
   // Nunca repassar o edit_token real pro client component — ele nunca é lido no
   // client (que usa o token vindo da própria URL), e enviá-lo exporia a credencial
@@ -199,7 +193,6 @@ export default async function CatalogPage({ params, searchParams }: CatalogPageP
         isEditMode={isEditAuthorized}
         editToken={edit || ''}
         isNewCatalog={isEditAuthorized && isNew === '1'}
-        forcePreviewFull={forcePreviewFull}
         previewMode={
           isPreview && catalog.preview_expires_at
             ? { expiresAt: catalog.preview_expires_at, activateUrl: `${funnelUrl}#oferta`, showBanner: embed !== '1' }

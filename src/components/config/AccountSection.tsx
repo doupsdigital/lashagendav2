@@ -13,8 +13,7 @@ interface AccountSectionProps {
    *  a partir daí ela pode entrar direto por `/entrar`, sem link mágico. */
   hasAccount: boolean;
   /** Usado dentro de "Primeiros passos" (funil `/lash`, 2026-11-18): o login
-   *  com Google volta pra essa tela (a Config fica escondida pra quem é
-   *  "Catálogo apenas"), sem o botão "Sair desse dispositivo", e avisa o pai
+   *  com Google volta pra essa tela, sem o botão "Sair desse dispositivo", e avisa o pai
    *  quando o acesso fica pronto. */
   inOnboarding?: boolean;
   onDone?: () => void;

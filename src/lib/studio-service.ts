@@ -4,15 +4,15 @@ import { normalizeWhatsappBR } from './format';
 import { RESERVED_SLUGS } from './reserved-slugs';
 import { parseOnboardingSteps, type OnboardingSteps } from './self-serve-onboarding';
 import { hasPaidAccess, isAccessLapsed, isBookingLive } from './studio-access';
-import { durationToLabel, parsePriceLabel, priceToLabel, resolveDurationMinutes } from './service-format';
+import { resolveDurationMinutes, toNumberOrNull } from './service-format';
 import { nichePresetsMap } from '@/data/niche-presets';
 import type { CatalogOrderData, ProcedureItem } from '@/types/catalog';
 import type { BookingMode, CaktoPlan, PlanStatus, ServiceRow, StudioRow } from '@/types/studio';
 
 /** Camada de dados do estúdio (F2.2) — substitui `catalog-service.ts`,
  *  `professional-app-service.ts` e `order-payload.ts` do StudioMenu.
- *  Lê/grava `studios` e `services` e traduz para os formatos que as telas
- *  herdadas ainda usam (`CatalogOrderData`/`ProcedureItem`). */
+ *  Lê/grava `studios` e `services` e monta o formato das telas do catálogo
+ *  (`CatalogOrderData`/`ProcedureItem`). */
 
 export function normalizeSlug(slug: string): string {
   return slug.toLowerCase().trim();
@@ -44,7 +44,7 @@ export async function getStudioServices(studioId: string, options?: { includeIna
 }
 
 // ---------------------------------------------------------------------------
-// Serviço <-> ProcedureItem (formato das telas herdadas)
+// Serviço <-> ProcedureItem (formato das telas do catálogo)
 // ---------------------------------------------------------------------------
 
 export function serviceToProcedure(s: ServiceRow): ProcedureItem {
@@ -52,17 +52,30 @@ export function serviceToProcedure(s: ServiceRow): ProcedureItem {
     id: s.id,
     title: s.title,
     description: s.description || '',
-    price: priceToLabel(s.price, s.price_from),
-    duration: durationToLabel(s.duration_minutes),
-    duration_minutes: s.duration_minutes,
+    price: toNumberOrNull(s.price),
+    price_from: Boolean(s.price_from),
+    duration_minutes: resolveDurationMinutes(s.duration_minutes),
     bookable: s.bookable,
     category: s.category || 'Geral',
     image_url: s.image_url || '',
     extra_photos: Array.isArray(s.extra_photos) ? s.extra_photos : [],
     badge: s.badge || '',
     is_highlight: s.is_highlight,
-    specs: Array.isArray(s.specs) ? s.specs : [],
+    specs: cleanSpecs(s.specs),
   };
+}
+
+/** Investimento e Duração saem dos números do serviço — linhas com esses
+ *  nomes nos `specs` (herança do StudioMenu, que gravava o texto ali) são
+ *  descartadas para não aparecer em dobro nem ficar desatualizadas. */
+const DERIVED_SPEC_KEYS = new Set(['investimento', 'duração', 'duracao']);
+
+function cleanSpecs(specs: unknown): [string, string][] {
+  if (!Array.isArray(specs)) return [];
+  return specs.filter(
+    (row): row is [string, string] =>
+      Array.isArray(row) && typeof row[0] === 'string' && typeof row[1] === 'string' && !DERIVED_SPEC_KEYS.has(row[0].trim().toLowerCase())
+  );
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -77,21 +90,21 @@ export function isValidServiceId(id: string | null | undefined): id is string {
  *  `id` vai junto (upsert mantém o id estável — agendamentos apontam para ele). */
 export function buildServicesPayload(procedures: ProcedureItem[], studioId: string) {
   return procedures.map((p, index) => {
-    const { price, price_from } = parsePriceLabel(p.price);
+    const price = toNumberOrNull(p.price);
     const row: Record<string, unknown> = {
       studio_id: studioId,
       position: index,
       title: (p.title || '').trim() || 'Serviço',
       description: p.description || null,
       category: p.category || 'Geral',
-      price,
-      price_from,
-      duration_minutes: resolveDurationMinutes(p.duration_minutes, p.duration),
+      price: price !== null && price >= 0 ? Math.round(price * 100) / 100 : null,
+      price_from: price !== null && Boolean(p.price_from),
+      duration_minutes: resolveDurationMinutes(p.duration_minutes),
       image_url: p.image_url || null,
       extra_photos: p.extra_photos || [],
       badge: p.badge || null,
       is_highlight: Boolean(p.is_highlight),
-      specs: p.specs || [],
+      specs: cleanSpecs(p.specs),
       bookable: p.bookable !== false,
       active: true,
     };
