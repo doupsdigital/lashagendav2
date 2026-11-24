@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-24 — F3.3 concluída (editor visual: preço, variações, ativo).**
+> Última atualização: **2026-11-24 — Fase 3 concluída (catálogo público + editor visual).**
 
 ---
 
@@ -11,9 +11,9 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F3 — Catálogo público + editor visual** (F3.1 ✅, F3.2 ✅, F3.3 ✅) |
-| **Próxima etapa** | **F3.4 — Serviços de exemplo** (decidir com a usuária quantos; ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
-| **Fases concluídas** | F0, F1, F2 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
+| **Fase atual** | **F4 — Horários e bloqueios** (não iniciada) |
+| **Próxima etapa** | **F4.1 — Grade semanal com várias faixas** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fases concluídas** | F0, F1, F2, F3 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
 ## 2. O que existe no repositório
@@ -39,6 +39,9 @@
     salvar, "Mostrar no catálogo" (`services.active`) e "Cliente pode agendar online"
     (`bookable`). O editor carrega também os ocultos (`getCatalogBySlug(..., { includeInactive })`),
     porque salvar apaga o serviço que não veio na lista.
+  - Serviços de exemplo (F3.4): os 6 do preset Lash (`data/niche-presets/lash`), com a
+    Manutenção em 3 opções, gravados por `insertStudioServices` em todo estúdio novo (prévia
+    ou compra direta). Fotos em `public/modelos/mosaico/assets/img/`.
   - `lib/scheduling/booking-service.ts` — cliente com dedupe por WhatsApp (guardado só com
     dígitos, sem o 55) + agendamento + itens. `agenda-service.ts` monta o formato da Agenda.
 - `docs/schema.sql`: **schema v2** (fonte da verdade do banco; 12 tabelas, travas e segurança).
@@ -95,7 +98,6 @@ Web Push.
       ativos no plano grátis.
 - [x] Ter um clone do StudioMenu na estação onde a F1 for feita.
 - [x] Decidir na F1.4: paleta do app → **v1** (2026-11-24; ver `DECISOES_DE_PRODUTO.md`, seção 7).
-- [ ] Decidir na F3.4: quantos serviços de exemplo um estúdio novo ganha.
 - [ ] Decidir na F5.1: vários serviços no mesmo agendamento (recomendação: sim).
 - [ ] Decidir na F6.2: se a visão "semana" da agenda entra.
 - [ ] Bug herdado do StudioMenu (visto no preview em 2026-11-24): no primeiro acesso ao app, os

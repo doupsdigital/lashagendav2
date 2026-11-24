@@ -171,6 +171,31 @@ export function buildVariationRows(
     });
 }
 
+/** Grava serviços novos (sem id de banco) e as variações deles num estúdio —
+ *  usado para os serviços de exemplo de um estúdio recém-criado. */
+export async function insertStudioServices(studioId: string, procedures: ProcedureItem[]): Promise<{ ok: boolean }> {
+  const rows = buildServicesPayload(procedures, studioId).map(({ id: _id, ...row }) => row);
+  if (rows.length === 0) return { ok: true };
+
+  const { data: inserted, error } = await supabaseAdmin.from('services').insert(rows).select('id, position');
+  if (error) {
+    console.error('[studio-service] insertStudioServices (serviços):', error);
+    return { ok: false };
+  }
+
+  const variationRows = (inserted || []).flatMap((r) =>
+    buildVariationRows(procedures[r.position as number]?.variations, r.id as string, new Set(), {})
+  );
+  if (variationRows.length > 0) {
+    const { error: varErr } = await supabaseAdmin.from('service_variations').insert(variationRows);
+    if (varErr) {
+      console.error('[studio-service] insertStudioServices (variações):', varErr);
+      return { ok: false };
+    }
+  }
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // Catálogo público / editor
 // ---------------------------------------------------------------------------

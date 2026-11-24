@@ -1,6 +1,6 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase-admin';
-import { buildServicesPayload, buildStudioInsertPayload, resolveProfessionalSlug } from './studio-service';
+import { buildStudioInsertPayload, insertStudioServices, resolveProfessionalSlug } from './studio-service';
 import { generateCode } from './short-link';
 import { nichePresetsMap } from '@/data/niche-presets';
 
@@ -11,8 +11,6 @@ export const PREVIEW_TTL_MS = 24 * 60 * 60 * 1000;
  *  2 de sobrancelha — assim a capa já mostra as duas "cápsulas" de
  *  categoria. Ela troca pelos dela depois de pagar. (Quantos e quais: decisão
  *  pendente da F3.4.) */
-const PREVIEW_PROCEDURE_IDS = ['brasileiro', 'classico', 'egipcio', 'hibrido', 'design-sobrancelha', 'sobrancelha-henna'];
-
 export type CreateSelfServeResult =
   | { ok: true; studioId: string; slug: string; previewCode: string; previewExpiresAt: string | null }
   | { ok: false; reason: 'invalid_name' | 'slug_taken' | 'db_error'; attemptedSlug?: string };
@@ -106,13 +104,11 @@ export async function createSelfServeLashCatalog(input: CreateSelfServeInput): P
 
   if (!studioId) return { ok: false, reason: 'db_error' };
 
-  const procedures = preset.procedures.filter((p) => PREVIEW_PROCEDURE_IDS.includes(p.id));
-  const { error: servicesErr } = await supabaseAdmin
-    .from('services')
-    .insert(buildServicesPayload(procedures.length ? procedures : preset.procedures.slice(0, 6), studioId));
+  // Todos os serviços de exemplo do preset (F3.4), com as variações.
+  const services = await insertStudioServices(studioId, preset.procedures);
 
-  if (servicesErr) {
-    console.error('[SelfServeCatalog] Erro ao gravar serviços:', servicesErr);
+  if (!services.ok) {
+    console.error('[SelfServeCatalog] Erro ao gravar serviços de exemplo.');
     await supabaseAdmin.from('studios').delete().eq('id', studioId);
     return { ok: false, reason: 'db_error' };
   }
