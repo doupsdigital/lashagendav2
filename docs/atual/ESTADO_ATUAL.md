@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-24 — Fase 3 concluída (catálogo público + editor visual).**
+> Última atualização: **2026-11-24 — F4.1 concluída (várias faixas por dia).**
 
 ---
 
@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F4 — Horários e bloqueios** (não iniciada) |
-| **Próxima etapa** | **F4.1 — Grade semanal com várias faixas** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fase atual** | **F4 — Horários e bloqueios** (F4.1 ✅) |
+| **Próxima etapa** | **F4.2 — Folgas e bloqueios** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -106,8 +106,9 @@ Web Push.
       para coisas escondidas atrás dela. O tour deveria esperar as boas-vindas terminarem.
       Corrigir junto com o Início novo (F9.1) ou antes, se atrapalhar os testes.
 - [ ] Herdado do StudioMenu, a resolver nas fases indicadas (anotado na F2.2):
-  - **F4:** o motor de horários (`lib/scheduling/availability.ts`) ainda lê **uma faixa por
-    dia**; o banco já aceita várias (pausa de almoço). Também falta aplicar
+  - **F4.3:** o motor de horários (`lib/scheduling/availability.ts`) ainda lê **uma faixa por
+    dia** — a tela de horários (F4.1, regras em `lib/scheduling/business-hours.ts`) e a agenda
+    do dia já usam várias; o agendamento da cliente ainda não (com pausa de almoço, só mostra a manhã). Também falta aplicar
     `min_notice_minutes`/`booking_window_days` do estúdio (hoje usa a folga fixa de 30 min).
   - **F5:** o link único da cliente (`manage_token`) já é gravado, mas ainda não é mostrado.
   - **F11:** preço anual exibido ainda é R$ 127 (`lib/pricing.ts`); o v2 vende a R$ 197.

@@ -88,8 +88,12 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
 
   const items = useMemo<Item[]>(() => {
     const weekday = localDateTimeToUTC(dateStr, '00:00:00').getUTCDay();
-    const hours = businessHours.find((h) => h.weekday === weekday);
-    const window = hours ? { start: toMinutes(hours.start_time), end: toMinutes(hours.end_time) } : null;
+    // Um dia pode ter várias faixas (F4.1, ex.: pausa de almoço no meio).
+    const windows = businessHours
+      .filter((h) => h.weekday === weekday)
+      .map((h) => ({ start: toMinutes(h.start_time), end: toMinutes(h.end_time) }))
+      .sort((a, b) => a.start - b.start);
+    const window = windows.length > 0 ? windows[0] : null;
 
     const dayBlocks = scheduleBlocks.filter((b) => dateStr >= b.start_date && dateStr <= b.end_date);
     const allDayBlock = dayBlocks.find((b) => b.all_day);
@@ -123,14 +127,18 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
         if (to - start >= MIN_FREE_MINUTES) result.push({ kind: 'free', start, end: to });
       };
 
-      let cursor = window.start;
-      for (const b of busy) {
-        // `Math.min(..., window.end)`: agendamento/bloqueio depois do fim do
-        // expediente não pode "abrir" um horário livre fora dele.
-        if (b.start > cursor) pushFree(cursor, Math.min(b.start, window.end));
-        cursor = Math.max(cursor, b.end);
+      // Livre = cada faixa do dia menos o que está ocupado dentro dela.
+      for (const w of windows) {
+        let cursor = w.start;
+        for (const b of busy) {
+          if (b.end <= cursor || b.start >= w.end) continue;
+          // `Math.min(..., w.end)`: agendamento/bloqueio depois do fim da
+          // faixa não pode "abrir" um horário livre fora dela.
+          if (b.start > cursor) pushFree(cursor, Math.min(b.start, w.end));
+          cursor = Math.max(cursor, b.end);
+        }
+        if (w.end > cursor) pushFree(cursor, w.end);
       }
-      if (window.end > cursor) pushFree(cursor, window.end);
     }
 
     // Cartões antes de livres/trancados no mesmo horário.

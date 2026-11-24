@@ -2,20 +2,18 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
+import { findRangeProblem, type TimeRange } from '@/lib/scheduling/business-hours';
 
-interface HoursInput {
+interface HoursInput extends TimeRange {
   weekday: number;
-  start_time: string;
-  end_time: string;
 }
 
-const TIME_RE = /^\d{2}:\d{2}(:\d{2})?$/;
+const WEEKDAY_LABELS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
 /** PUT /api/professional/business-hours
- *  Substitui a grade semanal inteira (delete-all + insert) — diferente de
- *  `order_services` (Fase 0), nada referencia o id de `business_hours`, só o
- *  `weekday` importa pro motor de disponibilidade, então não há necessidade
- *  de manter ids estáveis aqui. */
+ *  Substitui a grade semanal inteira (apaga e grava de novo) — nada
+ *  referencia o id de `business_hours`. Cada dia pode ter várias faixas
+ *  (F4.1); faixas do mesmo dia não podem se sobrepor (o banco também trava). */
 export async function PUT(request: Request) {
   try {
     const ip = getClientIp(request);
@@ -31,25 +29,20 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, message: 'Dados inválidos.' }, { status: 400 });
     }
 
-    const seenWeekdays = new Set<number>();
+    const byWeekday = new Map<number, TimeRange[]>();
     for (const h of hours) {
-      if (
-        typeof h.weekday !== 'number' ||
-        h.weekday < 0 ||
-        h.weekday > 6 ||
-        !TIME_RE.test(h.start_time) ||
-        !TIME_RE.test(h.end_time) ||
-        h.start_time >= h.end_time
-      ) {
-        return NextResponse.json(
-          { success: false, message: 'Horário inválido — confira se o início é antes do fim.' },
-          { status: 400 }
-        );
+      if (typeof h?.weekday !== 'number' || !Number.isInteger(h.weekday) || h.weekday < 0 || h.weekday > 6) {
+        return NextResponse.json({ success: false, message: 'Dia da semana inválido.' }, { status: 400 });
       }
-      if (seenWeekdays.has(h.weekday)) {
-        return NextResponse.json({ success: false, message: 'Dia da semana duplicado.' }, { status: 400 });
+      const list = byWeekday.get(h.weekday) || [];
+      list.push({ start_time: h.start_time, end_time: h.end_time });
+      byWeekday.set(h.weekday, list);
+    }
+    for (const [weekday, ranges] of byWeekday) {
+      const problem = findRangeProblem(ranges);
+      if (problem) {
+        return NextResponse.json({ success: false, message: `${WEEKDAY_LABELS[weekday]}: ${problem}` }, { status: 400 });
       }
-      seenWeekdays.add(h.weekday);
     }
 
     const normalizedSlug = slug.toLowerCase().trim();
@@ -57,17 +50,24 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, message: 'Sessão inválida ou expirada.' }, { status: 401 });
     }
 
-    const { data: order, error: orderErr } = await supabaseAdmin
+    const { data: studio, error: studioErr } = await supabaseAdmin
       .from('studios')
       .select('id')
       .eq('slug', normalizedSlug)
       .single();
 
-    if (orderErr || !order) {
+    if (studioErr || !studio) {
       return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
     }
 
-    const { error: deleteErr } = await supabaseAdmin.from('business_hours').delete().eq('studio_id', order.id);
+    // Guarda a grade atual para devolver se a gravação da nova falhar — sem
+    // isso, um erro no meio deixaria o estúdio sem horário nenhum.
+    const { data: previous } = await supabaseAdmin
+      .from('business_hours')
+      .select('weekday, start_time, end_time')
+      .eq('studio_id', studio.id);
+
+    const { error: deleteErr } = await supabaseAdmin.from('business_hours').delete().eq('studio_id', studio.id);
     if (deleteErr) {
       console.error('[API Business Hours] Erro ao limpar grade anterior:', deleteErr);
       return NextResponse.json({ success: false, message: 'Erro ao salvar os horários.' }, { status: 500 });
@@ -75,11 +75,19 @@ export async function PUT(request: Request) {
 
     if (hours.length > 0) {
       const { error: insertErr } = await supabaseAdmin.from('business_hours').insert(
-        hours.map((h) => ({ studio_id: order.id, weekday: h.weekday, start_time: h.start_time, end_time: h.end_time }))
+        hours.map((h) => ({ studio_id: studio.id, weekday: h.weekday, start_time: h.start_time, end_time: h.end_time }))
       );
       if (insertErr) {
         console.error('[API Business Hours] Erro ao inserir grade nova:', insertErr);
-        return NextResponse.json({ success: false, message: 'Erro ao salvar os horários.' }, { status: 500 });
+        if (previous && previous.length > 0) {
+          const { error: restoreErr } = await supabaseAdmin
+            .from('business_hours')
+            .insert(previous.map((h) => ({ ...h, studio_id: studio.id })));
+          if (restoreErr) console.error('[API Business Hours] Erro ao restaurar grade anterior:', restoreErr);
+        }
+        const message =
+          insertErr.code === '23P01' ? 'Duas faixas do mesmo dia estão se sobrepondo.' : 'Erro ao salvar os horários.';
+        return NextResponse.json({ success: false, message }, { status: insertErr.code === '23P01' ? 400 : 500 });
       }
     }
 
