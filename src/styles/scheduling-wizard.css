@@ -246,6 +246,116 @@ textarea.wizard__input {
   cursor: not-allowed;
 }
 
+/* Serviços do agendamento (F5.1) — lista no topo do passo 1, com
+ *  "+ Adicionar outro serviço" e o total quando há mais de um. */
+.wizard__servicos {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+.wizard__servico,
+.wizard__servico-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--wizard-summary-border);
+}
+.wizard__servico-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.wizard__servico-nome {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--modal-spec-v-color);
+}
+.wizard__servico-meta {
+  font-size: 13px;
+  color: var(--wizard-label-color);
+}
+.wizard__servico-total {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--modal-spec-v-color);
+}
+.wizard__servico-remover {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--wizard-input-border);
+  background: var(--wizard-input-bg);
+  color: var(--wizard-label-color);
+  cursor: pointer;
+}
+.wizard__adicionar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 18px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px dashed var(--wizard-input-focus-border);
+  background: transparent;
+  color: var(--wizard-input-focus-border);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wizard__picker {
+  border: 1px solid var(--wizard-input-border);
+  background: var(--wizard-input-bg);
+  border-radius: 14px;
+  padding: 10px 12px 4px;
+  margin-bottom: 18px;
+}
+.wizard__picker-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.wizard__picker-item {
+  border-top: 1px solid var(--wizard-summary-border);
+}
+.wizard__picker-servico,
+.wizard__picker-opcao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 0;
+  border: none;
+  background: none;
+  text-align: left;
+  color: var(--modal-spec-v-color);
+  cursor: pointer;
+}
+.wizard__picker-opcoes {
+  padding: 0 0 6px 14px;
+}
+.wizard__picker-opcao {
+  padding: 9px 0;
+  font-size: 14.5px;
+  border-top: 1px dashed var(--wizard-summary-border);
+}
+.wizard__dia-mes {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+}
+
 @media (max-width: 480px) {
   .wizard__dia-chip { min-width: 50px; padding: 8px 4px; }
   .wizard__slots { grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); }

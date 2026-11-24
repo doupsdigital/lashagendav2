@@ -1,16 +1,19 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { CheckCircle, CalendarX, Sparkles } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { CheckCircle, CalendarX, Plus, Sparkles, X } from 'lucide-react';
 import { ProcedureItem } from '@/types/catalog';
 import type { AvailabilitySlot } from '@/lib/scheduling/availability';
 import { formatPhoneBR } from '@/lib/format';
 import { ProcedureImage } from '../ProcedureImage';
-import { procedurePriceLabel } from '@/lib/service-format';
+import { bookingTotalLabel, durationToLabel, procedurePriceLabel, procedureWithVariation } from '@/lib/service-format';
 import '@/styles/scheduling-wizard.css';
 
 interface BookingModalProps {
+  /** Serviço (já com a variação escolhida, se tiver) que abriu o agendamento. */
   service: ProcedureItem;
+  /** Serviços agendáveis do catálogo, para "+ Adicionar outro serviço" (F5.1). */
+  availableServices?: ProcedureItem[];
   slug: string;
   /** Nome da profissional/studio (não confundir com o `clientName` abaixo,
    *  que é o da CLIENTE preenchendo o formulário) — só pro placeholder de
@@ -26,7 +29,11 @@ type WizardStep = 'datetime' | 'contact' | 'confirm';
 interface BookedAppointment {
   time: string;
   dateLabel: string;
+  confirmed: boolean;
 }
+
+/** Igual ao limite do servidor (`MAX_BOOKING_ITEMS`). */
+const MAX_SERVICES = 5;
 
 /** Dias mostrados quando o catálogo não informa a janela, e o teto da lista
  *  (a janela pode ir até 365 dias; mais de ~2 meses de botões só atrapalha). */
@@ -37,20 +44,30 @@ function toDateKey(d: Date): string {
   return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); // YYYY-MM-DD
 }
 
-function buildNextDays(count: number): { key: string; weekday: string; day: string }[] {
+/** Próximos dias para os botões. `month` aparece no primeiro botão e em cada
+ *  dia 1º — com ~2 meses de botões, só o número do dia confundia. */
+function buildNextDays(count: number): { key: string; weekday: string; day: string; month: string | null }[] {
   const days = [];
   const today = new Date();
   for (let i = 0; i < count; i += 1) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
+    const day = d.toLocaleDateString('pt-BR', { day: '2-digit', timeZone: 'America/Sao_Paulo' });
     days.push({
       key: toDateKey(d),
       weekday: d.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', ''),
-      day: d.toLocaleDateString('pt-BR', { day: '2-digit', timeZone: 'America/Sao_Paulo' }),
+      day,
+      month:
+        i === 0 || day === '01'
+          ? d.toLocaleDateString('pt-BR', { month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '')
+          : null,
     });
   }
   return days;
 }
+
+/** Chave de um item escolhido (serviço + variação). */
+const itemKey = (p: ProcedureItem) => (p.variation_id ? `${p.id}:${p.variation_id}` : p.id);
 
 function formatDateLabel(dateKey: string): string {
   const d = new Date(`${dateKey}T12:00:00-03:00`);
@@ -60,6 +77,7 @@ function formatDateLabel(dateKey: string): string {
 
 export const BookingModal: React.FC<BookingModalProps> = ({
   service,
+  availableServices = [],
   slug,
   professionalName,
   bookingWindowDays,
@@ -69,6 +87,26 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const days = useState(() =>
     buildNextDays(Math.min(MAX_DAYS_SHOWN, bookingWindowDays ? bookingWindowDays + 1 : DEFAULT_DAYS_AHEAD))
   )[0];
+
+  // Serviços do agendamento, um atrás do outro (F5.1). Começa com o que a
+  // cliente tocou no catálogo.
+  const [selected, setSelected] = useState<ProcedureItem[]>([service]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerVariationsFor, setPickerVariationsFor] = useState<string | null>(null);
+  const selectedKey = selected.map(itemKey).join(',');
+  const totalMinutes = selected.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);
+  const addable = useMemo(
+    () => availableServices.filter((p) => !selected.some((s) => s.id === p.id)),
+    [availableServices, selected]
+  );
+  const headline = selected.length === 1 ? selected[0].title : `${selected.length} serviços`;
+
+  const addService = (p: ProcedureItem) => {
+    setSelected((prev) => [...prev, p]);
+    setPickerOpen(false);
+    setPickerVariationsFor(null);
+  };
+  const removeService = (key: string) => setSelected((prev) => (prev.length > 1 ? prev.filter((p) => itemKey(p) !== key) : prev));
 
   const [step, setStep] = useState<WizardStep>('datetime');
   const [selectedDate, setSelectedDate] = useState<string>(days[0].key);
@@ -107,8 +145,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setNoSchedulingYet(false);
     setSelectedSlot(null);
     try {
-      const params = new URLSearchParams({ slug, service_id: service.id, date: dateKey });
-      if (service.variation_id) params.set('variation_id', service.variation_id);
+      const params = new URLSearchParams({ slug, items: selectedKey, date: dateKey });
       const res = await fetch(`/api/scheduling/availability?${params.toString()}`);
       const json = await res.json();
       if (!json.success) {
@@ -129,7 +166,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   useEffect(() => {
     fetchSlots(selectedDate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate]);
+  }, [selectedDate, selectedKey]);
 
   const handleSubmitContact = async () => {
     if (!selectedSlot || !clientName.trim() || !clientWhatsapp.trim()) return;
@@ -141,8 +178,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           slug,
-          service_id: service.id,
-          variation_id: service.variation_id,
+          items: selected.map((p) => ({ service_id: p.id, variation_id: p.variation_id || null })),
           starts_at: selectedSlot.startsAt,
           client_name: clientName.trim(),
           client_whatsapp: clientWhatsapp.trim(),
@@ -158,7 +194,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         }
         return;
       }
-      setBooked({ time: selectedSlot.time, dateLabel: formatDateLabel(selectedDate) });
+      setBooked({
+        time: selectedSlot.time,
+        dateLabel: formatDateLabel(selectedDate),
+        confirmed: json.appointment?.status === 'confirmed',
+      });
       setStep('confirm');
     } catch {
       setSubmitError('Falha na conexão ao confirmar o agendamento.');
@@ -187,12 +227,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             <CheckCircle className="w-8 h-8" />
           </div>
           <p className="wizard-success__titulo">Agendamento reservado!</p>
-          <p className="wizard-success__subtitulo">A profissional vai confirmar seu horário em breve.</p>
+          <p className="wizard-success__subtitulo">
+            {booked.confirmed ? 'Seu horário está confirmado.' : 'A profissional vai confirmar seu horário em breve.'}
+          </p>
 
           <div className="wizard__resumo">
             <div className="wizard__resumo-linha">
-              <span className="wizard__resumo-k">Procedimento</span>
-              <span className="wizard__resumo-v">{service.title}</span>
+              <span className="wizard__resumo-k">{selected.length === 1 ? 'Procedimento' : 'Procedimentos'}</span>
+              <span className="wizard__resumo-v">{selected.map((p) => p.title).join(' + ')}</span>
             </div>
             <div className="wizard__resumo-linha">
               <span className="wizard__resumo-k">Quando</span>
@@ -202,7 +244,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
             <div className="wizard__resumo-linha">
               <span className="wizard__resumo-k">Investimento</span>
-              <span className="wizard__resumo-v">{procedurePriceLabel(service)}</span>
+              <span className="wizard__resumo-v">{bookingTotalLabel(selected)}</span>
             </div>
           </div>
 
@@ -217,7 +259,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   }
 
   return (
-    <div className="modal-detalhe" role="dialog" aria-modal="true" aria-label={`Agendar ${service.title}`}>
+    <div className="modal-detalhe" role="dialog" aria-modal="true" aria-label={`Agendar ${headline}`}>
       <div className="modal-detalhe__backdrop" onClick={onClose} />
       <div className="modal-detalhe__sheet">
         <div className="modal__foto-wrap">
@@ -230,7 +272,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
         <div className="modal__corpo">
           <span className="modal__cat">Agendamento</span>
-          <h3 className="modal__titulo">{service.title}</h3>
+          <h3 className="modal__titulo">{headline}</h3>
 
           <div className="wizard__steps" aria-hidden="true">
             <div className={`wizard__step-dot ${step === 'datetime' ? 'is-active' : 'is-done'}`} />
@@ -239,6 +281,107 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
           {step === 'datetime' && (
             <>
+              <span className="wizard__label">{selected.length === 1 ? 'Seu serviço' : 'Seus serviços'}</span>
+              <div className="wizard__servicos">
+                {selected.map((p) => (
+                  <div key={itemKey(p)} className="wizard__servico">
+                    <div className="wizard__servico-info">
+                      <span className="wizard__servico-nome">{p.title}</span>
+                      <span className="wizard__servico-meta">
+                        {durationToLabel(p.duration_minutes)} · {procedurePriceLabel(p)}
+                      </span>
+                    </div>
+                    {selected.length > 1 && (
+                      <button
+                        type="button"
+                        className="wizard__servico-remover"
+                        aria-label={`Tirar ${p.title}`}
+                        onClick={() => removeService(itemKey(p))}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {selected.length > 1 && (
+                  <div className="wizard__servico-total">
+                    <span>Total</span>
+                    <span>
+                      {durationToLabel(totalMinutes)} · {bookingTotalLabel(selected)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {addable.length > 0 && selected.length < MAX_SERVICES && !pickerOpen && (
+                <button type="button" className="wizard__adicionar" onClick={() => setPickerOpen(true)}>
+                  <Plus className="w-4 h-4" /> Adicionar outro serviço
+                </button>
+              )}
+
+              {pickerOpen && (
+                <div className="wizard__picker">
+                  <div className="wizard__picker-topo">
+                    <span className="wizard__label" style={{ marginBottom: 0 }}>
+                      Adicionar serviço
+                    </span>
+                    <button
+                      type="button"
+                      className="wizard__servico-remover"
+                      aria-label="Fechar lista de serviços"
+                      onClick={() => {
+                        setPickerOpen(false);
+                        setPickerVariationsFor(null);
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {addable.map((p) => {
+                    const variations = p.variations || [];
+                    const showingVariations = pickerVariationsFor === p.id;
+                    return (
+                      <div key={p.id} className="wizard__picker-item">
+                        <button
+                          type="button"
+                          className="wizard__picker-servico"
+                          aria-expanded={variations.length > 0 ? showingVariations : undefined}
+                          onClick={() =>
+                            variations.length > 0
+                              ? setPickerVariationsFor(showingVariations ? null : p.id)
+                              : addService(p)
+                          }
+                        >
+                          <span className="wizard__servico-nome">{p.title}</span>
+                          <span className="wizard__servico-meta">
+                            {variations.length > 0
+                              ? `${variations.length} opções`
+                              : `${durationToLabel(p.duration_minutes)} · ${procedurePriceLabel(p)}`}
+                          </span>
+                        </button>
+                        {showingVariations && (
+                          <div className="wizard__picker-opcoes">
+                            {variations.map((v) => (
+                              <button
+                                key={v.id}
+                                type="button"
+                                className="wizard__picker-opcao"
+                                onClick={() => addService(procedureWithVariation(p, v))}
+                              >
+                                <span>{v.name}</span>
+                                <span className="wizard__servico-meta">
+                                  {durationToLabel(v.duration_minutes)} · {procedurePriceLabel({ price: v.price })}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <span className="wizard__label">Escolha o dia</span>
               <div className="wizard__dias">
                 {days.map((d) => (
@@ -250,6 +393,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   >
                     <span>{d.weekday}</span>
                     <strong>{d.day}</strong>
+                    {d.month && <span className="wizard__dia-mes">{d.month}</span>}
                   </button>
                 ))}
               </div>
@@ -262,7 +406,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               ) : noSchedulingYet ? (
                 <div className="wizard__vazio">
                   <Sparkles className="w-6 h-6" />
-                  Assine o Plano Agenda pra cadastrar seus horários e liberar a agenda.
+                  A agenda online ainda não está aberta. Fale com a profissional pelo WhatsApp.
                 </div>
               ) : slots.length === 0 ? (
                 <div className="wizard__vazio">
@@ -298,6 +442,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </button>
 
               <div className="wizard__resumo">
+                <div className="wizard__resumo-linha">
+                  <span className="wizard__resumo-k">{selected.length === 1 ? 'Serviço' : 'Serviços'}</span>
+                  <span className="wizard__resumo-v">{selected.map((p) => p.title).join(' + ')}</span>
+                </div>
                 <div className="wizard__resumo-linha">
                   <span className="wizard__resumo-k">Horário escolhido</span>
                   <span className="wizard__resumo-v">

@@ -3,13 +3,22 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { getStudioBySlug } from '@/lib/studio-service';
 import { isBookingLive } from '@/lib/studio-access';
 import { getAvailableSlotsForDate } from '@/lib/scheduling/slot-lookup';
-import { createAppointment, findOrCreateClient, loadBookingItem } from '@/lib/scheduling/booking-service';
+import {
+  createAppointment,
+  findOrCreateClient,
+  loadBookingItems,
+  totalDurationMinutes,
+  totalPrice,
+  type BookingItemRef,
+} from '@/lib/scheduling/booking-service';
 import { priceToLabel } from '@/lib/service-format';
 import { sendPushToStudio } from '@/lib/push-notifications';
 
 /** POST /api/scheduling/book
  *  Pública (a cliente final não tem conta — só nome + WhatsApp), rate-limited.
- *  Body: { slug, service_id, variation_id?, starts_at (ISO), client_name, client_whatsapp, client_notes? } */
+ *  Body: { slug, items: [{ service_id, variation_id? }], starts_at (ISO), client_name,
+ *  client_whatsapp, client_notes? } — ou `service_id`/`variation_id` (um
+ *  serviço só, formato antigo). Vários serviços ficam um atrás do outro. */
 export async function POST(request: Request) {
   try {
     const ip = getClientIp(request);
@@ -19,8 +28,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { slug, service_id, variation_id, starts_at, client_name, client_whatsapp, client_notes } = body as {
+    const { slug, items: itemsInput, service_id, variation_id, starts_at, client_name, client_whatsapp, client_notes } = body as {
       slug?: string;
+      items?: BookingItemRef[];
       service_id?: string;
       variation_id?: string;
       starts_at?: string;
@@ -29,7 +39,13 @@ export async function POST(request: Request) {
       client_notes?: string;
     };
 
-    if (!slug || !service_id || !starts_at || !client_name?.trim() || !client_whatsapp?.trim()) {
+    const refs: BookingItemRef[] = Array.isArray(itemsInput)
+      ? itemsInput
+      : service_id
+        ? [{ service_id, variation_id: variation_id || null }]
+        : [];
+
+    if (!slug || refs.length === 0 || !starts_at || !client_name?.trim() || !client_whatsapp?.trim()) {
       return NextResponse.json({ success: false, message: 'Preencha nome, WhatsApp e escolha um horário.' }, { status: 400 });
     }
 
@@ -47,15 +63,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Agendamento automático não está ativo pra este catálogo.' }, { status: 400 });
     }
 
-    const item = await loadBookingItem(studio.id, service_id, variation_id, { requireBookable: true });
-    if (!item) {
+    const items = await loadBookingItems(studio.id, refs, { requireBookable: true });
+    if (!items) {
       return NextResponse.json({ success: false, message: 'Serviço indisponível pra agendamento automático.' }, { status: 400 });
     }
 
     // Revalida o horário antes de gravar (a lista do navegador pode estar
     // desatualizada). A garantia final contra corrida é a trava do banco.
     const dateStr = startsAtDate.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); // YYYY-MM-DD
-    const slots = await getAvailableSlotsForDate(studio.id, dateStr, item.durationMinutes, studio);
+    const slots = await getAvailableSlotsForDate(studio.id, dateStr, totalDurationMinutes(items), studio);
     if (!slots.some((s) => s.startsAt === startsAtDate.toISOString())) {
       return NextResponse.json(
         { success: false, message: 'Esse horário não está mais disponível. Escolha outro, por favor.' },
@@ -73,7 +89,7 @@ export async function POST(request: Request) {
       studioId: studio.id,
       clientId,
       startsAt: startsAtDate,
-      items: [item],
+      items,
       status: studio.booking_mode === 'auto' ? 'confirmed' : 'pending',
       origin: 'catalog',
       clientNotes: client_notes,
@@ -97,7 +113,7 @@ export async function POST(request: Request) {
 
     await sendPushToStudio(studio.id, {
       title: '📅 Novo agendamento',
-      body: `${client_name.trim()} · ${item.title} · ${weekday}, ${dayMonth} às ${time}`,
+      body: `${client_name.trim()} · ${items.map((i) => i.title).join(' + ')} · ${weekday}, ${dayMonth} às ${time}`,
       url: `/app/${studio.slug}/agenda#pendentes`,
     });
 
@@ -105,7 +121,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       appointment,
-      service: { title: item.title, price: priceToLabel(item.price) },
+      service: { title: items.map((i) => i.title).join(' + '), price: priceToLabel(totalPrice(items)) },
     });
   } catch (error) {
     console.error('[API Scheduling Book Exception]:', error);

@@ -814,6 +814,7 @@ export const CatalogLayout: React.FC<CatalogLayoutProps> = ({
         ) : (
           <BookingModal
             service={bookingItem}
+            availableServices={catalogState.procedures.filter((p) => p.active !== false && p.bookable !== false && p.duration_minutes > 0)}
             slug={catalogState.slug}
             professionalName={catalogState.client_name}
             bookingWindowDays={catalogState.booking_window_days}

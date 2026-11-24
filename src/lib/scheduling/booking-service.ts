@@ -108,6 +108,46 @@ export async function loadBookingItem(
   };
 }
 
+/** Máximo de serviços num mesmo agendamento pela cliente (F5.1). */
+export const MAX_BOOKING_ITEMS = 5;
+
+export interface BookingItemRef {
+  service_id: string;
+  variation_id?: string | null;
+}
+
+/** Lista de serviços pedida pela cliente → itens prontos, na ordem pedida.
+ *  `null` se a lista for vazia/grande demais, repetir um serviço ou algum
+ *  item não existir/não for agendável. */
+export async function loadBookingItems(
+  studioId: string,
+  refs: BookingItemRef[],
+  options: { requireBookable: boolean }
+): Promise<BookingItem[] | null> {
+  if (!Array.isArray(refs) || refs.length === 0 || refs.length > MAX_BOOKING_ITEMS) return null;
+  const serviceIds = refs.map((r) => r?.service_id);
+  if (serviceIds.some((id) => typeof id !== 'string' || !id)) return null;
+  if (new Set(serviceIds).size !== serviceIds.length) return null;
+
+  const items = await Promise.all(
+    refs.map((r) => loadBookingItem(studioId, r.service_id, r.variation_id || null, options))
+  );
+  return items.every(Boolean) ? (items as BookingItem[]) : null;
+}
+
+/** `?items=servico:variacao,servico2` (formato da rota de horários). */
+export function parseItemsParam(value: string | null): BookingItemRef[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => {
+      const [service_id, variation_id] = part.split(':');
+      return { service_id, variation_id: variation_id || null };
+    });
+}
+
 export function totalDurationMinutes(items: BookingItem[]): number {
   return items.reduce((sum, i) => sum + i.durationMinutes, 0);
 }

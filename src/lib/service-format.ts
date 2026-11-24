@@ -84,3 +84,15 @@ export function resolveDurationMinutes(minutes: number | null | undefined, label
     typeof minutes === 'number' && minutes > 0 ? minutes : parseDurationToMinutes(label) ?? FALLBACK_DURATION_MINUTES;
   return Math.min(720, Math.max(5, Math.round(candidate)));
 }
+
+/** Preço total de um agendamento com vários serviços: soma do que tem preço;
+ *  "A partir de" se algum item é "a partir de"; "+ sob consulta" se algum
+ *  item não tem preço; só "Sob Consulta" se nenhum tem. */
+export function bookingTotalLabel(items: { price: number | null; price_from?: boolean }[]): string {
+  const priced = items.filter((i) => typeof i.price === 'number');
+  if (priced.length === 0) return PRICE_ON_REQUEST_LABEL;
+  const sum = Math.round(priced.reduce((acc, i) => acc + (i.price as number), 0) * 100) / 100;
+  const from = priced.some((i) => i.price_from);
+  const onRequest = priced.length < items.length;
+  return `${from ? 'A partir de ' : ''}${formatBRL(sum)}${onRequest ? ' + sob consulta' : ''}`;
+}

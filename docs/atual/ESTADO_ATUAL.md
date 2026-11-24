@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-24 — Fase 4 concluída (horários, bloqueios e motor de disponibilidade).**
+> Última atualização: **2026-11-24 — F5.1 concluída (agendamento com vários serviços).**
 
 ---
 
@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F5 — Agendamento pela cliente** (não iniciada) |
-| **Próxima etapa** | **F5.1 — Wizard do StudioMenu sobre o modelo novo** (decidir: vários serviços no mesmo agendamento?) (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fase atual** | **F5 — Agendamento pela cliente** (F5.1 ✅) |
+| **Próxima etapa** | **F5.2 — Cliente por WhatsApp** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -111,6 +111,8 @@ Web Push.
   - **F10:** `min_notice_minutes` e `booking_window_days` já valem no agendamento (F4.3), mas
     ainda não têm tela para a profissional mudar (hoje ficam no padrão: 2h e 60 dias).
   - **F5:** o link único da cliente (`manage_token`) já é gravado, mas ainda não é mostrado.
+  - **F6:** o agendamento manual da profissional ainda aceita um serviço só (o da cliente
+    aceita até 5 desde a F5.1, decidido com a usuária em 2026-11-24).
   - **F11:** preço anual exibido ainda é R$ 127 (`lib/pricing.ts`); o v2 vende a R$ 197.
   - **F12:** `/admin/catalogos` virou uma lista enxuta (status, links, +1 mês/ano, liberar à
     mão, desativar, excluir). Saíram o "Cadastrar serviços com IA" (`extract-catalog`,

@@ -3,13 +3,14 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { getStudioBySlug } from '@/lib/studio-service';
 import { isBookingLive } from '@/lib/studio-access';
-import { priceToLabel } from '@/lib/service-format';
 import { getAvailableSlotsForDate } from '@/lib/scheduling/slot-lookup';
-import { loadBookingItem } from '@/lib/scheduling/booking-service';
+import { loadBookingItems, parseItemsParam, totalDurationMinutes } from '@/lib/scheduling/booking-service';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** GET /api/scheduling/availability?slug=X&service_id=Y[&variation_id=Z]&date=YYYY-MM-DD
+/** GET /api/scheduling/availability?slug=X&items=serv[:var],serv2&date=YYYY-MM-DD
+ *  (ou o formato antigo `service_id=Y[&variation_id=Z]`, um serviço só).
+ *  Vários serviços = um atrás do outro: a duração é a soma.
  *  Pública (modal de agendamento do catálogo, sem login), rate-limited. */
 export async function GET(request: Request) {
   try {
@@ -22,12 +23,16 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get('slug') || '';
     const serviceId = searchParams.get('service_id') || '';
-    const variationId = searchParams.get('variation_id');
+    const refs = searchParams.get('items')
+      ? parseItemsParam(searchParams.get('items'))
+      : serviceId
+        ? [{ service_id: serviceId, variation_id: searchParams.get('variation_id') }]
+        : [];
     const dateStr = searchParams.get('date') || '';
 
-    if (!slug || !serviceId || !DATE_RE.test(dateStr)) {
+    if (!slug || refs.length === 0 || !DATE_RE.test(dateStr)) {
       return NextResponse.json(
-        { success: false, message: 'Parâmetros inválidos (slug, service_id, date são obrigatórios).' },
+        { success: false, message: 'Parâmetros inválidos (slug, items e date são obrigatórios).' },
         { status: 400 }
       );
     }
@@ -41,11 +46,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, message: 'Agendamento automático não está ativo pra este catálogo.' }, { status: 400 });
     }
 
-    const item = await loadBookingItem(studio.id, serviceId, variationId, { requireBookable: true });
-    if (!item) {
+    const items = await loadBookingItems(studio.id, refs, { requireBookable: true });
+    if (!items) {
       return NextResponse.json({ success: false, message: 'Serviço não encontrado.' }, { status: 404 });
     }
-    const service = { id: item.serviceId, title: item.title, price: priceToLabel(item.price) };
+    const durationMinutes = totalDurationMinutes(items);
 
     // Nenhum horário de atendimento cadastrado ainda: avisa "ainda não
     // configurado" em vez de parecer que todos os dias estão lotados.
@@ -55,11 +60,11 @@ export async function GET(request: Request) {
       .eq('studio_id', studio.id);
 
     if (!hoursCount) {
-      return NextResponse.json({ success: true, slots: [], noSchedulingYet: true, service });
+      return NextResponse.json({ success: true, slots: [], noSchedulingYet: true, durationMinutes });
     }
 
-    const slots = await getAvailableSlotsForDate(studio.id, dateStr, item.durationMinutes, studio);
-    return NextResponse.json({ success: true, slots, service, bookingWindowDays: studio.booking_window_days });
+    const slots = await getAvailableSlotsForDate(studio.id, dateStr, durationMinutes, studio);
+    return NextResponse.json({ success: true, slots, durationMinutes, bookingWindowDays: studio.booking_window_days });
   } catch (error) {
     console.error('[API Scheduling Availability Exception]:', error);
     return NextResponse.json({ success: false, message: 'Erro interno ao calcular disponibilidade.' }, { status: 500 });
