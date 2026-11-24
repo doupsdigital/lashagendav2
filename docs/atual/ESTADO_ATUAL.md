@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-24 — F4.1 concluída (várias faixas por dia).**
+> Última atualização: **2026-11-24 — F4.2 concluída (folgas e bloqueios).**
 
 ---
 
@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F4 — Horários e bloqueios** (F4.1 ✅) |
-| **Próxima etapa** | **F4.2 — Folgas e bloqueios** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fase atual** | **F4 — Horários e bloqueios** (F4.1 ✅, F4.2 ✅) |
+| **Próxima etapa** | **F4.3 — Motor de disponibilidade** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 

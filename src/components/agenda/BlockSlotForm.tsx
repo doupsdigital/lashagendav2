@@ -55,6 +55,18 @@ export const BlockSlotForm: React.FC<BlockSlotFormProps> = ({ slug, defaultDate,
           { label: 'Data', value: dateLabel },
           { label: 'Período', value: allDay ? 'Dia inteiro' : `${startTime} às ${endTime}` },
           { label: 'Motivo', value: reason.trim() || '—' },
+          // O bloqueio não desmarca ninguém — só avisa (F4.2).
+          ...(Number(json.affectedAppointments) > 0
+            ? [
+                {
+                  label: 'Atenção',
+                  value:
+                    Number(json.affectedAppointments) === 1
+                      ? '1 agendamento nesse horário continua marcado'
+                      : `${json.affectedAppointments} agendamentos nesse horário continuam marcados`,
+                },
+              ]
+            : []),
         ],
       });
     } catch {
