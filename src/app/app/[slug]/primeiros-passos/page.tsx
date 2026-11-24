@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { ListChecks } from 'lucide-react';
-import { getOrderForProfessionalApp } from '@/lib/professional-app-service';
+import { getStudioForProfessionalApp } from '@/lib/studio-service';
 import { PageTitleBar } from '@/components/app-shell/PageTitleBar';
 import { SelfServeChecklist } from '@/components/app-shell/SelfServeChecklist';
 
@@ -8,16 +8,15 @@ interface PrimeirosPassosPageProps {
   params: Promise<{ slug: string }>;
 }
 
-/** Checklist guiado de quem comprou pelo funil `/lash` (Cakto, 2026-11-18).
- *  É a primeira tela depois do pagamento (`/ativando` leva pra cá). A
+/** Checklist guiado pós-compra (Cakto). É a primeira tela depois do pagamento (`/ativando` leva pra cá). A
  *  sessão já foi conferida pelo `layout.tsx` de `/app/[slug]`. */
 export default async function PrimeirosPassosPage({ params }: PrimeirosPassosPageProps) {
   const { slug } = await params;
-  const order = await getOrderForProfessionalApp(slug);
+  const order = await getStudioForProfessionalApp(slug);
 
   if (!order) notFound();
   // Ainda é prévia / nunca pagou: não tem o que configurar.
-  if (order.plan_tier === 'catalog') redirect(`/app/${slug}/inicio`);
+  if (order.plan_status === 'preview') redirect(`/app/${slug}/inicio`);
 
   return (
     <>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
-import { getOrderForProfessionalApp } from '@/lib/professional-app-service';
+import { getStudioForProfessionalApp } from '@/lib/studio-service';
 import { getAppointmentsForDay, getPendingAppointments } from '@/lib/scheduling/agenda-service';
 import { getBusinessHours } from '@/lib/scheduling/config-service';
 import { GradientHeader } from '@/components/app-shell/GradientHeader';
@@ -14,8 +14,7 @@ import { InicioTour } from '@/components/tour/InicioTour';
 import { countSelfServeStepsDone, SELF_SERVE_STEP_ORDER } from '@/lib/self-serve-onboarding';
 import Link from 'next/link';
 import { CaktoPlanCard } from '@/components/billing/CaktoPlanCard';
-import { SupportFooterCard } from '@/components/app-shell/SupportFooterCard';
-import { CalendarDays, Clock, Share2, Crown, Home, ListChecks, ChevronRight } from 'lucide-react';
+import { CalendarDays, Clock, Share2, Home, ListChecks, ChevronRight } from 'lucide-react';
 
 interface InicioPageProps {
   params: Promise<{ slug: string }>;
@@ -40,38 +39,37 @@ function todayInSaoPaulo(): string {
 
 export default async function InicioPage({ params }: InicioPageProps) {
   const { slug } = await params;
-  const order = await getOrderForProfessionalApp(slug);
+  const order = await getStudioForProfessionalApp(slug);
 
   if (!order) notFound();
 
-  const isPlusAtivo = order.plan_tier === 'plus' && order.subscription_status === 'ativo';
-  // Mesmo gate da Agenda: `booking_enabled` decide se o agendamento está de
-  // fato funcionando pro cliente final, não o plano diretamente (pode estar
-  // ligado via toggle manual do admin sem ela ser Plus — Fase 6).
-  const schedulingLive = order.booking_enabled;
+  const hasPaidAccess = order.has_paid_access;
+  // Agendamento de fato funcionando para a cliente final (`isBookingLive`).
+  const schedulingLive = order.booking_live;
   const [todayAppointments, pendingAppointments, businessHours] = await Promise.all([
     getAppointmentsForDay(order.id, todayInSaoPaulo()),
     getPendingAppointments(order.id),
-    // Só o checklist de "próximos passos" do Plus usa isso (item de horários).
-    isPlusAtivo ? getBusinessHours(order.id) : Promise.resolve([]),
+    // Só o checklist de "próximos passos" usa isso (item de horários).
+    hasPaidAccess ? getBusinessHours(order.id) : Promise.resolve([]),
   ]);
   const hoursDone = businessHours.length > 0;
 
-  // Funil `/lash` (Cakto, 2026-11-18): enquanto o checklist "Primeiros
-  // passos" não termina, um card no topo leva ela de volta pra lá.
+  // Enquanto o checklist "Primeiros passos" (pós-compra) não termina, um
+  // card no topo leva ela de volta pra lá.
   const selfServeTotal = SELF_SERVE_STEP_ORDER.length;
   const selfServeDone = countSelfServeStepsDone(order.onboarding_steps, Boolean(order.auth_user_id));
-  const showSelfServeContinue = order.billing_provider === 'cakto' && selfServeDone < selfServeTotal;
+  const showSelfServeContinue = order.plan_status !== 'preview' && selfServeDone < selfServeTotal;
 
-  // Card "Meu plano" da Cakto: no topo quando precisa de ação (fora do ar,
-  // renovação recusada, cancelada), senão no fim da tela.
-  const isCakto = order.billing_provider === 'cakto';
+  // Card "Meu plano" (assinatura Cakto; não aparece para liberação manual do
+  // admin): no topo quando precisa de ação (fora do ar, renovação recusada,
+  // cancelada), senão no fim da tela.
+  const isCakto = order.plan_status !== 'preview' && !order.manual_plan;
   const caktoNeedsAttention =
-    isCakto && (order.subscription_status !== 'ativo' || !order.paid_until || new Date(order.paid_until).getTime() < Date.now());
+    isCakto && (order.plan_status !== 'active' || !order.paid_until || new Date(order.paid_until).getTime() < Date.now());
   const caktoPlanCard = isCakto ? (
     <CaktoPlanCard
       plan={order.cakto_plan}
-      status={order.subscription_status}
+      status={order.plan_status}
       paidUntil={order.paid_until}
       checkoutRef={order.cakto_checkout_ref}
     />
@@ -85,22 +83,12 @@ export default async function InicioPage({ params }: InicioPageProps) {
       <PageTitleBar title="Início" icon={<Home className="w-5 h-5 text-ink-soft" />} slug={slug} />
       <main className="max-w-md mx-auto px-5 pt-6 pb-6 flex flex-col gap-4">
       {/* pt-5 pb-5 (em vez do p-6 padrão do GradientHeader, que também é
-       *  usado no cabeçalho da Agenda — não dava pra reduzir ali sem afetar
-       *  essa outra tela) + badge PLUS mais compacto (mt-2/py-1 em vez de
-       *  mt-3/py-1.5): pedido pra diminuir a altura desse cartão, 2026-09-23. */}
+       *  usado no cabeçalho da Agenda): cartão mais baixo, pedido de 2026-09-23. */}
       <GradientHeader tone="light" className="pt-5 pb-5">
         <h1 className="font-serif-pro font-bold text-3xl">
           {greeting}, {firstName}!
         </h1>
         <p className="text-[15px] text-rose-800/70 mt-1.5 italic">Bem-vinda ao seu Studio! ✨</p>
-        {isPlusAtivo && (
-          <div className="flex justify-end">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 mt-2 rounded-full bg-rose-600 text-white text-[13px] font-bold tracking-wide">
-              <Crown className="w-3.5 h-3.5" />
-              AGENDA
-            </span>
-          </div>
-        )}
       </GradientHeader>
 
       {caktoNeedsAttention && caktoPlanCard}
@@ -127,10 +115,8 @@ export default async function InicioPage({ params }: InicioPageProps) {
       )}
 
       {/* Só fazem sentido com o agendamento de fato funcionando — senão
-       *  ficam sempre zerados, sem nenhuma ação possível por trás. Também só
-       *  com a Agenda acessível (`show_full_app`, 2026-10-27) — senão os
-       *  cards linkariam pra uma rota que redireciona de volta pro Início. */}
-      {schedulingLive && order.show_full_app !== false && (
+       *  ficam sempre zerados, sem nenhuma ação possível por trás. */}
+      {schedulingLive && (
         <div className="grid grid-cols-2 gap-3">
           <StatCard icon={CalendarDays} label="Agendamentos hoje" value={todayAppointments.length} href={`/app/${slug}/agenda`} dataTour="stat-today" />
           <StatCard
@@ -163,21 +149,15 @@ export default async function InicioPage({ params }: InicioPageProps) {
 
       {isCakto && !caktoNeedsAttention && caktoPlanCard}
 
-      <OnboardingCardStack slug={slug} planTier={order.plan_tier} subscriptionStatus={order.subscription_status} hasAccount={Boolean(order.auth_user_id)} hoursDone={hoursDone} />
+      <OnboardingCardStack slug={slug} hasPaidAccess={hasPaidAccess} hasAccount={Boolean(order.auth_user_id)} hoursDone={hoursDone} />
 
       <InicioTour
         slug={slug}
-        planTier={order.plan_tier}
-        subscriptionStatus={order.subscription_status}
+        hasPaidAccess={hasPaidAccess}
         hasAccount={Boolean(order.auth_user_id)}
         hoursDone={hoursDone}
         schedulingLive={schedulingLive}
       />
-
-      {/* Suporte no fim do Início só pra quem NÃO vê a Config (produto
-       *  "Catálogo apenas", ex: Cakto) — quem tem a Config já tem a seção
-       *  "Suporte e dúvidas" lá. */}
-      {order.show_full_app === false && <SupportFooterCard name={order.client_name} slug={slug} />}
       </main>
     </>
   );

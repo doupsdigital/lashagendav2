@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isPreviewOrder } from '@/lib/preview';
+import { isPreviewStudio } from '@/lib/studio-access';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { isAllowedImageType } from '@/lib/file-validation';
 import { optimizeImage } from '@/lib/image-optimize';
@@ -29,15 +29,15 @@ export async function POST(request: Request) {
     }
 
     // Validar token no Supabase
-    const { data: order } = await supabaseAdmin
-      .from('orders')
-      .select('id, plan_tier, preview_expires_at')
+    const { data: studio } = await supabaseAdmin
+      .from('studios')
+      .select('id, plan_status')
       .eq('slug', slug.toLowerCase().trim())
       .eq('edit_token', editToken)
-      .single();
+      .maybeSingle();
 
-    // Prévia gratuita do funil `/lash` (2026-11-17): sem upload até pagar.
-    if (!order || isPreviewOrder(order)) {
+    // Prévia gratuita: sem upload até pagar.
+    if (!studio || isPreviewStudio(studio)) {
       return NextResponse.json({ success: false, message: 'Não autorizado para upload neste catálogo.' }, { status: 403 });
     }
 

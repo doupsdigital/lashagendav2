@@ -23,7 +23,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     const { data: block, error: blockErr } = await supabaseAdmin
       .from('schedule_blocks')
-      .select('id, order_id')
+      .select('id, studio_id')
       .eq('id', id)
       .single();
 
@@ -32,9 +32,9 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     }
 
     const { data: order, error: orderErr } = await supabaseAdmin
-      .from('orders')
+      .from('studios')
       .select('slug')
-      .eq('id', block.order_id)
+      .eq('id', block.studio_id)
       .single();
 
     if (orderErr || !order || !(await isProfessionalRequestAuthorized(order.slug))) {

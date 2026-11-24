@@ -24,14 +24,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Sessão inválida ou expirada.' }, { status: 401 });
     }
 
-    const { data: order, error: orderError } = await supabaseAdmin.from('orders').select('id').eq('slug', slug).single();
+    const { data: order, error: orderError } = await supabaseAdmin.from('studios').select('id').eq('slug', slug).single();
     if (orderError || !order) {
       return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
     }
 
     const { error: upsertError } = await supabaseAdmin
       .from('push_subscriptions')
-      .upsert({ order_id: order.id, endpoint, p256dh, auth }, { onConflict: 'order_id,endpoint' });
+      .upsert({ studio_id: order.id, endpoint, p256dh, auth }, { onConflict: 'studio_id,endpoint' });
 
     if (upsertError) {
       console.error('[Push Subscribe] Erro ao gravar inscrição:', upsertError);

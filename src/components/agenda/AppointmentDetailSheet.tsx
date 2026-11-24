@@ -22,7 +22,7 @@ interface AppointmentDetailSheetProps {
 const STATUS_LABEL: Record<AgendaAppointment['status'], string> = {
   pending: 'Aguardando',
   confirmed: 'Confirmado',
-  cancelled: 'Cancelado',
+  canceled: 'Cancelado',
   completed: 'Concluído',
   no_show: 'Não compareceu',
 };
@@ -30,7 +30,7 @@ const STATUS_LABEL: Record<AgendaAppointment['status'], string> = {
 const STATUS_BADGE: Record<AgendaAppointment['status'], string> = {
   pending: 'bg-amber-200 text-amber-900',
   confirmed: 'bg-green-200 text-green-900',
-  cancelled: 'bg-gray-200 text-gray-600',
+  canceled: 'bg-gray-200 text-gray-600',
   completed: 'bg-blue-200 text-blue-950',
   no_show: 'bg-red-200 text-red-900',
 };

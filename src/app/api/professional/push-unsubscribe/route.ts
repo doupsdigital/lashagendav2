@@ -20,12 +20,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Sessão inválida ou expirada.' }, { status: 401 });
     }
 
-    const { data: order, error: orderError } = await supabaseAdmin.from('orders').select('id').eq('slug', slug).single();
+    const { data: order, error: orderError } = await supabaseAdmin.from('studios').select('id').eq('slug', slug).single();
     if (orderError || !order) {
       return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
     }
 
-    await supabaseAdmin.from('push_subscriptions').delete().eq('order_id', order.id).eq('endpoint', endpoint);
+    await supabaseAdmin.from('push_subscriptions').delete().eq('studio_id', order.id).eq('endpoint', endpoint);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -16,16 +16,16 @@ export function generateCode(): string {
   return code;
 }
 
-/** Gera e salva um código curto único (`orders.app_short_code`) pro link
+/** Gera e salva um código curto único (`studios.app_short_code`) pro link
  *  do app (`/a/[code]`) — chamado sob demanda pela listagem do admin pra
  *  qualquer catálogo que ainda não tenha um (tanto os criados antes dessa
  *  funcionalidade quanto os novos). 7 caracteres num alfabeto de 58
  *  símbolos (~1,4 trilhão de combinações) torna colisão real improvável,
  *  mas a função tenta de novo mesmo assim — a coluna é `UNIQUE`. */
-export async function assignAppShortCode(orderId: string): Promise<string | null> {
+export async function assignAppShortCode(studioId: string): Promise<string | null> {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const code = generateCode();
-    const { error } = await supabaseAdmin.from('orders').update({ app_short_code: code }).eq('id', orderId);
+    const { error } = await supabaseAdmin.from('studios').update({ app_short_code: code }).eq('id', studioId);
     if (!error) return code;
     // 23505 = violação de UNIQUE (colisão de código) — tenta outro.
     // Qualquer outro erro não é recuperável tentando de novo.

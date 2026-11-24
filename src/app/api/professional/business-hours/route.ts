@@ -58,7 +58,7 @@ export async function PUT(request: Request) {
     }
 
     const { data: order, error: orderErr } = await supabaseAdmin
-      .from('orders')
+      .from('studios')
       .select('id')
       .eq('slug', normalizedSlug)
       .single();
@@ -67,7 +67,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
     }
 
-    const { error: deleteErr } = await supabaseAdmin.from('business_hours').delete().eq('order_id', order.id);
+    const { error: deleteErr } = await supabaseAdmin.from('business_hours').delete().eq('studio_id', order.id);
     if (deleteErr) {
       console.error('[API Business Hours] Erro ao limpar grade anterior:', deleteErr);
       return NextResponse.json({ success: false, message: 'Erro ao salvar os horários.' }, { status: 500 });
@@ -75,7 +75,7 @@ export async function PUT(request: Request) {
 
     if (hours.length > 0) {
       const { error: insertErr } = await supabaseAdmin.from('business_hours').insert(
-        hours.map((h) => ({ order_id: order.id, weekday: h.weekday, start_time: h.start_time, end_time: h.end_time }))
+        hours.map((h) => ({ studio_id: order.id, weekday: h.weekday, start_time: h.start_time, end_time: h.end_time }))
       );
       if (insertErr) {
         console.error('[API Business Hours] Erro ao inserir grade nova:', insertErr);

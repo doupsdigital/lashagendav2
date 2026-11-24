@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { getCatalogBySlug } from '@/lib/catalog-service';
+import { getCatalogBySlug } from '@/lib/studio-service';
 import { CatalogLayout } from '@/components/catalog/CatalogLayout';
 
 interface CatalogoPageProps {

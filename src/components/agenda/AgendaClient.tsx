@@ -124,7 +124,7 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
   // como padrão, que ela pode trocar no próprio formulário.
   const formDefaultDate = view === 'mes' ? todayStr : selectedDate;
 
-  const patchStatus = async (appointment: AgendaAppointment, status: 'confirmed' | 'cancelled' | 'completed' | 'no_show') => {
+  const patchStatus = async (appointment: AgendaAppointment, status: 'confirmed' | 'canceled' | 'completed' | 'no_show') => {
     const res = await fetch(`/api/professional/appointments/${appointment.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -166,7 +166,7 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
     setBusy(true);
     setActionError(null);
     try {
-      const json = await patchStatus(rejectAppointment, 'cancelled');
+      const json = await patchStatus(rejectAppointment, 'canceled');
       if (!json.success) {
         setActionError(json.message || 'Não foi possível recusar o agendamento.');
         return;
@@ -187,7 +187,7 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
     setBusy(true);
     setActionError(null);
     try {
-      const json = await patchStatus(appointment, 'cancelled');
+      const json = await patchStatus(appointment, 'canceled');
       if (!json.success) {
         setActionError(json.message || 'Não foi possível cancelar o agendamento.');
         return;

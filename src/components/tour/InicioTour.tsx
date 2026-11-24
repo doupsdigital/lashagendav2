@@ -7,8 +7,7 @@ import { getOnboardingChecklistItems } from '@/lib/onboarding-cards';
 
 interface InicioTourProps {
   slug: string;
-  planTier: 'catalog' | 'basico' | 'plus';
-  subscriptionStatus: 'none' | 'ativo' | 'suspenso' | 'cancelado';
+  hasPaidAccess: boolean;
   hasAccount: boolean;
   hoursDone: boolean;
   schedulingLive: boolean;
@@ -25,7 +24,7 @@ interface InicioTourProps {
  *  qualquer motivo, aqui ou numa mudança futura) recria os objetos e o
  *  Joyride mostra o balão duplicado (achado de verdade na Config, corrigido
  *  lá — aplicado aqui também de forma preventiva). */
-export const InicioTour: React.FC<InicioTourProps> = ({ slug, planTier, subscriptionStatus, hasAccount, hoursDone, schedulingLive }) => {
+export const InicioTour: React.FC<InicioTourProps> = ({ slug, hasPaidAccess, hasAccount, hoursDone, schedulingLive }) => {
   const steps = useMemo<Step[]>(() => {
     const list: Step[] = [];
 
@@ -46,7 +45,7 @@ export const InicioTour: React.FC<InicioTourProps> = ({ slug, planTier, subscrip
     // pendente que o servidor sabe (o "conhecer a agenda" só o aparelho sabe,
     // então não conta aqui — melhor sem balão do que apontar pra um card que
     // pode não estar na tela).
-    const items = getOnboardingChecklistItems({ slug, planTier, subscriptionStatus, hasAccount, hoursDone });
+    const items = getOnboardingChecklistItems({ slug, hasPaidAccess, hasAccount, hoursDone });
     if (items.some((item) => !item.done && !item.clientTracked)) {
       list.push({
         target: '[data-tour="onboarding-checklist"]',
@@ -56,7 +55,7 @@ export const InicioTour: React.FC<InicioTourProps> = ({ slug, planTier, subscrip
     }
 
     return list;
-  }, [slug, planTier, subscriptionStatus, hasAccount, hoursDone, schedulingLive]);
+  }, [slug, hasPaidAccess, hasAccount, hoursDone, schedulingLive]);
 
-  return <ProductTour tourId="inicio" slug={slug} steps={steps} enabled={planTier !== 'catalog'} />;
+  return <ProductTour tourId="inicio" slug={slug} steps={steps} enabled={hasPaidAccess} />;
 };

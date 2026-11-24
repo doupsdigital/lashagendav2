@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isPreviewOrder } from '@/lib/preview';
+import { isPreviewStudio } from '@/lib/studio-access';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
@@ -21,13 +21,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ code
   }
 
   const { data: order } = await supabaseAdmin
-    .from('orders')
-    .select('slug, edit_token, plan_tier, preview_expires_at')
+    .from('studios')
+    .select('slug, edit_token, plan_status')
     .eq('app_short_code', code)
     .maybeSingle();
 
-  // Prévia gratuita do funil `/lash` (2026-11-17): sem app/edição até pagar.
-  if (!order || isPreviewOrder(order)) {
+  // Prévia gratuita: sem app/edição até pagar.
+  if (!order || isPreviewStudio(order)) {
     // Página principal de hoje é a de Lash (pedido da usuária, 2026-11-18).
     return NextResponse.redirect(new URL('/?nicho=lash', request.url));
   }

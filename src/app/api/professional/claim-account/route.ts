@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     }
 
     const { data: order, error: orderError } = await supabaseAdmin
-      .from('orders')
+      .from('studios')
       .select('id, auth_user_id')
       .eq('slug', slug)
       .single();
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     }
 
     const { error: updateError } = await supabaseAdmin
-      .from('orders')
+      .from('studios')
       .update({ auth_user_id: userData.user.id })
       .eq('id', order.id);
 

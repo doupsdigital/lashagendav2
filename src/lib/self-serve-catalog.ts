@@ -1,25 +1,27 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase-admin';
-import { buildOrderInsertPayload, buildServicesPayload, resolveProfessionalSlug } from './order-payload';
+import { buildServicesPayload, buildStudioInsertPayload, resolveProfessionalSlug } from './studio-service';
 import { generateCode } from './short-link';
 import { nichePresetsMap } from '@/data/niche-presets';
 
-/** Duração da prévia gratuita do funil de autosserviço (`/lash`). */
+/** Duração da prévia gratuita da página de venda. */
 export const PREVIEW_TTL_MS = 24 * 60 * 60 * 1000;
 
-/** Procedimentos de exemplo com que a prévia nasce: 4 extensões de cílios +
- *  2 de sobrancelha (2026-11-18, eram 6 extensões) — assim a capa já mostra
- *  as duas "cápsulas" de categoria. Ela troca pelos dela depois de pagar. */
+/** Serviços de exemplo com que o estúdio nasce: 4 extensões de cílios +
+ *  2 de sobrancelha — assim a capa já mostra as duas "cápsulas" de
+ *  categoria. Ela troca pelos dela depois de pagar. (Quantos e quais: decisão
+ *  pendente da F3.4.) */
 const PREVIEW_PROCEDURE_IDS = ['brasileiro', 'classico', 'egipcio', 'hibrido', 'design-sobrancelha', 'sobrancelha-henna'];
 
 export type CreateSelfServeResult =
-  | { ok: true; orderId: string; slug: string; previewCode: string; previewExpiresAt: string | null }
+  | { ok: true; studioId: string; slug: string; previewCode: string; previewExpiresAt: string | null }
   | { ok: false; reason: 'invalid_name' | 'slug_taken' | 'db_error'; attemptedSlug?: string };
 
 interface CreateSelfServeInput {
   name: string;
-  /** true = prévia de 24h (página de vendas). false = catálogo criado direto
-   *  pelo webhook (compra na Cakto sem prévia encontrada). */
+  /** true = prévia de 24h (página de venda). false = estúdio criado direto
+   *  pelo webhook (compra na Cakto sem prévia encontrada) — nasce como
+   *  `active`, e o próprio webhook grava plano e `paid_until` em seguida. */
   asPreview: boolean;
   acquisitionSource: string;
   whatsappNumber?: string;
@@ -29,15 +31,14 @@ interface CreateSelfServeInput {
 }
 
 /** Apaga uma prévia vencida e nunca paga que esteja ocupando o slug —
- *  libera o nome pra outra pessoa (ou ela mesma) gerar de novo sem esperar
- *  a limpeza diária. Nunca apaga catálogo pago ou de outro provedor. */
+ *  libera o nome para outra pessoa (ou ela mesma) gerar de novo sem esperar
+ *  a limpeza diária. Nunca apaga estúdio pago. */
 async function releaseExpiredPreviewSlug(slug: string): Promise<void> {
   await supabaseAdmin
-    .from('orders')
+    .from('studios')
     .delete()
     .eq('slug', slug)
-    .eq('plan_tier', 'catalog')
-    .not('preview_expires_at', 'is', null)
+    .eq('plan_status', 'preview')
     .lt('preview_expires_at', new Date().toISOString());
 }
 
@@ -58,10 +59,8 @@ async function resolveSlug(name: string, allowSuffix: boolean) {
   return first;
 }
 
-/** Cria um catálogo Lash no formato do produto vendido no funil novo (Capa +
- *  Catálogo, sem Orientações/Contato, app só com a aba Início), já marcado
- *  como `billing_provider = 'cakto'`. Usado pela geração da prévia e pelo
- *  webhook da Cakto (compra sem prévia). Nunca devolve o `edit_token`. */
+/** Cria um estúdio com os serviços de exemplo. Usado pela geração da prévia
+ *  e pelo webhook da Cakto (compra sem prévia). Nunca devolve o `edit_token`. */
 export async function createSelfServeLashCatalog(input: CreateSelfServeInput): Promise<CreateSelfServeResult> {
   const name = input.name.trim().replace(/\s+/g, ' ').slice(0, 60);
   if (name.replace(/[^\p{L}]/gu, '').length < 2) return { ok: false, reason: 'invalid_name' };
@@ -72,30 +71,22 @@ export async function createSelfServeLashCatalog(input: CreateSelfServeInput): P
   const preset = nichePresetsMap.lash;
   const previewExpiresAt = input.asPreview ? new Date(Date.now() + PREVIEW_TTL_MS).toISOString() : null;
 
-  let orderData: { id: string } | null = null;
+  let studioId: string | null = null;
   let previewCode = '';
   // `preview_code` é UNIQUE — em caso (raríssimo) de colisão, tenta outro.
-  for (let attempt = 0; attempt < 5 && !orderData; attempt += 1) {
+  for (let attempt = 0; attempt < 5 && !studioId; attempt += 1) {
     previewCode = generateCode();
     const { data, error } = await supabaseAdmin
-      .from('orders')
+      .from('studios')
       .insert({
-        ...buildOrderInsertPayload({
+        ...buildStudioInsertPayload({
           slug: slugResult.slug,
-          clientName: name,
-          whatsappNumber: input.whatsappNumber || '',
-          niche: 'lash',
-          layoutModel: preset.layout_model,
-          themeVariant: preset.theme_variant,
-          // Vazio de propósito (mesmo motivo de finalize-catalog): sem capa
-          // própria, a Capa usa a foto da tela final do preset.
+          ownerName: name,
+          whatsapp: input.whatsappNumber || '',
+          // Vazio de propósito: sem capa própria, a Capa usa a foto padrão.
           coverUrl: '',
-          showCover: true,
-          showInstructions: false,
-          showContactCta: false,
-          showFullApp: false,
         }),
-        billing_provider: 'cakto',
+        plan_status: input.asPreview ? 'preview' : 'active',
         preview_expires_at: previewExpiresAt,
         preview_code: previewCode,
         acquisition_source: input.acquisitionSource,
@@ -104,27 +95,27 @@ export async function createSelfServeLashCatalog(input: CreateSelfServeInput): P
       .single();
 
     if (!error && data) {
-      orderData = data;
+      studioId = data.id as string;
       break;
     }
     if (error?.code !== '23505' || !String(error.message || '').includes('preview_code')) {
-      console.error('[SelfServeCatalog] Erro ao criar pedido:', error);
+      console.error('[SelfServeCatalog] Erro ao criar estúdio:', error);
       return { ok: false, reason: 'db_error' };
     }
   }
 
-  if (!orderData) return { ok: false, reason: 'db_error' };
+  if (!studioId) return { ok: false, reason: 'db_error' };
 
   const procedures = preset.procedures.filter((p) => PREVIEW_PROCEDURE_IDS.includes(p.id));
   const { error: servicesErr } = await supabaseAdmin
-    .from('order_services')
-    .insert(buildServicesPayload(procedures.length ? procedures : preset.procedures.slice(0, 6), orderData.id));
+    .from('services')
+    .insert(buildServicesPayload(procedures.length ? procedures : preset.procedures.slice(0, 6), studioId));
 
   if (servicesErr) {
-    console.error('[SelfServeCatalog] Erro ao gravar procedimentos:', servicesErr);
-    await supabaseAdmin.from('orders').delete().eq('id', orderData.id);
+    console.error('[SelfServeCatalog] Erro ao gravar serviços:', servicesErr);
+    await supabaseAdmin.from('studios').delete().eq('id', studioId);
     return { ok: false, reason: 'db_error' };
   }
 
-  return { ok: true, orderId: orderData.id, slug: slugResult.slug, previewCode, previewExpiresAt };
+  return { ok: true, studioId, slug: slugResult.slug, previewCode, previewExpiresAt };
 }

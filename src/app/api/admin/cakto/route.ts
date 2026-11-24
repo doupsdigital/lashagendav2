@@ -3,7 +3,6 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { isAdminRequestAuthorized } from '@/lib/admin-session';
 import { computePaidUntil, type CaktoPlan } from '@/lib/cakto';
 import { assignAppShortCode } from '@/lib/short-link';
-import { CAKTO_ANUAL_PRICE, CAKTO_MENSAL_PRICE } from '@/lib/pricing';
 
 /** GET /api/admin/cakto?slug=opcional
  *  Últimos webhooks recebidos da Cakto (tabela `cakto_events`), pra conferir
@@ -28,11 +27,10 @@ export async function GET(request: Request) {
 }
 
 /** POST /api/admin/cakto  { id, plan: 'mensal' | 'anual' }
- *  Ativa (ou estende) à mão um catálogo como cliente da Cakto — pro caso
- *  raro de uma compra que não caiu no menu certo (sem `sck`, webhook
+ *  Ativa (ou estende) à mão um estúdio como cliente da Cakto — pro caso
+ *  raro de uma compra que não caiu no estúdio certo (sem `sck`, webhook
  *  perdido). Mesmo efeito de uma aprovação do webhook: +1 mês ou +1 ano a
- *  partir de hoje ou do `paid_until` atual, o que for maior. Nunca mexe em
- *  catálogo do Asaas que já paga. */
+ *  partir de hoje ou do `paid_until` atual, o que for maior. */
 export async function POST(request: Request) {
   if (!(await isAdminRequestAuthorized())) {
     return NextResponse.json({ success: false, message: 'Não autorizado.' }, { status: 403 });
@@ -46,32 +44,20 @@ export async function POST(request: Request) {
     }
 
     const { data: order, error } = await supabaseAdmin
-      .from('orders')
-      .select('id, slug, billing_provider, plan_tier, paid_until, app_short_code, asaas_subscription_id')
+      .from('studios')
+      .select('id, slug, paid_until, app_short_code')
       .eq('id', id)
-      .single();
-    if (error || !order) return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
-
-    if (order.billing_provider !== 'cakto' && (order.plan_tier !== 'catalog' || order.asaas_subscription_id)) {
-      return NextResponse.json(
-        { success: false, message: 'Esse catálogo já é do Asaas. Não dá pra passar pra Cakto por aqui.' },
-        { status: 409 }
-      );
-    }
+      .maybeSingle();
+    if (error || !order) return NextResponse.json({ success: false, message: 'Estúdio não encontrado.' }, { status: 404 });
 
     const paidUntil = computePaidUntil(plan, order.paid_until);
     const { error: updateError } = await supabaseAdmin
-      .from('orders')
+      .from('studios')
       .update({
-        billing_provider: 'cakto',
-        plan_tier: 'basico',
-        subscription_status: 'ativo',
+        plan_status: 'active',
         preview_expires_at: null,
         paid_until: paidUntil,
         cakto_plan: plan,
-        catalog_billing_mode: plan === 'anual' ? 'anual' : 'recorrente',
-        billing_price_override: plan === 'anual' ? CAKTO_ANUAL_PRICE : CAKTO_MENSAL_PRICE,
-        show_full_app: false,
       })
       .eq('id', order.id);
     if (updateError) throw updateError;

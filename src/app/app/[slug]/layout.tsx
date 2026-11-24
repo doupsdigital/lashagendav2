@@ -1,8 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
-import { getOrderForProfessionalApp } from '@/lib/professional-app-service';
-import { getCatalogBySlug } from '@/lib/catalog-service';
+import { getStudioBySlug, getStudioForProfessionalApp } from '@/lib/studio-service';
 import { PRODUCTION_DOMAIN } from '@/lib/public-url';
 import { ServiceWorkerRegister } from '@/components/app-shell/ServiceWorkerRegister';
 import { BottomNav } from '@/components/app-shell/BottomNav';
@@ -34,17 +33,18 @@ interface AppLayoutProps {
  *  dados que aparecem no catálogo público dela). */
 export async function generateMetadata({ params }: AppLayoutProps): Promise<Metadata> {
   const { slug } = await params;
-  const [isAuthenticated, catalog] = await Promise.all([
+  const [isAuthenticated, studio] = await Promise.all([
     isProfessionalRequestAuthorized(slug),
-    getCatalogBySlug(slug),
+    getStudioBySlug(slug),
   ]);
+  const displayName = studio ? studio.studio_name || studio.owner_name : '';
 
-  const base: Metadata = catalog
+  const base: Metadata = studio
     ? {
-        title: `${catalog.studio_name || catalog.client_name} — LashAgenda`,
+        title: `${displayName} — LashAgenda`,
         description: 'Acesse seu catálogo digital e faça as edições que quiser, direto pelo celular.',
         openGraph: {
-          title: `${catalog.studio_name || catalog.client_name} — LashAgenda`,
+          title: `${displayName} — LashAgenda`,
           description: 'Acesse seu catálogo digital e faça as edições que quiser, direto pelo celular.',
           images: [
             {
@@ -79,36 +79,26 @@ export default async function ProfessionalAppLayout({ children, params }: AppLay
     );
   }
 
-  // Sem BottomNav enquanto ela nunca assinou nada (`plan_tier === 'catalog'`)
-  // — tela de primeiro contato deliberadamente simples, sem navegação pra
-  // outras abas (Fase 19). Mesma leitura repetida que `config/page.tsx`/
-  // `inicio/page.tsx` já fazem cada um pra si, custo desprezível.
-  const order = await getOrderForProfessionalApp(slug);
-  const showNav = order?.plan_tier !== 'catalog';
-  // Produto "Catálogo apenas" (2026-10-27): admin decide, por pedido, se essa
-  // cliente vê Agenda/Config — `false` deixa só a aba Início acessível.
-  const inicioOnly = order?.show_full_app === false;
+  // Prévia (ainda não pagou) não tem navegação entre abas — só o Início.
+  // Mesma leitura repetida pelas páginas de cada aba, custo desprezível.
+  const studio = await getStudioForProfessionalApp(slug);
+  const showNav = Boolean(studio) && studio?.plan_status !== 'preview';
 
   return (
     <div className={`pro-app-shell min-h-screen bg-cream text-ink font-body-pro ${showNav ? 'pb-20' : ''}`}>
       <ServiceWorkerRegister />
-      {order && (
+      {studio && (
         <AppPostHogTracker
           slug={slug}
-          planTier={order.plan_tier}
-          subscriptionStatus={order.subscription_status}
-          clientName={order.client_name}
-          studioName={order.studio_name}
+          planStatus={studio.plan_status}
+          clientName={studio.client_name}
+          studioName={studio.studio_name}
         />
       )}
-      {/* Só pro Plano Agenda — pedido real, 2026-10-07: quem só tem o Plano
-       *  Catálogo não deve ver esse onboarding de boas-vindas (a última tela
-       *  menciona "assinatura" no menu, e a intenção é não empurrar nada de
-       *  assinatura logo de cara pra quem comprou só o Catálogo). Fica só com
-       *  os tooltips do `InicioTour`, que já se adaptam sozinhos. */}
-      {order && order.plan_tier === 'plus' && <WelcomeOnboarding slug={slug} planTier={order.plan_tier} />}
+      {/* Boas-vindas só para quem já tem o app completo (pagante). */}
+      {studio?.has_paid_access && <WelcomeOnboarding slug={slug} />}
       {children}
-      {showNav && <BottomNav slug={slug} inicioOnly={inicioOnly} />}
+      {showNav && <BottomNav slug={slug} />}
     </div>
   );
 }

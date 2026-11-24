@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F2 — Modelo de dados v2 + camada de serviço** |
-| **Próxima etapa** | **F2.2 — Tipos e serviços de dados** (F2.1 ✅: `docs/schema.sql` aprovado e aplicado no dev em 2026-11-24) |
+| **Próxima etapa** | **F2.3 — Script de estúdio de teste** (F2.1 ✅ schema v2 aplicado no dev · F2.2 ✅ código no modelo v2, 2026-11-24) |
 | **Fases concluídas** | F0, F1 |
 | **Bloqueios** | Nenhum |
 
@@ -23,9 +23,21 @@
 - **App Next.js** (`src/`, `public/`, configs na raiz): base do StudioMenu (`desenv` @ `092022e`)
   já limpa (sem Asaas, upsells, X1, nichos, admin de marketing, formulário de onboarding,
   pixel) e com a marca LashAgenda (paleta do v1, ícones do v1, textos, domínio
-  `lashagenda.com` em `lib/public-url.ts`). **O código ainda usa o modelo do StudioMenu
-  (`orders`)**, mas o banco dev já está no modelo v2 → **catálogo e app ficam quebrados (local e
-  preview) até a F2.2/F2.3** reescreverem a camada de dados e o script de teste.
+  `lashagenda.com` em `lib/public-url.ts`). **Código já no modelo v2** (F2.2): nenhuma
+  referência a `orders`/`order_services`. As telas ainda são as do StudioMenu; a camada de dados
+  traduz o banco novo para o formato delas.
+- **Camada de dados (F2.2):**
+  - `types/studio.ts` — linhas do banco v2.
+  - `lib/studio-access.ts` — regras centrais: `studioHasFeature` (sempre `true` no lançamento),
+    prévia, acesso pago (`paid_until` + folga de 3 dias, liberação manual), `isBookingLive`.
+  - `lib/studio-service.ts` — estúdio + serviços ↔ formato do catálogo/editor; criação de
+    estúdio e slug pelo nome; dados do app da profissional.
+  - `lib/service-format.ts` — preço numérico ↔ texto ("R$ 180", "A partir de…", "Sob
+    Consulta") e duração. Ponte provisória até a F3.
+  - `lib/scheduling/booking-service.ts` — cliente com dedupe por WhatsApp (guardado só com
+    dígitos, sem o 55) + agendamento + itens. `agenda-service.ts` monta o formato da Agenda.
+- **Nada visível para testar até a F2.3** (o banco dev está vazio; o script de teste da F1
+  não funciona mais).
 - `docs/schema.sql`: **schema v2** (fonte da verdade do banco; 12 tabelas, travas e segurança).
 - `docs/schema_studiomenu_base.sql`: schema do StudioMenu usado na F1 (só referência; já apagado do dev).
 - `docs/referencias/prototipo-inicio-app.html`: protótipo aprovado do Início (base da F9.1).
@@ -83,3 +95,19 @@ Web Push.
       passos") aparecem **por cima da tela de boas-vindas** (`WelcomeOnboarding`), apontando
       para coisas escondidas atrás dela. O tour deveria esperar as boas-vindas terminarem.
       Corrigir junto com o Início novo (F9.1) ou antes, se atrapalhar os testes.
+- [ ] Herdado do StudioMenu, a resolver nas fases indicadas (anotado na F2.2):
+  - **F3:** `CatalogLayout` ainda lê `show_cover`/`show_instructions`/`show_contact_cta`
+    ("Catálogo apenas"); o v2 nunca preenche, então tudo aparece. Remover a lógica. O editor
+    ainda trabalha com preço em texto e duração opcional (a ponte em `service-format.ts`
+    converte; sem número, a duração vira 60 min).
+  - **F3.2/F5:** as variações já existem no banco e nas APIs de horário/agendamento
+    (`variation_id`), mas o catálogo ainda não mostra nem envia.
+  - **F4:** o motor de horários (`lib/scheduling/availability.ts`) ainda lê **uma faixa por
+    dia**; o banco já aceita várias (pausa de almoço). Também falta aplicar
+    `min_notice_minutes`/`booking_window_days` do estúdio (hoje usa a folga fixa de 30 min).
+  - **F5:** o link único da cliente (`manage_token`) já é gravado, mas ainda não é mostrado.
+  - **F11:** preço anual exibido ainda é R$ 127 (`lib/pricing.ts`); o v2 vende a R$ 197.
+  - **F12:** `/admin/catalogos` virou uma lista enxuta (status, links, +1 mês/ano, liberar à
+    mão, desativar, excluir). Saíram o "Cadastrar serviços com IA" (`extract-catalog`,
+    `replace-services` — ferramenta do X1, que o v2 não usa) e os controles de preço/plano
+    do StudioMenu.

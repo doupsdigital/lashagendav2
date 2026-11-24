@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     const { data: order, error: orderError } = await supabaseAdmin
-      .from('orders')
+      .from('studios')
       .select('slug')
       .eq('auth_user_id', userData.user.id)
       .single();

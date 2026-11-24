@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
-import { sendPushToOrder } from '@/lib/push-notifications';
+import { sendPushToStudio } from '@/lib/push-notifications';
 
 /** POST /api/professional/push-test
  *  Manda uma notificação de teste pros dispositivos inscritos do catálogo.
@@ -22,12 +22,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Sessão inválida ou expirada.' }, { status: 401 });
     }
 
-    const { data: order, error: orderError } = await supabaseAdmin.from('orders').select('id').eq('slug', slug).single();
+    const { data: order, error: orderError } = await supabaseAdmin.from('studios').select('id').eq('slug', slug).single();
     if (orderError || !order) {
       return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
     }
 
-    await sendPushToOrder(order.id, {
+    await sendPushToStudio(order.id, {
       title: 'Notificação de teste',
       body: 'Se você recebeu isso, as notificações do LashAgenda estão funcionando neste dispositivo.',
       url: `/app/${slug}/config`,

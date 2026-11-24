@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import { getOrderForProfessionalApp } from '@/lib/professional-app-service';
+import { getStudioForProfessionalApp } from '@/lib/studio-service';
 import { getAppointmentsForDay, getAppointmentsForRange, getPendingAppointments, getManualBookingServices } from '@/lib/scheduling/agenda-service';
 import { getBusinessHours, getScheduleBlocks } from '@/lib/scheduling/config-service';
 import { getWeekdayForDate } from '@/lib/scheduling/availability';
@@ -85,25 +85,16 @@ function formatMonthLabel(dateStr: string): string {
 export default async function AgendaPage({ params, searchParams }: AgendaPageProps) {
   const { slug } = await params;
   const { date, view: viewParam } = await searchParams;
-  const order = await getOrderForProfessionalApp(slug);
+  const order = await getStudioForProfessionalApp(slug);
 
   if (!order) notFound();
-  // Produto "Catálogo apenas" (2026-10-27): Agenda fica inacessível mesmo por
-  // URL direta, não só escondida da navegação (ver BottomNav/layout.tsx).
-  if (order.show_full_app === false) redirect(`/app/${slug}/inicio`);
+  // Prévia não tem Agenda (sem navegação entre abas, ver layout.tsx).
+  if (order.plan_status === 'preview') redirect(`/app/${slug}/inicio`);
 
-  // A Agenda é liberada por `booking_enabled` (o que de fato diz se o
-  // agendamento automático está ligado pro cliente final), não pelo status
-  // do Plus diretamente — o admin pode ligar `booking_enabled` manualmente
-  // num catálogo que não é Plus (Fase 6, via de escape pra teste/período
-  // promocional), e nesse caso a profissional precisa conseguir gerenciar
-  // os agendamentos reais que os clientes estão criando, mesmo sem assinar.
-  //
-  // Sem `booking_enabled`, a tela continua sendo montada por inteiro (dados
-  // reais, geralmente vazios já que ninguém pôde agendar ainda) — só entra
-  // desfocada/travada atrás do card de assinar, em vez de um upsell isolado
-  // numa tela em branco (Fase 20, dá pra "ver" o produto antes de comprar).
-  const bookingEnabled = order.booking_enabled;
+  // Agenda liberada para quem tem acesso pago em dia. Sem acesso (venceu), a
+  // tela continua montada, só desfocada/travada — os agendamentos não somem.
+  // A pausa da agenda (`agenda_paused`) só afeta o catálogo público.
+  const bookingEnabled = order.has_paid_access;
 
   const view: 'dia' | 'mes' = viewParam === 'mes' ? 'mes' : 'dia';
   const rawDate = date && DATE_RE.test(date) ? date : todayInSaoPaulo();

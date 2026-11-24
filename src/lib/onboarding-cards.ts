@@ -11,8 +11,8 @@ export interface OnboardingChecklistItem {
 
 interface OnboardingChecklistInput {
   slug: string;
-  planTier: 'catalog' | 'basico' | 'plus';
-  subscriptionStatus: 'none' | 'ativo' | 'suspenso' | 'cancelado';
+  /** Pagante em dia (app completo). Na prévia o checklist não aparece. */
+  hasPaidAccess: boolean;
   hasAccount: boolean;
   /** Ela já salvou horários de atendimento (`business_hours` tem alguma linha). */
   hoursDone: boolean;
@@ -28,27 +28,15 @@ export const agendaVisitedKey = (slug: string) => `sm_agenda_visited_${slug}`;
  *  existir pra apontar um balão nele. O item "Catálogo publicado" (sempre
  *  marcado, só pra ela já começar com algo pronto) é adicionado pelo card, não
  *  entra aqui. Ordem: horários → agenda → acesso com senha. */
-export function getOnboardingChecklistItems({ slug, planTier, subscriptionStatus, hasAccount, hoursDone }: OnboardingChecklistInput): OnboardingChecklistItem[] {
+export function getOnboardingChecklistItems({ slug, hasPaidAccess, hasAccount, hoursDone }: OnboardingChecklistInput): OnboardingChecklistItem[] {
   const items: OnboardingChecklistItem[] = [];
 
-  // Plus ativo — passos pra agendamento funcionar de verdade.
-  if (planTier === 'plus' && subscriptionStatus === 'ativo') {
-    items.push({ id: 'horarios', label: 'Definir horários de atendimento', href: `/app/${slug}/config#horarios`, done: hoursDone });
-    items.push({ id: 'ver-agenda', label: 'Conhecer sua agenda', href: `/app/${slug}/agenda`, done: false, clientTracked: true });
-  }
+  // Lista vazia faz o card sumir sozinho (ver `OnboardingCardStack`).
+  if (!hasPaidAccess) return items;
 
-  // Só pro Plano Agenda ATIVO — pedido real, 2026-10-07: quem só tem o
-  // Plano Catálogo (pagamento único) não deve ver esse card de checklist de
-  // jeito nenhum, nem com um item só; lista vazia já faz o card sumir
-  // sozinho (ver `OnboardingCardStack`). Precisa checar `subscriptionStatus`
-  // também (não só `planTier`) — `plan_tier` continua 'plus' mesmo depois
-  // de cancelar a assinatura do Agenda (de propósito, é o que permite
-  // reofertar o Agenda em vez de cair pro Básico), então sem esse segundo
-  // check o card voltava a aparecer pra quem cancelou e ficou só com o
-  // Catálogo (achado real, 2026-10-07).
-  if (planTier === 'plus' && subscriptionStatus === 'ativo') {
-    items.push({ id: 'criar-conta', label: 'Criar acesso com senha', href: `/app/${slug}/config#conta`, done: hasAccount });
-  }
+  items.push({ id: 'horarios', label: 'Definir horários de atendimento', href: `/app/${slug}/config#horarios`, done: hoursDone });
+  items.push({ id: 'ver-agenda', label: 'Conhecer sua agenda', href: `/app/${slug}/agenda`, done: false, clientTracked: true });
+  items.push({ id: 'criar-conta', label: 'Criar acesso com senha', href: `/app/${slug}/config#conta`, done: hasAccount });
 
   return items;
 }

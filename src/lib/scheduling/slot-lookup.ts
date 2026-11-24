@@ -13,15 +13,15 @@ import {
  *  + agendamentos existentes numa janela de +-1 dia — usada tanto por
  *  `getAvailableSlotsForDate` quanto por `isSlotAvailableForBooking`. */
 async function fetchDayContext(
-  orderId: string,
+  studioId: string,
   dateStr: string
 ): Promise<{ businessHours: BusinessHoursRow[]; blocks: ScheduleBlockRow[]; busyAppointments: BusyInterval[] }> {
   const [{ data: businessHours }, { data: blocks }] = await Promise.all([
-    supabaseAdmin.from('business_hours').select('weekday, start_time, end_time').eq('order_id', orderId),
+    supabaseAdmin.from('business_hours').select('weekday, start_time, end_time').eq('studio_id', studioId),
     supabaseAdmin
       .from('schedule_blocks')
       .select('start_date, end_date, all_day, start_time, end_time')
-      .eq('order_id', orderId)
+      .eq('studio_id', studioId)
       .lte('start_date', dateStr)
       .gte('end_date', dateStr),
   ]);
@@ -33,8 +33,9 @@ async function fetchDayContext(
   const { data: appointments } = await supabaseAdmin
     .from('appointments')
     .select('starts_at, ends_at')
-    .eq('order_id', orderId)
-    .neq('status', 'cancelled')
+    .eq('studio_id', studioId)
+    .neq('status', 'canceled')
+    .neq('origin', 'record')
     .gte('starts_at', windowStartMinus1.toISOString())
     .lte('starts_at', windowEndPlus1.toISOString());
 
@@ -56,12 +57,12 @@ async function fetchDayContext(
  *  auto-conflitar sem perceber). Antes essa busca estava duplicada em cada
  *  rota; centralizada aqui pra não divergir. */
 export async function getAvailableSlotsForDate(
-  orderId: string,
+  studioId: string,
   dateStr: string,
   durationMinutes: number,
   options?: { applyTodayBuffer?: boolean }
 ): Promise<AvailabilitySlot[]> {
-  const ctx = await fetchDayContext(orderId, dateStr);
+  const ctx = await fetchDayContext(studioId, dateStr);
   return computeAvailableSlots({
     dateStr,
     durationMinutes,
@@ -74,11 +75,11 @@ export async function getAvailableSlotsForDate(
  *  livre — usada pelo agendamento manual da profissional, que digita
  *  qualquer horário em vez de escolher de uma lista. */
 export async function isSlotAvailableForBooking(
-  orderId: string,
+  studioId: string,
   startsAt: Date,
   dateStr: string,
   durationMinutes: number
 ): Promise<boolean> {
-  const ctx = await fetchDayContext(orderId, dateStr);
+  const ctx = await fetchDayContext(studioId, dateStr);
   return isInstantAvailable({ startsAt, dateStr, durationMinutes, ...ctx });
 }

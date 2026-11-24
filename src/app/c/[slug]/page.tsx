@@ -1,12 +1,12 @@
 import { Metadata } from 'next';
-import { getCatalogBySlug } from '@/lib/catalog-service';
+import { getCatalogBySlug } from '@/lib/studio-service';
 import { CatalogLayout } from '@/components/catalog/CatalogLayout';
 import { PreviewCatalogClient } from '@/components/self-serve/PreviewCatalogClient';
 import Link from 'next/link';
 import { Sparkles, ArrowLeft } from 'lucide-react';
 import { headers } from 'next/headers';
 import { PRODUCTION_DOMAIN, usesSubdomainRouting } from '@/lib/public-url';
-import { isPreviewExpired, isPreviewOrder } from '@/lib/preview';
+import { isPreviewExpired, isPreviewStudio } from '@/lib/studio-access';
 
 interface CatalogPageProps {
   params: Promise<{
@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: CatalogPageProps): Promise<Me
     title: title,
     description: description,
     // Prévias gratuitas de 24h não devem ir pro Google.
-    ...(isPreviewOrder(catalog) ? { robots: { index: false, follow: false } } : {}),
+    ...(isPreviewStudio(catalog) ? { robots: { index: false, follow: false } } : {}),
     openGraph: {
       title: title,
       description: description,
@@ -125,10 +125,10 @@ export default async function CatalogPage({ params, searchParams }: CatalogPageP
     );
   }
 
-  // Prévia gratuita do funil `/lash` (2026-11-17, ver `src/lib/preview.ts`).
+  // Prévia gratuita do funil `/lash` (2026-11-17, ver `src/lib/studio-access.ts`).
   // Links relativos não funcionam no subdomínio dela (o proxy reescreve tudo
   // pra `/c/<slug>`), então no domínio oficial o funil vai com URL absoluta.
-  const isPreview = isPreviewOrder(catalog);
+  const isPreview = isPreviewStudio(catalog);
   const hostname = ((await headers()).get('host') || '').split(':')[0];
   const funnelUrl = usesSubdomainRouting(hostname) ? `https://${PRODUCTION_DOMAIN}/lash` : '/lash';
 
@@ -159,7 +159,7 @@ export default async function CatalogPage({ params, searchParams }: CatalogPageP
   const isEditAuthorized = !isPreview && Boolean(edit && catalog.edit_token && edit === catalog.edit_token);
   // Preview isolado da oferta "Catálogo Completo" (2026-10-28) — só decide o
   // que o CatalogLayout mostra NESTA requisição; nunca grava nada em
-  // `publicCatalog`/`orders`. Mesmo padrão de `hideCoverSection` (showroom),
+  // `publicCatalog`/o banco. Mesmo padrão de `hideCoverSection` (showroom),
   // só que forçando mostrar em vez de esconder.
   const forcePreviewFull = preview === 'completo';
 

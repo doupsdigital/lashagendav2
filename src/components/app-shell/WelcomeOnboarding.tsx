@@ -1,14 +1,10 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Home, BookOpen, CalendarClock, Settings, type LucideIcon } from 'lucide-react';
+import { Home, BookOpen, CalendarClock, type LucideIcon } from 'lucide-react';
 
 interface WelcomeOnboardingProps {
   slug: string;
-  /** Nunca 'catalog' aqui — quem ainda não assinou nada não tem BottomNav
-   *  (Agenda/Config) pra esse onboarding referenciar, e nem chega a montar
-   *  esse componente (guard em `layout.tsx`, mesma condição do `showNav`). */
-  planTier: 'basico' | 'plus';
 }
 
 interface Slide {
@@ -36,7 +32,7 @@ const storageKey = (slug: string) => `sm_welcome_seen_v1_${slug}`;
  *  inteira enquanto aberto, então o tour da página por baixo (que já
  *  disparou seu próprio efeito, independente deste) só fica visível depois
  *  que ela fechar aqui. */
-export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({ slug, planTier }) => {
+export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({ slug }) => {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
 
@@ -55,29 +51,20 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({ slug, plan
       {
         icon: Home,
         title: 'Bem-vinda ao seu LashAgenda!',
-        subtitle:
-          planTier === 'plus'
-            ? 'Esse é o app onde você cuida do seu catálogo e da sua agenda, tudo num só lugar.'
-            : 'Esse é o app onde você cuida do seu catálogo, sempre prontinho pra compartilhar com suas clientes.',
+        subtitle: 'Esse é o app onde você cuida do seu catálogo e da sua agenda, tudo num só lugar.',
       },
       {
         icon: BookOpen,
         title: 'Seu catálogo, sempre atualizado',
         subtitle: 'Edite fotos, preços e serviços quando quiser — e compartilhe o link com suas clientes.',
       },
-      planTier === 'plus'
-        ? {
-            icon: CalendarClock,
-            title: 'Suas clientes agendam sozinhas',
-            subtitle: 'Com o agendamento automático ativo, é só acompanhar tudo na sua Agenda.',
-          }
-        : {
-            icon: Settings,
-            title: 'Tudo mais, sempre à mão',
-            subtitle: 'Sua conta, assinatura e configurações ficam aqui embaixo, no menu do app.',
-          },
+      {
+        icon: CalendarClock,
+        title: 'Suas clientes agendam sozinhas',
+        subtitle: 'Com o agendamento automático ativo, é só acompanhar tudo na sua Agenda.',
+      },
     ],
-    [planTier]
+    []
   );
 
   if (!visible) return null;

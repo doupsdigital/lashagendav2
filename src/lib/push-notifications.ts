@@ -17,11 +17,11 @@ interface PushPayload {
   url?: string;
 }
 
-/** Notifica todos os dispositivos inscritos de um catálogo — nunca lança,
+/** Notifica todos os dispositivos inscritos de um estúdio — nunca lança,
  *  só loga erro (mesmo padrão non-blocking de `src/lib/telegram.ts`, usada
  *  num caminho crítico — `/api/scheduling/book` — que não pode falhar por
  *  causa de uma notificação secundária). */
-export async function sendPushToOrder(orderId: string, payload: PushPayload): Promise<void> {
+export async function sendPushToStudio(studioId: string, payload: PushPayload): Promise<void> {
   if (!publicKey || !privateKey || !subject) {
     console.warn('[Push] VAPID keys não configuradas — notificação ignorada.');
     return;
@@ -31,7 +31,7 @@ export async function sendPushToOrder(orderId: string, payload: PushPayload): Pr
     const { data: subscriptions, error } = await supabaseAdmin
       .from('push_subscriptions')
       .select('id, endpoint, p256dh, auth')
-      .eq('order_id', orderId);
+      .eq('studio_id', studioId);
 
     if (error || !subscriptions || subscriptions.length === 0) return;
 

@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     }
 
     const { data: order, error: orderErr } = await supabaseAdmin
-      .from('orders')
+      .from('studios')
       .select('id')
       .eq('slug', normalizedSlug)
       .single();
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     const { data: inserted, error: insertErr } = await supabaseAdmin
       .from('schedule_blocks')
       .insert({
-        order_id: order.id,
+        studio_id: order.id,
         start_date,
         end_date,
         all_day: Boolean(all_day),

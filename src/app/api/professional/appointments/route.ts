@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
-import { buildAppointmentInsertPayload } from '@/lib/scheduling/appointment-payload';
+import { getStudioBySlug, normalizeSlug } from '@/lib/studio-service';
 import { isSlotAvailableForBooking } from '@/lib/scheduling/slot-lookup';
+import { createAppointment, findOrCreateClient, loadBookingItem } from '@/lib/scheduling/booking-service';
 
 /** POST /api/professional/appointments
  *  Agendamento manual criado pela própria profissional (walk-in, telefone,
  *  etc) — diferente de `/api/scheduling/book` (público, cliente final), este
- *  exige sessão autenticada e já nasce `confirmed` (ela não precisa
- *  confirmar o próprio agendamento). */
+ *  exige sessão autenticada e já nasce `confirmed`.
+ *  Body: { slug, service_id, variation_id?, starts_at, client_name, client_whatsapp, client_notes? } */
 export async function POST(request: Request) {
   try {
     const ip = getClientIp(request);
@@ -19,9 +19,10 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { slug, service_id, starts_at, client_name, client_whatsapp, client_notes } = body as {
+    const { slug, service_id, variation_id, starts_at, client_name, client_whatsapp, client_notes } = body as {
       slug?: string;
       service_id?: string;
+      variation_id?: string;
       starts_at?: string;
       client_name?: string;
       client_whatsapp?: string;
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Preencha serviço, horário, nome e WhatsApp.' }, { status: 400 });
     }
 
-    const normalizedSlug = slug.toLowerCase().trim();
+    const normalizedSlug = normalizeSlug(slug);
     if (!(await isProfessionalRequestAuthorized(normalizedSlug))) {
       return NextResponse.json({ success: false, message: 'Sessão inválida ou expirada.' }, { status: 401 });
     }
@@ -42,81 +43,52 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Horário inválido.' }, { status: 400 });
     }
 
-    const { data: order, error: orderErr } = await supabaseAdmin
-      .from('orders')
-      .select('id')
-      .eq('slug', normalizedSlug)
-      .single();
-
-    if (orderErr || !order) {
+    const studio = await getStudioBySlug(normalizedSlug);
+    if (!studio) {
       return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
     }
 
-    const { data: service, error: serviceErr } = await supabaseAdmin
-      .from('order_services')
-      .select('id, title, price, duration_minutes')
-      .eq('id', service_id)
-      .eq('order_id', order.id)
-      .single();
-
-    if (serviceErr || !service || !service.duration_minutes || service.duration_minutes <= 0) {
-      return NextResponse.json(
-        { success: false, message: 'Esse serviço ainda não tem duração configurada.' },
-        { status: 400 }
-      );
+    const item = await loadBookingItem(studio.id, service_id, variation_id, { requireBookable: false });
+    if (!item) {
+      return NextResponse.json({ success: false, message: 'Serviço não encontrado.' }, { status: 400 });
     }
 
-    // Respeita o horário de atendimento e os bloqueios configurados — a
-    // profissional pode marcar um horário manual pra qualquer cliente, mas
-    // não deve conseguir se auto-conflitar com a própria grade/folga sem
-    // perceber. Checa o instante exato (não a grade de 30min do wizard
-    // público, já que ela pode digitar qualquer horário) e sem buffer de
-    // "hoje" — ela pode estar com a cliente na frente agora mesmo.
+    // Respeita o horário de atendimento e os bloqueios dela — pode marcar
+    // qualquer horário, mas não se auto-conflitar sem perceber. Instante
+    // exato (não a grade de 30min) e sem folga de "hoje".
     const dateStr = startsAtDate.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-    const isAvailable = await isSlotAvailableForBooking(order.id, startsAtDate, dateStr, service.duration_minutes);
-
+    const isAvailable = await isSlotAvailableForBooking(studio.id, startsAtDate, dateStr, item.durationMinutes);
     if (!isAvailable) {
       return NextResponse.json(
-        {
-          success: false,
-          message: 'Esse horário está fora do expediente ou bloqueado. Ajuste em Config se precisar liberar.',
-        },
+        { success: false, message: 'Esse horário está fora do expediente ou bloqueado. Ajuste em Config se precisar liberar.' },
         { status: 409 }
       );
     }
 
-    const payload = buildAppointmentInsertPayload({
-      orderId: order.id,
-      serviceId: service.id,
-      serviceTitle: service.title,
-      durationMinutes: service.duration_minutes,
-      priceSnapshot: service.price,
-      clientName: client_name,
-      clientWhatsapp: client_whatsapp,
-      clientNotes: client_notes,
-      startsAt: startsAtDate.toISOString(),
-      origin: 'professional',
-      status: 'confirmed',
-    });
-
-    const { data: inserted, error: insertErr } = await supabaseAdmin
-      .from('appointments')
-      .insert(payload)
-      .select('id, starts_at, ends_at, status')
-      .single();
-
-    if (insertErr) {
-      if ((insertErr as { code?: string }).code === '23P01') {
-        return NextResponse.json(
-          { success: false, message: 'Já existe um agendamento nesse horário.' },
-          { status: 409 }
-        );
-      }
-      console.error('[API Professional Appointments] Erro ao inserir:', insertErr);
+    const clientId = await findOrCreateClient(studio.id, client_name, client_whatsapp, 'manual');
+    if (!clientId) {
       return NextResponse.json({ success: false, message: 'Erro ao criar o agendamento.' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, appointment: inserted });
+    const result = await createAppointment({
+      studioId: studio.id,
+      clientId,
+      startsAt: startsAtDate,
+      items: [item],
+      status: 'confirmed',
+      origin: 'professional',
+      clientNotes: client_notes,
+    });
+
+    if (!result.ok) {
+      if (result.reason === 'conflict') {
+        return NextResponse.json({ success: false, message: 'Já existe um agendamento nesse horário.' }, { status: 409 });
+      }
+      return NextResponse.json({ success: false, message: 'Erro ao criar o agendamento.' }, { status: 500 });
+    }
+
+    const { manage_token: _manageToken, ...appointment } = result.appointment;
+    return NextResponse.json({ success: true, appointment });
   } catch (error) {
     console.error('[API Professional Appointments Exception]:', error);
     return NextResponse.json({ success: false, message: 'Erro interno.' }, { status: 500 });

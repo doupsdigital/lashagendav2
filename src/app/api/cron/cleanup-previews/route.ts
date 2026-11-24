@@ -6,15 +6,12 @@ import { CAKTO_GRACE_MS } from '@/lib/cakto';
  *  Chamada 1x/dia por um Vercel Cron Job (`vercel.json`), mesma proteção por
  *  `CRON_SECRET` de `cleanup-rate-limits`.
  *
- *  1. Apaga as prévias gratuitas do funil `/lash` vencidas e nunca pagas
- *     (`order_services` sai junto, em cascata) — libera o nome/subdomínio.
- *     O catálogo público já mostra "prévia expirada" sozinho no momento em
- *     que vence; isso aqui é só faxina.
- *  2. Marca como 'suspenso' os catálogos da Cakto com `paid_until` vencido
- *     (fora da folga) que ainda constam 'ativo' — só pra manter o status
- *     coerente no admin/app; quem tira o catálogo do ar é `paid_until`.
- *
- *  Nunca toca em catálogos do Asaas (`billing_provider = 'asaas'`). */
+ *  1. Apaga as prévias gratuitas vencidas e nunca pagas (serviços saem
+ *     junto, em cascata) — libera o nome/subdomínio. O catálogo público já
+ *     mostra "prévia expirada" sozinho quando vence; isso aqui é só faxina.
+ *  2. Marca como `suspended` os estúdios `active` com `paid_until` vencido
+ *     (fora da folga) — só para o status ficar coerente no admin/app; quem
+ *     tira o catálogo do ar é `paid_until`. Liberação manual nunca vence. */
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -25,11 +22,10 @@ export async function GET(request: Request) {
     const now = new Date();
 
     const { error: deleteError, count: deleted } = await supabaseAdmin
-      .from('orders')
+      .from('studios')
       .delete({ count: 'exact' })
-      .eq('billing_provider', 'cakto')
-      .eq('plan_tier', 'catalog')
-      .not('preview_expires_at', 'is', null)
+      .eq('plan_status', 'preview')
+      .eq('manual_plan', false)
       .lt('preview_expires_at', now.toISOString());
 
     if (deleteError) {
@@ -39,11 +35,9 @@ export async function GET(request: Request) {
 
     const lapsedCutoff = new Date(now.getTime() - CAKTO_GRACE_MS).toISOString();
     const { error: suspendError, count: suspended } = await supabaseAdmin
-      .from('orders')
-      .update({ subscription_status: 'suspenso' }, { count: 'exact' })
-      .eq('billing_provider', 'cakto')
-      .neq('plan_tier', 'catalog')
-      .eq('subscription_status', 'ativo')
+      .from('studios')
+      .update({ plan_status: 'suspended' }, { count: 'exact' })
+      .eq('plan_status', 'active')
       .eq('manual_plan', false)
       .lt('paid_until', lapsedCutoff);
 

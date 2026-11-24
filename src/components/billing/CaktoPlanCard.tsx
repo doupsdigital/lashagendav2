@@ -4,10 +4,11 @@ import React, { useState } from 'react';
 import { ChevronDown, CreditCard, QrCode, AlertTriangle, Crown } from 'lucide-react';
 import { CAKTO_CHECKOUT_URLS } from '@/lib/cakto-checkout';
 import { CAKTO_ANUAL_PRICE, CAKTO_MENSAL_PRICE } from '@/lib/pricing';
+import type { PlanStatus } from '@/types/studio';
 
 interface CaktoPlanCardProps {
   plan: 'mensal' | 'anual' | null;
-  status: 'none' | 'ativo' | 'suspenso' | 'cancelado';
+  status: PlanStatus;
   paidUntil: string | null;
   checkoutRef: string | null;
 }
@@ -43,11 +44,9 @@ function checkoutUrl(plan: 'mensal' | 'anual', ref: string | null): string | und
   return url.toString();
 }
 
-/** Card "Meu plano" do Início pra quem comprou pela Cakto (funil `/lash`,
- *  2026-11-18). A aba Config (onde fica o card de assinatura do Asaas) é
- *  escondida no produto "Catálogo apenas", então o plano e o "como
- *  cancelar" moram aqui. Renovar/reativar usa o checkout da Cakto com o
- *  `sck` do catálogo — o webhook estende o `paid_until` deste mesmo menu. */
+/** Card "Meu plano" do Início (assinatura Cakto): plano, situação e "como
+ *  cancelar". Renovar/reativar usa o checkout da Cakto com o `sck` do
+ *  estúdio — o webhook estende o `paid_until` deste mesmo estúdio. */
 export const CaktoPlanCard: React.FC<CaktoPlanCardProps> = ({ plan, status, paidUntil, checkoutRef }) => {
   const [showCancel, setShowCancel] = useState(false);
   const now = Date.now();
@@ -92,7 +91,7 @@ export const CaktoPlanCard: React.FC<CaktoPlanCardProps> = ({ plan, status, paid
   }
 
   // Renovação do cartão recusada (ainda dentro da folga).
-  if (status === 'suspenso') {
+  if (status === 'suspended') {
     return (
       <div className="rounded-2xl p-5 bg-amber-50 border-2 border-amber-300">
         <p className="flex items-center gap-2 font-bold text-[17px] text-amber-900">
@@ -108,7 +107,7 @@ export const CaktoPlanCard: React.FC<CaktoPlanCardProps> = ({ plan, status, paid
   }
 
   // Cancelou: continua no ar até o fim do período pago.
-  if (status === 'cancelado') {
+  if (status === 'canceled') {
     return (
       <div className="rounded-2xl p-5 bg-surface border border-linen">
         <p className="font-bold text-[17px] text-ink">Assinatura cancelada</p>

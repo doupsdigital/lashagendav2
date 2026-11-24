@@ -5,10 +5,10 @@ import { normalizeWhatsappBR } from '@/lib/format';
 import { MARKABLE_STEPS, parseOnboardingSteps, type SelfServeStepId } from '@/lib/self-serve-onboarding';
 
 /** POST /api/professional/onboarding
- *    { slug, action: 'whatsapp', whatsapp }  → salva o WhatsApp do menu e marca o passo
+ *    { slug, action: 'whatsapp', whatsapp }  → salva o WhatsApp do estúdio e marca o passo
  *    { slug, action: 'mark', step }          → marca um passo como feito
  *
- *  Checklist "Primeiros passos" do funil `/lash` (2026-11-18). Só com a
+ *  Checklist "Primeiros passos" pós-compra. Só com a
  *  sessão da profissional daquele catálogo. */
 export async function POST(request: Request) {
   try {
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     }
 
     const { data: order, error } = await supabaseAdmin
-      .from('orders')
+      .from('studios')
       .select('id, onboarding_steps')
       .eq('slug', slug)
       .single();
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      updates.whatsapp_number = normalizeWhatsappBR(local);
+      updates.whatsapp = normalizeWhatsappBR(local);
       steps.whatsapp = now;
     } else if (action === 'mark') {
       const step = body?.step as SelfServeStepId;
@@ -53,10 +53,10 @@ export async function POST(request: Request) {
     }
 
     updates.onboarding_steps = steps;
-    const { error: updateError } = await supabaseAdmin.from('orders').update(updates).eq('id', order.id);
+    const { error: updateError } = await supabaseAdmin.from('studios').update(updates).eq('id', order.id);
     if (updateError) throw updateError;
 
-    return NextResponse.json({ success: true, steps, whatsapp: updates.whatsapp_number ?? undefined });
+    return NextResponse.json({ success: true, steps, whatsapp: updates.whatsapp ?? undefined });
   } catch (error) {
     console.error('[Professional Onboarding Exception]:', error);
     return NextResponse.json({ success: false, message: 'Não deu pra salvar agora. Tente de novo.' }, { status: 500 });

@@ -76,35 +76,23 @@ export interface CatalogOrderData {
   final_screen_bg_url?: string;
   cta_bg_url?: string;
   edit_token?: string;
-  /** Se true, o botão "agendar" do catálogo abre o wizard de horários reais
-   *  em vez de redirecionar direto pro WhatsApp (agendamento automático). */
+  /** Agendamento pelo catálogo funcionando agora (calculado por
+   *  `isBookingLive`, `lib/studio-access.ts`) — com false, o botão de agendar
+   *  cai no WhatsApp. */
   booking_enabled?: boolean;
-  /** Ela mesma pausou o agendamento automático temporariamente (Fase 23) —
-   *  com `booking_enabled = true` mas isso em `true`, o catálogo se comporta
-   *  como se não tivesse o Plano Agenda (WhatsApp em vez do wizard). */
+  /** `auto` confirma na hora; `approval` deixa aguardando a profissional. */
+  booking_mode?: 'auto' | 'approval';
+  /** Ela pausou o agendamento pelo catálogo (o app continua normal). */
   agenda_paused?: boolean;
-  /** Desativado pelo admin (falta de pagamento, pausa a pedido dela, etc) —
-   *  bloqueia o link público E o link mágico de edição; acesso ao app
-   *  continua normal. */
+  /** Desligado pelo admin — catálogo público e link mágico bloqueados. */
   catalog_disabled?: boolean;
-  /** Catálogo que veio de uma assinatura recorrente (Fase 27 — Catálogo
-   *  avulso ou vendido como Plano Agenda a partir dele) cuja cobrança não
-   *  está em dia agora (cancelada/suspensa), sem plano manual por trás.
-   *  Diferente de `catalog_disabled` (toggle manual do admin): esse aqui é
-   *  automático, a mesma consequência que cancelar o Plano Agenda sempre
-   *  teve (perder o que dependia de cobrança), só que agora também se
-   *  aplica ao Catálogo quando ELE é a coisa recorrente. Catálogo avulso
-   *  (pagamento único, o padrão) nunca liga essa flag — é pra sempre dela,
-   *  por definição. */
+  /** Já pagou e o período pago (com folga) acabou — catálogo fora do ar. */
   catalog_payment_lapsed?: boolean;
-  /** Prévia gratuita do funil `/lash` (2026-11-17, ver `src/lib/preview.ts`):
-   *  `preview_expires_at` só existe enquanto ela não pagou. */
-  plan_tier?: string;
+  /** Situação da assinatura (`studios.plan_status`); `preview` = prévia de 24h. */
+  plan_status?: 'preview' | 'active' | 'suspended' | 'canceled';
   preview_expires_at?: string | null;
-  /** Flags de visibilidade por pedido (produto "Catálogo apenas") — controlam
-   *  se a Capa, as Orientações e a tela final de Links/Contato aparecem,
-   *  valendo em qualquer modo (público ou edição). `undefined`/ausente conta
-   *  como visível (mesmo default `true` da coluna no banco). */
+  /** Herança do produto "Catálogo apenas" do StudioMenu: o v2 nunca preenche
+   *  (tudo visível). A lógica que ainda lê isso no `CatalogLayout` sai na F3. */
   show_cover?: boolean;
   show_instructions?: boolean;
   show_contact_cta?: boolean;

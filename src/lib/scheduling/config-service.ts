@@ -16,21 +16,22 @@ export interface ScheduleBlockConfigRow {
   reason: string | null;
 }
 
-export async function getBusinessHours(orderId: string): Promise<BusinessHoursConfigRow[]> {
+export async function getBusinessHours(studioId: string): Promise<BusinessHoursConfigRow[]> {
   const { data } = await supabaseAdmin
     .from('business_hours')
     .select('weekday, start_time, end_time')
-    .eq('order_id', orderId)
-    .order('weekday', { ascending: true });
+    .eq('studio_id', studioId)
+    .order('weekday', { ascending: true })
+    .order('start_time', { ascending: true });
 
   return (data as BusinessHoursConfigRow[]) || [];
 }
 
-export async function getScheduleBlocks(orderId: string): Promise<ScheduleBlockConfigRow[]> {
+export async function getScheduleBlocks(studioId: string): Promise<ScheduleBlockConfigRow[]> {
   const { data } = await supabaseAdmin
     .from('schedule_blocks')
     .select('id, start_date, end_date, all_day, start_time, end_time, reason')
-    .eq('order_id', orderId)
+    .eq('studio_id', studioId)
     .order('start_date', { ascending: true });
 
   return (data as ScheduleBlockConfigRow[]) || [];

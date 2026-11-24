@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { sendTelegramMessage } from '@/lib/telegram';
 import { createSelfServeLashCatalog } from '@/lib/self-serve-catalog';
-import { isPreviewExpired, isPreviewOrder } from '@/lib/preview';
+import { isPreviewExpired, isPreviewStudio } from '@/lib/studio-access';
 import {
   PREVIEW_SESSION_COOKIE,
   PREVIEW_SESSION_TTL_MS,
@@ -69,12 +69,12 @@ export async function POST(request: Request) {
     const session = readPreviewSession(cookieStore.get(PREVIEW_SESSION_COOKIE)?.value);
     if (session) {
       const { data: own } = await supabaseAdmin
-        .from('orders')
-        .select('slug, client_name, plan_tier, preview_code, preview_expires_at')
+        .from('studios')
+        .select('slug, owner_name, plan_status, preview_code, preview_expires_at')
         .eq('slug', session.slug)
         .maybeSingle();
-      const sameName = (own?.client_name || '').trim().toLowerCase() === name.toLowerCase();
-      if (own && sameName && isPreviewOrder(own) && !isPreviewExpired(own) && own.preview_code === session.previewCode) {
+      const sameName = (own?.owner_name || '').trim().toLowerCase() === name.toLowerCase();
+      if (own && sameName && isPreviewStudio(own) && !isPreviewExpired(own) && own.preview_code === session.previewCode) {
         return respond(own.slug, own.preview_code, own.preview_expires_at, true);
       }
     }

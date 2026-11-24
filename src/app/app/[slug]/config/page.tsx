@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { Settings } from 'lucide-react';
-import { getOrderForProfessionalApp } from '@/lib/professional-app-service';
+import { getStudioForProfessionalApp } from '@/lib/studio-service';
 import { getBusinessHours, getScheduleBlocks } from '@/lib/scheduling/config-service';
 import { ConfigAccordion } from '@/components/config/ConfigAccordion';
 import { PageTitleBar } from '@/components/app-shell/PageTitleBar';
@@ -11,12 +11,11 @@ interface ConfigPageProps {
 
 export default async function ConfigPage({ params }: ConfigPageProps) {
   const { slug } = await params;
-  const order = await getOrderForProfessionalApp(slug);
+  const order = await getStudioForProfessionalApp(slug);
 
   if (!order) notFound();
-  // Produto "Catálogo apenas" (2026-10-27): Config fica inacessível mesmo por
-  // URL direta, não só escondida da navegação (ver BottomNav/layout.tsx).
-  if (order.show_full_app === false) redirect(`/app/${slug}/inicio`);
+  // Prévia não tem Config (sem navegação entre abas, ver layout.tsx).
+  if (order.plan_status === 'preview') redirect(`/app/${slug}/inicio`);
 
   const [businessHours, scheduleBlocks] = await Promise.all([
     getBusinessHours(order.id),
@@ -31,7 +30,7 @@ export default async function ConfigPage({ params }: ConfigPageProps) {
           slug={slug}
           businessHours={businessHours}
           scheduleBlocks={scheduleBlocks}
-          bookingEnabled={order.booking_enabled}
+          bookingEnabled={order.has_paid_access}
           agendaPaused={order.agenda_paused}
           authUserId={order.auth_user_id}
         />

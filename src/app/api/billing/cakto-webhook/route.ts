@@ -3,7 +3,6 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { sendTelegramMessage } from '@/lib/telegram';
 import { assignAppShortCode } from '@/lib/short-link';
 import { normalizeWhatsappBR } from '@/lib/format';
-import { CAKTO_ANUAL_PRICE, CAKTO_MENSAL_PRICE } from '@/lib/pricing';
 import { createSelfServeLashCatalog } from '@/lib/self-serve-catalog';
 import { buildAccessEmail, sendEmail } from '@/lib/email';
 import { PRODUCTION_DOMAIN } from '@/lib/public-url';
@@ -25,9 +24,8 @@ import {
 
 /** POST /api/billing/cakto-webhook
  *
- *  Webhook da Cakto do funil de autosserviço Lash (2026-11-17). Totalmente
- *  separado do webhook do Asaas (`/api/billing/webhook`, intocado): só lê e
- *  escreve catálogos com `billing_provider = 'cakto'`.
+ *  Webhook da Cakto: ativa, renova, cancela e corta o acesso dos estúdios
+ *  (`studios.plan_status` + `paid_until`).
  *
  *  A Cakto NÃO reenvia evento que falhou — por isso responde 200 sempre que o
  *  segredo é válido (o resultado real fica em `cakto_events`), e todo
@@ -35,20 +33,17 @@ import {
 
 type LogResult = 'processed' | 'ignored' | 'rejected' | 'error';
 
-interface OrderRow {
+interface StudioRow {
   id: string;
   slug: string;
-  client_name: string | null;
-  plan_tier: string;
-  billing_provider: string;
+  owner_name: string | null;
+  plan_status: string;
   paid_until: string | null;
-  whatsapp_number: string | null;
+  whatsapp: string | null;
   app_short_code: string | null;
-  subscription_status: string | null;
 }
 
-const ORDER_COLUMNS =
-  'id, slug, client_name, plan_tier, billing_provider, paid_until, whatsapp_number, app_short_code, subscription_status';
+const STUDIO_COLUMNS = 'id, slug, owner_name, plan_status, paid_until, whatsapp, app_short_code';
 
 async function logEvent(row: {
   event: string | null;
@@ -63,17 +58,16 @@ async function logEvent(row: {
   if (error) console.error('[Cakto Webhook] Falha ao gravar log:', error, row.message);
 }
 
-async function findOrder(column: string, value: string | null): Promise<OrderRow | null> {
+async function findOrder(column: string, value: string | null): Promise<StudioRow | null> {
   if (!value) return null;
   const { data } = await supabaseAdmin
-    .from('orders')
-    .select(ORDER_COLUMNS)
+    .from('studios')
+    .select(STUDIO_COLUMNS)
     .eq(column, value)
-    .eq('billing_provider', 'cakto')
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  return (data as OrderRow | null) ?? null;
+  return (data as StudioRow | null) ?? null;
 }
 
 function nowBR() {
@@ -155,25 +149,25 @@ export async function POST(request: Request) {
         // na hora — gravar só "agora" deixava o menu mais 3 dias no ar
         // (achado no teste local, 2026-11-17).
         await supabaseAdmin
-          .from('orders')
+          .from('studios')
           .update({
             paid_until: new Date(Date.now() - CAKTO_GRACE_MS - 60_000).toISOString(),
-            subscription_status: 'cancelado',
+            plan_status: 'canceled',
           })
           .eq('id', order.id);
-        await sendTelegramMessage(`⚠️ Cakto: ${event === 'refund' ? 'reembolso' : 'chargeback'}\n\n👤 ${order.client_name}\n🔗 https://${PRODUCTION_DOMAIN}/c/${order.slug}\n🕒 ${nowBR()}`);
+        await sendTelegramMessage(`⚠️ Cakto: ${event === 'refund' ? 'reembolso' : 'chargeback'}\n\n👤 ${order.owner_name}\n🔗 https://${PRODUCTION_DOMAIN}/c/${order.slug}\n🕒 ${nowBR()}`);
         return done('processed', `acesso cortado (${event})`, order.slug);
       }
 
       if (isCanceled) {
         // Mantém `paid_until`: ela usa até o fim do período que já pagou.
-        await supabaseAdmin.from('orders').update({ subscription_status: 'cancelado' }).eq('id', order.id);
-        await sendTelegramMessage(`🔕 Cakto: assinatura cancelada\n\n👤 ${order.client_name}\n🔗 https://${PRODUCTION_DOMAIN}/c/${order.slug}\n📅 No ar até ${order.paid_until ? new Date(order.paid_until).toLocaleDateString('pt-BR') : '-'}`);
+        await supabaseAdmin.from('studios').update({ plan_status: 'canceled' }).eq('id', order.id);
+        await sendTelegramMessage(`🔕 Cakto: assinatura cancelada\n\n👤 ${order.owner_name}\n🔗 https://${PRODUCTION_DOMAIN}/c/${order.slug}\n📅 No ar até ${order.paid_until ? new Date(order.paid_until).toLocaleDateString('pt-BR') : '-'}`);
         return done('processed', 'assinatura cancelada (acesso mantido até paid_until)', order.slug);
       }
 
       // Renovação recusada
-      await supabaseAdmin.from('orders').update({ subscription_status: 'suspenso' }).eq('id', order.id);
+      await supabaseAdmin.from('studios').update({ plan_status: 'suspended' }).eq('id', order.id);
       return done('processed', 'renovação recusada (suspenso; paid_until decide quando sai do ar)', order.slug);
     }
 
@@ -213,22 +207,19 @@ export async function POST(request: Request) {
       createdWithoutPreview = true;
     }
 
-    const isFirstActivation = order.plan_tier === 'catalog';
+    const isFirstActivation = createdWithoutPreview || order.plan_status === 'preview';
     const updates: Record<string, unknown> = {
-      plan_tier: 'basico',
-      subscription_status: 'ativo',
+      plan_status: 'active',
       preview_expires_at: null,
       paid_until: computePaidUntil(plan as CaktoPlan, order.paid_until),
       cakto_plan: plan,
       cakto_order_id: caktoOrderId,
-      catalog_billing_mode: plan === 'anual' ? 'anual' : 'recorrente',
-      billing_price_override: plan === 'anual' ? CAKTO_ANUAL_PRICE : CAKTO_MENSAL_PRICE,
     };
     if (subscriptionRef) updates.cakto_subscription_ref = subscriptionRef;
     if (buyerEmail) updates.billing_email = buyerEmail;
-    if (buyerPhone && !order.whatsapp_number) updates.whatsapp_number = normalizeWhatsappBR(buyerPhone);
+    if (buyerPhone && !order.whatsapp) updates.whatsapp = normalizeWhatsappBR(buyerPhone);
 
-    const { error: updateError } = await supabaseAdmin.from('orders').update(updates).eq('id', order.id);
+    const { error: updateError } = await supabaseAdmin.from('studios').update(updates).eq('id', order.id);
     if (updateError) {
       console.error('[Cakto Webhook] Erro ao ativar:', updateError);
       return done('error', `erro ao ativar catálogo ${order.slug}: ${updateError.message}`, order.slug);
@@ -241,7 +232,7 @@ export async function POST(request: Request) {
     let emailNote = '';
     if (isFirstActivation) {
       if (buyerEmail && shortCode) {
-        const mail = buildAccessEmail({ name: order.client_name || buyerName, slug: order.slug, shortCode });
+        const mail = buildAccessEmail({ name: order.owner_name || buyerName, slug: order.slug, shortCode });
         const sent = await sendEmail({ to: buyerEmail, ...mail });
         emailNote = sent.ok ? ' · e-mail de acesso enviado' : ` · e-mail FALHOU (${sent.error})`;
       } else {

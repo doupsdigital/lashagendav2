@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { getCatalogBySlug } from '@/lib/catalog-service';
+import { getStudioBySlug } from '@/lib/studio-service';
 import { NICHE_DEFAULT_COVER } from '@/lib/catalog-covers';
 import { PRODUCTION_DOMAIN } from '@/lib/public-url';
 
@@ -27,15 +27,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
   const fallbackUrl = `https://${PRODUCTION_DOMAIN}/modelos/mosaico/assets/img/Hero.webp`;
 
   try {
-    const catalog = await getCatalogBySlug(slug);
-    // Mesma cadeia de capa padrão por nicho de `HeaderCover.tsx` (pedido
-    // real, 2026-10-07) — sem isso, a página mostraria a capa nova (Lash/
-    // Nail) mas o preview do link no WhatsApp continuaria mostrando a foto
-    // genérica antiga, inconsistente.
-    const nicheDefaultCover = catalog?.niche ? NICHE_DEFAULT_COVER[catalog.niche] : undefined;
+    const studio = await getStudioBySlug(slug);
+    // Mesma capa padrão de `HeaderCover.tsx` quando ela ainda não tem capa.
+    const nicheDefaultCover = NICHE_DEFAULT_COVER.lash;
     const sourceUrl =
-      catalog?.cover_media_url ||
-      catalog?.avatar_url ||
+      studio?.cover_media_url ||
+      studio?.avatar_url ||
       (nicheDefaultCover ? `https://${PRODUCTION_DOMAIN}${nicheDefaultCover}` : undefined) ||
       fallbackUrl;
 

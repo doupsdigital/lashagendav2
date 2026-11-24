@@ -3,14 +3,14 @@ import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { isProfessionalRequestAuthorized, PROFESSIONAL_SESSION_COOKIE } from '@/lib/professional-session';
+import { hasPaidAccess } from '@/lib/studio-access';
 
 /** PUT /api/professional/agenda-pause
  *  Body: { slug?, paused: boolean }
- *  Liga/desliga `orders.agenda_paused` (Fase 23) — a profissional pausa o
- *  agendamento automático temporariamente sem mexer na assinatura. Não toca
- *  em `booking_enabled` (ver comentário na migração): ela continua com
- *  acesso total à própria Agenda enquanto pausada, só o catálogo público
- *  (cliente final) passa a cair no WhatsApp. */
+ *  Liga/desliga `studios.agenda_paused` — a profissional pausa o agendamento
+ *  pelo catálogo temporariamente, sem mexer na assinatura. Ela continua com
+ *  acesso total à própria Agenda; só o catálogo público (cliente final)
+ *  passa a cair no WhatsApp. */
 export async function PUT(request: Request) {
   try {
     const ip = getClientIp(request);
@@ -40,23 +40,22 @@ export async function PUT(request: Request) {
     }
 
     const { data: order, error: orderErr } = await supabaseAdmin
-      .from('orders')
-      .select('id, booking_enabled')
+      .from('studios')
+      .select('id, plan_status, paid_until, manual_plan')
       .eq('slug', normalizedSlug)
-      .single();
+      .maybeSingle();
 
     if (orderErr || !order) {
       return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
     }
 
-    // Pausar sem ter o agendamento automático de fato ligado não tem efeito
-    // nenhum — evita um estado "pausada" órfão que confundiria se ela virasse
-    // Plus depois (a agenda apareceria já pausada sem ela nunca ter mexido).
-    if (!order.booking_enabled) {
+    // Sem acesso pago em dia o agendamento já não funciona — pausar não teria
+    // efeito e deixaria um estado "pausada" órfão para depois.
+    if (!hasPaidAccess(order)) {
       return NextResponse.json({ success: false, message: 'O agendamento automático não está ativo pra esse catálogo.' }, { status: 400 });
     }
 
-    const { error: updateErr } = await supabaseAdmin.from('orders').update({ agenda_paused: paused }).eq('id', order.id);
+    const { error: updateErr } = await supabaseAdmin.from('studios').update({ agenda_paused: paused }).eq('id', order.id);
     if (updateErr) {
       console.error('[API Agenda Pause] Erro ao atualizar:', updateErr);
       return NextResponse.json({ success: false, message: 'Erro ao salvar.' }, { status: 500 });

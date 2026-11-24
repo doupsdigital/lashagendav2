@@ -7,8 +7,7 @@ import { agendaVisitedKey, getOnboardingChecklistItems } from '@/lib/onboarding-
 
 interface OnboardingCardStackProps {
   slug: string;
-  planTier: 'catalog' | 'basico' | 'plus';
-  subscriptionStatus: 'none' | 'ativo' | 'suspenso' | 'cancelado';
+  hasPaidAccess: boolean;
   hasAccount: boolean;
   hoursDone: boolean;
 }
@@ -27,10 +26,10 @@ interface ClientState {
  *  marca no aparelho (`localStorage`, sem dado no banco pra isso). Quando tudo
  *  está marcado, mostra "Tudo pronto" numa única visita e depois some. A lista
  *  vem de `getOnboardingChecklistItems`, a mesma fonte do tour do Início. */
-export const OnboardingCardStack: React.FC<OnboardingCardStackProps> = ({ slug, planTier, subscriptionStatus, hasAccount, hoursDone }) => {
+export const OnboardingCardStack: React.FC<OnboardingCardStackProps> = ({ slug, hasPaidAccess, hasAccount, hoursDone }) => {
   const [client, setClient] = useState<ClientState | null>(null);
 
-  const items = getOnboardingChecklistItems({ slug, planTier, subscriptionStatus, hasAccount, hoursDone });
+  const items = getOnboardingChecklistItems({ slug, hasPaidAccess, hasAccount, hoursDone });
   const signature = items.map((i) => `${i.id}:${i.done}`).join('|');
 
   useEffect(() => {

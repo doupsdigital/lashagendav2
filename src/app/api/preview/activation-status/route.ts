@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { isCaktoAccessLapsed } from '@/lib/cakto';
+import { hasPaidAccess } from '@/lib/studio-access';
 import { PREVIEW_SESSION_COOKIE, readPreviewSession } from '@/lib/preview-session';
 import { createProfessionalSessionValue, PROFESSIONAL_SESSION_COOKIE } from '@/lib/professional-session';
 
@@ -29,8 +29,8 @@ export async function GET() {
     if (!session) return NextResponse.json({ status: 'no_session' });
 
     const { data: order, error } = await supabaseAdmin
-      .from('orders')
-      .select('slug, client_name, studio_name, plan_tier, preview_code, billing_provider, paid_until')
+      .from('studios')
+      .select('slug, owner_name, studio_name, plan_status, preview_code, paid_until, manual_plan')
       .eq('slug', session.slug)
       .maybeSingle();
 
@@ -40,11 +40,10 @@ export async function GET() {
       return NextResponse.json({ status: 'not_found' });
     }
 
-    const isActive =
-      order.billing_provider === 'cakto' && order.plan_tier !== 'catalog' && !isCaktoAccessLapsed(order.paid_until);
+    const isActive = hasPaidAccess(order);
     // Nome da PESSOA, não do studio: `studio_name` nasce "Studio <nome>" e a
     // tela mostra só a 1ª palavra — saía "Studio" (achado real, 2026-11-18).
-    const name = order.client_name || order.studio_name || '';
+    const name = order.owner_name || order.studio_name || '';
 
     if (!isActive) return NextResponse.json({ status: 'pending', name });
 
