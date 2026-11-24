@@ -16,6 +16,8 @@ interface BookingModalProps {
    *  que é o da CLIENTE preenchendo o formulário) — só pro placeholder de
    *  foto ausente/quebrada, mesma composição "STUDIO" + nome da capa. */
   professionalName?: string;
+  /** Até quantos dias à frente dá para agendar (regra do estúdio). */
+  bookingWindowDays?: number;
   onClose: () => void;
 }
 
@@ -26,7 +28,10 @@ interface BookedAppointment {
   dateLabel: string;
 }
 
-const DAYS_AHEAD = 14;
+/** Dias mostrados quando o catálogo não informa a janela, e o teto da lista
+ *  (a janela pode ir até 365 dias; mais de ~2 meses de botões só atrapalha). */
+const DEFAULT_DAYS_AHEAD = 14;
+const MAX_DAYS_SHOWN = 62;
 
 function toDateKey(d: Date): string {
   return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); // YYYY-MM-DD
@@ -57,9 +62,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   service,
   slug,
   professionalName,
+  bookingWindowDays,
   onClose,
 }) => {
-  const days = useState(() => buildNextDays(DAYS_AHEAD))[0];
+  // Hoje + a janela do estúdio (ex.: 60 dias → 61 botões), com teto.
+  const days = useState(() =>
+    buildNextDays(Math.min(MAX_DAYS_SHOWN, bookingWindowDays ? bookingWindowDays + 1 : DEFAULT_DAYS_AHEAD))
+  )[0];
 
   const [step, setStep] = useState<WizardStep>('datetime');
   const [selectedDate, setSelectedDate] = useState<string>(days[0].key);

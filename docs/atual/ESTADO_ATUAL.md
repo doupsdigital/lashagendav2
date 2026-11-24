@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-24 — F4.2 concluída (folgas e bloqueios).**
+> Última atualização: **2026-11-24 — Fase 4 concluída (horários, bloqueios e motor de disponibilidade).**
 
 ---
 
@@ -11,9 +11,9 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F4 — Horários e bloqueios** (F4.1 ✅, F4.2 ✅) |
-| **Próxima etapa** | **F4.3 — Motor de disponibilidade** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
-| **Fases concluídas** | F0, F1, F2, F3 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
+| **Fase atual** | **F5 — Agendamento pela cliente** (não iniciada) |
+| **Próxima etapa** | **F5.1 — Wizard do StudioMenu sobre o modelo novo** (decidir: vários serviços no mesmo agendamento?) (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fases concluídas** | F0, F1, F2, F3, F4 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
 ## 2. O que existe no repositório
@@ -54,6 +54,8 @@
   aguardando). Rodar de novo recria os dados e **mantém o link mágico**. Recusa rodar fora do
   `lashagendav2-dev`. Uso:
   `node --env-file=.env.development.local scripts/dev-seed-studio.mjs`
+- `scripts/test-availability.mjs` (F4.3): testes do motor de horários (almoço, bloqueios, folga,
+  antecedência, janela, agendamento manual), sem banco nem servidor. Uso: `npm run test:availability`.
 
 ### Ambientes
 
@@ -106,10 +108,8 @@ Web Push.
       para coisas escondidas atrás dela. O tour deveria esperar as boas-vindas terminarem.
       Corrigir junto com o Início novo (F9.1) ou antes, se atrapalhar os testes.
 - [ ] Herdado do StudioMenu, a resolver nas fases indicadas (anotado na F2.2):
-  - **F4.3:** o motor de horários (`lib/scheduling/availability.ts`) ainda lê **uma faixa por
-    dia** — a tela de horários (F4.1, regras em `lib/scheduling/business-hours.ts`) e a agenda
-    do dia já usam várias; o agendamento da cliente ainda não (com pausa de almoço, só mostra a manhã). Também falta aplicar
-    `min_notice_minutes`/`booking_window_days` do estúdio (hoje usa a folga fixa de 30 min).
+  - **F10:** `min_notice_minutes` e `booking_window_days` já valem no agendamento (F4.3), mas
+    ainda não têm tela para a profissional mudar (hoje ficam no padrão: 2h e 60 dias).
   - **F5:** o link único da cliente (`manage_token`) já é gravado, mas ainda não é mostrado.
   - **F11:** preço anual exibido ainda é R$ 127 (`lib/pricing.ts`); o v2 vende a R$ 197.
   - **F12:** `/admin/catalogos` virou uma lista enxuta (status, links, +1 mês/ano, liberar à

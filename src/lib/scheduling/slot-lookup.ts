@@ -49,25 +49,29 @@ async function fetchDayContext(
   };
 }
 
-/** Busca horário de atendimento + bloqueios + agendamentos existentes no
- *  banco e calcula os slots livres pra uma data — fonte única usada pela
- *  rota pública de disponibilidade, pela revalidação antes de gravar o
- *  agendamento do cliente final, e pelo agendamento manual da profissional
- *  (que precisa respeitar o próprio horário/bloqueio, senão ela consegue se
- *  auto-conflitar sem perceber). Antes essa busca estava duplicada em cada
- *  rota; centralizada aqui pra não divergir. */
+/** Regras do estúdio que o agendamento da cliente respeita. */
+export interface StudioBookingRules {
+  min_notice_minutes: number;
+  booking_window_days: number;
+}
+
+/** Busca faixas de atendimento + bloqueios + agendamentos existentes no
+ *  banco e calcula os horários livres de uma data para a cliente — fonte
+ *  única da rota pública de disponibilidade e da revalidação antes de gravar
+ *  o agendamento (as duas têm de dar o mesmo resultado). */
 export async function getAvailableSlotsForDate(
   studioId: string,
   dateStr: string,
   durationMinutes: number,
-  options?: { applyTodayBuffer?: boolean }
+  rules: StudioBookingRules
 ): Promise<AvailabilitySlot[]> {
   const ctx = await fetchDayContext(studioId, dateStr);
   return computeAvailableSlots({
     dateStr,
     durationMinutes,
     ...ctx,
-    applyTodayBuffer: options?.applyTodayBuffer,
+    minNoticeMinutes: rules.min_notice_minutes,
+    bookingWindowDays: rules.booking_window_days,
   });
 }
 

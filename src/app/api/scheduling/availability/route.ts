@@ -58,8 +58,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, slots: [], noSchedulingYet: true, service });
     }
 
-    const slots = await getAvailableSlotsForDate(studio.id, dateStr, item.durationMinutes);
-    return NextResponse.json({ success: true, slots, service });
+    const slots = await getAvailableSlotsForDate(studio.id, dateStr, item.durationMinutes, studio);
+    return NextResponse.json({ success: true, slots, service, bookingWindowDays: studio.booking_window_days });
   } catch (error) {
     console.error('[API Scheduling Availability Exception]:', error);
     return NextResponse.json({ success: false, message: 'Erro interno ao calcular disponibilidade.' }, { status: 500 });

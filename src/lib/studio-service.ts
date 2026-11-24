@@ -219,6 +219,7 @@ export function studioToCatalog(
     edit_token: studio.edit_token,
     booking_enabled: isBookingLive(studio),
     booking_mode: studio.booking_mode,
+    booking_window_days: studio.booking_window_days,
     agenda_paused: studio.agenda_paused,
     catalog_disabled: studio.disabled,
     catalog_payment_lapsed: isAccessLapsed(studio),

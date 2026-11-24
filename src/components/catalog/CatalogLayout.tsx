@@ -816,6 +816,7 @@ export const CatalogLayout: React.FC<CatalogLayoutProps> = ({
             service={bookingItem}
             slug={catalogState.slug}
             professionalName={catalogState.client_name}
+            bookingWindowDays={catalogState.booking_window_days}
             onClose={() => setBookingItem(null)}
           />
         )

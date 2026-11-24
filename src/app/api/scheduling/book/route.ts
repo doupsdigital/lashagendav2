@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     // Revalida o horário antes de gravar (a lista do navegador pode estar
     // desatualizada). A garantia final contra corrida é a trava do banco.
     const dateStr = startsAtDate.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); // YYYY-MM-DD
-    const slots = await getAvailableSlotsForDate(studio.id, dateStr, item.durationMinutes);
+    const slots = await getAvailableSlotsForDate(studio.id, dateStr, item.durationMinutes, studio);
     if (!slots.some((s) => s.startsAt === startsAtDate.toISOString())) {
       return NextResponse.json(
         { success: false, message: 'Esse horário não está mais disponível. Escolha outro, por favor.' },
