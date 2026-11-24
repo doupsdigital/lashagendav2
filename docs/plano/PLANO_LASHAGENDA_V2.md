@@ -49,7 +49,7 @@ cobre, **pare e pergunte**. Depois de decidida, registre em `DECISOES_DE_PRODUTO
 | Fase | Nome | Resultado visível | Status |
 |---|---|---|---|
 | F0 | Fundação do repositório | Repo no GitHub com plano, playbook e o v1 como referência | ✅ |
-| F1 | Base do StudioMenu rodando como LashAgenda | `localhost:3000` abre um app com a marca LashAgenda, código limpo do que não serve | ⬜ |
+| F1 | Base do StudioMenu rodando como LashAgenda | `localhost:3000` abre um app com a marca LashAgenda, código limpo do que não serve | ✅ |
 | F2 | Modelo de dados v2 + camada de serviço | Banco dev com o schema novo; estúdio de teste criado por script | ⬜ |
 | F3 | Catálogo público + editor visual | `/c/<slug>` mostra o catálogo; a profissional edita serviços, variações, categorias, tema | ⬜ |
 | F4 | Horários e bloqueios | Grade semanal com pausa de almoço, folgas e bloqueios parciais | ⬜ |
