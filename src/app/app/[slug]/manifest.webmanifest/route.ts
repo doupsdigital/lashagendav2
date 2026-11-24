@@ -16,8 +16,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
   return NextResponse.json(
     {
-      name: 'StudioMenu',
-      short_name: 'StudioMenu',
+      name: 'LashAgenda',
+      short_name: 'LashAgenda',
       description: 'App da profissional pra gerenciar catálogo e agendamentos.',
       start_url: `/app/${slug}`,
       scope: `/app/${slug}/`,
@@ -27,8 +27,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
       // que o Android monta sozinho ao abrir o app instalado; com o cinza
       // do app, dava pra ver a borda do ícone como um quadrado flutuando
       // (achado testando de verdade, Fase 21).
-      background_color: '#F8E7E7',
-      theme_color: '#a93259',
+      background_color: '#F7ECEB',
+      theme_color: '#A85560',
       icons: [
         { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },

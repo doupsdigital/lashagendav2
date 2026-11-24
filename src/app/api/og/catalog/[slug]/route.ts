@@ -24,7 +24,7 @@ import { PRODUCTION_DOMAIN } from '@/lib/public-url';
  *  (WhatsApp/Instagram/etc), nunca por gente de verdade navegando. */
 export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const fallbackUrl = 'https://studiomenu.art/modelos/mosaico/assets/img/Hero.webp';
+  const fallbackUrl = `https://${PRODUCTION_DOMAIN}/modelos/mosaico/assets/img/Hero.webp`;
 
   try {
     const catalog = await getCatalogBySlug(slug);

@@ -16,7 +16,7 @@ const SUPPORT_WHATSAPP = '5562991083435';
 
 const CHECKING_MESSAGES = [
   'Confirmando seu pagamento…',
-  'Ativando o seu menu…',
+  'Ativando o seu catálogo…',
   'Se foi no Pix, pode levar alguns segundinhos…',
 ];
 
@@ -116,7 +116,7 @@ export const ActivationScreen: React.FC = () => {
             <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-rose-600 text-white flex items-center justify-center text-2xl" aria-hidden="true">
               ✓
             </div>
-            <h1 className="font-serif text-2xl font-bold mb-2">Seu menu está no ar{greeting}! 🎉</h1>
+            <h1 className="font-serif text-2xl font-bold mb-2">Seu catálogo está no ar{greeting}! 🎉</h1>
             <p className="text-[15px] text-ink-soft leading-relaxed">Entrando no seu app…</p>
             {redirectTo && (
               <a
@@ -145,7 +145,7 @@ export const ActivationScreen: React.FC = () => {
               Verificar de novo
             </button>
             <a
-              href={supportLink('Oi! Acabei de pagar o StudioMenu e meu menu ainda não ativou')}
+              href={supportLink('Oi! Acabei de pagar o LashAgenda e meu acesso ainda não ativou')}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-3 block text-[13px] font-semibold text-rose-600 underline underline-offset-2"
@@ -164,7 +164,7 @@ export const ActivationScreen: React.FC = () => {
               Confira também a caixa de spam.
             </p>
             <a
-              href={supportLink('Oi! Acabei de pagar o StudioMenu e queria ajuda pra acessar meu menu')}
+              href={supportLink('Oi! Acabei de pagar o LashAgenda e queria ajuda pra acessar meu app')}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-6 inline-flex w-full items-center justify-center rounded-2xl border-2 border-rose-600 px-5 py-3 text-[15px] font-bold text-rose-600"

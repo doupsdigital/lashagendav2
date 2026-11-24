@@ -10,7 +10,7 @@ const SUPPORT_WHATSAPP = '5562991083435';
 export function SupportFooterCard({ name, slug }: { name: string; slug: string }) {
   const firstName = name.trim().split(/\s+/)[0] || '';
   const text = encodeURIComponent(
-    `Olá! Sou${firstName ? ` a ${firstName}` : ''} (menu ${slug}.studiomenu.art) e tenho uma dúvida sobre o StudioMenu.`
+    `Olá! Sou${firstName ? ` a ${firstName}` : ''} (${slug}.lashagenda.com) e tenho uma dúvida sobre o LashAgenda.`
   );
 
   return (

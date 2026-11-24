@@ -50,7 +50,7 @@ export function AdminLoginForm() {
         </div>
         <div>
           <h1 className="font-serif text-2xl font-bold tracking-tight text-white">
-            Studio<span className="text-rose-400 font-normal italic">Menu</span>
+            Lash<span className="text-rose-400 font-normal italic">Agenda</span>
           </h1>
           <p className="text-xs text-slate-400 mt-1">Digite a senha para acessar o Painel</p>
         </div>

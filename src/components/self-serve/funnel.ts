@@ -80,8 +80,10 @@ const PASSTHROUGH_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_con
 /** Link do checkout da Cakto com `sck=<código da prévia>` (o webhook usa
  *  pra saber de qual prévia é a compra) + UTMs/fbclid da visita, pra
  *  atribuição do anúncio continuar funcionando do lado da Cakto. */
-export function buildCheckoutUrl(plan: CaktoPlanKey, previewCode: string | null): string {
-  const url = new URL(CAKTO_CHECKOUT_URLS[plan]);
+export function buildCheckoutUrl(plan: CaktoPlanKey, previewCode: string | null): string | null {
+  const base = CAKTO_CHECKOUT_URLS[plan];
+  if (!base) return null;
+  const url = new URL(base);
   if (previewCode) url.searchParams.set('sck', previewCode);
   if (typeof window !== 'undefined') {
     const current = new URLSearchParams(window.location.search);

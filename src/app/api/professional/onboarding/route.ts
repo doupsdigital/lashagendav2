@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       .select('id, onboarding_steps')
       .eq('slug', slug)
       .single();
-    if (error || !order) return NextResponse.json({ success: false, message: 'Menu não encontrado.' }, { status: 404 });
+    if (error || !order) return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
 
     const steps = parseOnboardingSteps(order.onboarding_steps);
     const now = new Date().toISOString();

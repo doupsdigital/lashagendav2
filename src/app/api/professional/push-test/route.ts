@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     await sendPushToOrder(order.id, {
       title: 'Notificação de teste',
-      body: 'Se você recebeu isso, as notificações do StudioMenu estão funcionando neste dispositivo.',
+      body: 'Se você recebeu isso, as notificações do LashAgenda estão funcionando neste dispositivo.',
       url: `/app/${slug}/config`,
     });
 

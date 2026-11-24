@@ -116,7 +116,7 @@ export function SelfServeLandingPage({ content }: SelfServeLandingPageProps) {
     }
     setError(null);
     setBusy(true);
-    setCreatingUrl(`${guessSlug(clean) || 'seunome'}.studiomenu.art`);
+    setCreatingUrl(`${guessSlug(clean) || 'seunome'}.lashagenda.com`);
     setCreating(true);
     trackFunnel('preview_submit');
 
@@ -146,7 +146,7 @@ export function SelfServeLandingPage({ content }: SelfServeLandingPageProps) {
       setPreview(created); // monta o iframe por trás da animação
       savePreview(created);
       trackFunnel('preview_created', { reused: Boolean(json.reused) });
-      trackPixel('Lead', { content_name: 'Prévia StudioMenu Lash' });
+      trackPixel('Lead', { content_name: 'Prévia LashAgenda' });
     } catch {
       setCreating(false);
       setBusy(false);
@@ -164,10 +164,12 @@ export function SelfServeLandingPage({ content }: SelfServeLandingPageProps) {
 
   const handleCheckout = useCallback(
     (plan: CaktoPlanKey) => {
+      const checkoutUrl = buildCheckoutUrl(plan, preview?.previewCode ?? null);
+      if (!checkoutUrl) return; // checkout desligado até a F11 (ver lib/cakto-checkout.ts)
       const value = plan === 'anual' ? CAKTO_ANUAL_PRICE : CAKTO_MENSAL_PRICE;
       trackFunnel('checkout_click', { plan, has_preview: Boolean(preview) });
-      trackPixel('AddToCart', { value, currency: 'BRL', content_name: `StudioMenu ${plan === 'anual' ? 'Anual' : 'Mensal'}` });
-      window.location.href = buildCheckoutUrl(plan, preview?.previewCode ?? null);
+      trackPixel('AddToCart', { value, currency: 'BRL', content_name: `LashAgenda ${plan === 'anual' ? 'Anual' : 'Mensal'}` });
+      window.location.href = checkoutUrl;
     },
     [preview]
   );
@@ -221,7 +223,7 @@ export function SelfServeLandingPage({ content }: SelfServeLandingPageProps) {
                       </>
                     ) : (
                       <>
-                        Studio<em>Menu</em>
+                        Lash<em>Agenda</em>
                       </>
                     )}
                   </h1>
@@ -276,8 +278,8 @@ export function SelfServeLandingPage({ content }: SelfServeLandingPageProps) {
             </h2>
             <ol className="lp-ss-how-steps">
               {[
-                { t: 'Crie grátis com seu nome', d: 'Em 10 segundos você vê o seu menu pronto, com serviços de lash de exemplo.' },
-                { t: 'Ative o seu menu', d: 'Anual no Pix ou mensal no cartão. A ativação é na hora.' },
+                { t: 'Crie grátis com seu nome', d: 'Em 10 segundos você vê o seu catálogo pronto, com serviços de lash de exemplo.' },
+                { t: 'Ative o seu catálogo', d: 'Anual no Pix ou mensal no cartão. A ativação é na hora.' },
                 { t: 'Edite e divulgue', d: 'Troque pelos seus serviços e preços pelo celular e coloque o link na bio.' },
               ].map((s, i) => (
                 <li key={i} data-reveal style={{ ['--reveal-delay' as string]: `${i * 0.1}s` }}>
@@ -301,12 +303,12 @@ export function SelfServeLandingPage({ content }: SelfServeLandingPageProps) {
         <div className="lp-container">
           <div className="lp-footer-brand">
             <span className="lp-footer-logo">
-              Studio<em>Menu</em>
+              Lash<em>Agenda</em>
             </span>
-            <span className="lp-footer-tagline">Menu Digital Interativo para Lash Designers</span>
+            <span className="lp-footer-tagline">Catálogo e agendamento para Lash Designers</span>
             <a
               className="lp-ss-footer-help"
-              href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Oi! Estou na página do StudioMenu e fiquei com uma dúvida')}`}
+              href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Oi! Estou na página do LashAgenda e fiquei com uma dúvida')}`}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackFunnel('help_whatsapp_click')}
@@ -326,7 +328,7 @@ export function SelfServeLandingPage({ content }: SelfServeLandingPageProps) {
           onClick={() => (preview ? goToOffer('sticky_bar') : focusGenerator())}
           tabIndex={stickyVisible ? 0 : -1}
         >
-          {preview ? 'Ativar meu menu' : '✨ Criar meu menu grátis'}
+          {preview ? 'Ativar meu catálogo' : '✨ Criar meu catálogo grátis'}
         </button>
       </div>
 

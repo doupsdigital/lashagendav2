@@ -39,11 +39,11 @@ export const SelfServeOffer: React.FC<SelfServeOfferProps> = ({ preview, onCheck
             <>
               <p className="lp-ss-offer-kicker">
                 {remaining !== null && remaining > 0
-                  ? `Seu menu está guardado por mais ${formatHoursMinutes(remaining)}`
-                  : 'Seu menu está guardado'}
+                  ? `Seu catálogo está guardado por mais ${formatHoursMinutes(remaining)}`
+                  : 'Seu catálogo está guardado'}
               </p>
               <h2 className="lp-section-title">
-                {firstName(preview.name)}, ative seu menu e comece a usar hoje
+                {firstName(preview.name)}, ative seu catálogo e comece a usar hoje
               </h2>
               <div className="lp-ss-link-pill lp-ss-link-pill--center">
                 <span className="lp-ss-link-dot" aria-hidden="true" />
@@ -51,7 +51,7 @@ export const SelfServeOffer: React.FC<SelfServeOfferProps> = ({ preview, onCheck
               </div>
             </>
           ) : (
-            <h2 className="lp-section-title">Ative seu Menu Digital</h2>
+            <h2 className="lp-section-title">Ative seu Catálogo Digital</h2>
           )}
         </div>
 
@@ -72,7 +72,7 @@ export const SelfServeOffer: React.FC<SelfServeOfferProps> = ({ preview, onCheck
             <p className="lp-ss-savings">Economize R$ {brl(ANNUAL_SAVINGS)} no ano</p>
             <ul className="lp-tier-bullets">
               <li>{CHECK}<span><strong>Pague uma vez no Pix, sem mensalidade</strong></span></li>
-              <li>{CHECK}<span>Seu menu no ar por 12 meses</span></li>
+              <li>{CHECK}<span>Seu catálogo no ar por 12 meses</span></li>
               <li>{CHECK}<span>Edite serviços, fotos e preços pelo celular</span></li>
               <li>{CHECK}<span>Ativação na hora, assim que o Pix cair</span></li>
             </ul>
@@ -123,7 +123,7 @@ export const SelfServeOffer: React.FC<SelfServeOfferProps> = ({ preview, onCheck
             <li>
               <span className="lp-ss-after-num">1</span>
               <div>
-                <strong>Seu menu é ativado na hora</strong>
+                <strong>Seu catálogo é ativado na hora</strong>
                 <p>O mesmo link que você acabou de ver passa a ser seu.</p>
               </div>
             </li>

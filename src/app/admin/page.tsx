@@ -19,7 +19,7 @@ export default function AdminHubPage() {
         <header className="pb-7 border-b border-slate-800 flex items-start justify-between gap-4">
           <div>
             <h1 className="font-serif text-3xl md:text-4xl font-bold tracking-tight">
-              Studio<span className="text-rose-400 font-normal italic">Menu</span>{' '}
+              Lash<span className="text-rose-400 font-normal italic">Agenda</span>{' '}
               <span className="text-slate-500 font-sans font-normal text-xl">· Admin</span>
             </h1>
             <p className="text-sm text-slate-400 mt-1.5">Painel central de operação.</p>

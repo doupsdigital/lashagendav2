@@ -54,7 +54,7 @@ Web Push.
 - [ ] Criar o projeto Supabase `lashagendav2-dev` (usuária) — atenção ao limite de 2 projetos
       ativos no plano grátis.
 - [ ] Ter um clone do StudioMenu na estação onde a F1 for feita.
-- [ ] Decidir na F1.4: paleta do app (rosa do StudioMenu ou do v1).
+- [x] Decidir na F1.4: paleta do app → **v1** (2026-11-24; ver `DECISOES_DE_PRODUTO.md`, seção 7).
 - [ ] Decidir na F3.4: quantos serviços de exemplo um estúdio novo ganha.
 - [ ] Decidir na F5.1: vários serviços no mesmo agendamento (recomendação: sim).
 - [ ] Decidir na F6.2: se a visão "semana" da agenda entra.

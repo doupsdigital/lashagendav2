@@ -90,7 +90,7 @@ export const PushActivationFlow: React.FC<PushActivationFlowProps> = ({
   if (permission === 'denied') {
     return (
       <p className={`text-[13px] leading-relaxed ${textClassName}`}>
-        As notificações estão bloqueadas pro StudioMenu nesse navegador. Pra reativar: menu do navegador → Configurações do site → Notificações → mude pra "Permitir".
+        As notificações estão bloqueadas pro LashAgenda nesse navegador. Pra reativar: menu do navegador → Configurações do site → Notificações → mude pra "Permitir".
       </p>
     );
   }

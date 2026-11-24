@@ -12,7 +12,7 @@ const SUPPORT_WHATSAPP = '5562991083435';
  *  botão fixo/flutuante — pedido explícito da usuária pra não poluir o
  *  dia a dia do app com algo verde sempre visível. */
 export const SupportSection: React.FC = () => {
-  const text = encodeURIComponent('Olá! Estou com uma dúvida sobre o StudioMenu.');
+  const text = encodeURIComponent('Olá! Estou com uma dúvida sobre o LashAgenda.');
   const whatsappUrl = `https://wa.me/${SUPPORT_WHATSAPP}?text=${text}`;
 
   return (

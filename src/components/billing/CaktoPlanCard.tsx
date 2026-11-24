@@ -35,8 +35,10 @@ function formatDate(iso: string, withYear: boolean) {
   });
 }
 
-function checkoutUrl(plan: 'mensal' | 'anual', ref: string | null) {
-  const url = new URL(CAKTO_CHECKOUT_URLS[plan]);
+function checkoutUrl(plan: 'mensal' | 'anual', ref: string | null): string | undefined {
+  const base = CAKTO_CHECKOUT_URLS[plan];
+  if (!base) return undefined; // checkout desligado até a F11
+  const url = new URL(base);
   if (ref) url.searchParams.set('sck', ref);
   return url.toString();
 }
@@ -79,7 +81,7 @@ export const CaktoPlanCard: React.FC<CaktoPlanCardProps> = ({ plan, status, paid
       <div className="rounded-2xl p-5 bg-rose-50 border-2 border-rose-300">
         <p className="flex items-center gap-2 font-bold text-[17px] text-rose-800">
           <AlertTriangle className="w-5 h-5" />
-          Seu menu está fora do ar
+          Seu catálogo está fora do ar
         </p>
         <p className="text-[15px] text-rose-800/80 mt-1.5 leading-relaxed">
           Suas clientes não conseguem ver seus serviços agora. Ative de novo e ele volta na hora, do jeito que você deixou.
@@ -98,7 +100,7 @@ export const CaktoPlanCard: React.FC<CaktoPlanCardProps> = ({ plan, status, paid
           A renovação no cartão não passou
         </p>
         <p className="text-[15px] text-amber-900/80 mt-1.5 leading-relaxed">
-          Seu menu continua no ar por mais alguns dias. Pra não sair do ar, ative de novo:
+          Seu catálogo continua no ar por mais alguns dias. Pra não sair do ar, ative de novo:
         </p>
         {reactivateButtons}
       </div>
@@ -111,7 +113,7 @@ export const CaktoPlanCard: React.FC<CaktoPlanCardProps> = ({ plan, status, paid
       <div className="rounded-2xl p-5 bg-surface border border-linen">
         <p className="font-bold text-[17px] text-ink">Assinatura cancelada</p>
         <p className="text-[15px] text-ink-soft mt-1.5 leading-relaxed">
-          Seu menu continua no ar até <strong className="text-ink">{untilLabel}</strong>. Mudou de ideia? É só ativar de novo:
+          Seu catálogo continua no ar até <strong className="text-ink">{untilLabel}</strong>. Mudou de ideia? É só ativar de novo:
         </p>
         {reactivateButtons}
       </div>
@@ -132,7 +134,7 @@ export const CaktoPlanCard: React.FC<CaktoPlanCardProps> = ({ plan, status, paid
           </p>
           <p className="text-sm text-ink-soft mt-0.5">
             {isAnual
-              ? `Seu menu está garantido até ${untilLabel}`
+              ? `Seu catálogo está garantido até ${untilLabel}`
               : `R$ ${brl(CAKTO_MENSAL_PRICE)}/mês no cartão · renova por volta de ${paidUntil ? formatDate(paidUntil, false) : ''}`}
           </p>
         </div>
@@ -162,7 +164,7 @@ export const CaktoPlanCard: React.FC<CaktoPlanCardProps> = ({ plan, status, paid
           {showCancel && (
             <div className="mt-2 text-[14px] text-ink-soft leading-relaxed">
               <p>
-                Você pode cancelar quando quiser, <strong className="text-ink">sem multa e sem fidelidade</strong>. Seu menu continua no ar
+                Você pode cancelar quando quiser, <strong className="text-ink">sem multa e sem fidelidade</strong>. Seu catálogo continua no ar
                 até o fim do mês que você já pagou.
               </p>
               <p className="mt-2">
@@ -177,7 +179,7 @@ export const CaktoPlanCard: React.FC<CaktoPlanCardProps> = ({ plan, status, paid
                 Abrir portal de assinaturas
               </a>
               <a
-                href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('Oi! Quero cancelar a assinatura mensal do meu StudioMenu.')}`}
+                href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('Oi! Quero cancelar a assinatura mensal do meu LashAgenda.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-2 block text-[13px] font-semibold text-rose-600 underline underline-offset-2"

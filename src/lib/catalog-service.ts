@@ -15,7 +15,7 @@ export async function getCatalogBySlug(slug: string): Promise<CatalogOrderData |
       .single();
 
     if (orderError || !orderData) {
-      console.warn(`[StudioMenu SSR] Catálogo para slug "${normalizedSlug}" não encontrado no Supabase.`);
+      console.warn(`[LashAgenda SSR] Catálogo para slug "${normalizedSlug}" não encontrado no Supabase.`);
       return null;
     }
 
@@ -176,7 +176,7 @@ export async function getCatalogBySlug(slug: string): Promise<CatalogOrderData |
 
     return catalog;
   } catch (err) {
-    console.error(`[StudioMenu SSR Error] Erro ao buscar slug "${normalizedSlug}":`, err);
+    console.error(`[LashAgenda SSR Error] Erro ao buscar slug "${normalizedSlug}":`, err);
     return null;
   }
 }

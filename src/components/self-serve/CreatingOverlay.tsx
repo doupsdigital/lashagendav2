@@ -16,7 +16,7 @@ interface CreatingOverlayProps {
 
 const STEP_MS = 900;
 
-/** Tela cheia "Criando seu menu…" da página `/lash` (2026-11-17): 3 linhas
+/** Tela cheia "Criando seu catálogo…" da página `/lash` (2026-11-17): 3 linhas
  *  que vão ganhando ✓ em sequência. Dura no mínimo ~3s mesmo que a API
  *  responda antes (sensação de que algo foi feito sob medida), e o último
  *  passo espera o menu dela realmente carregar. */
@@ -52,7 +52,7 @@ export const CreatingOverlay: React.FC<CreatingOverlayProps> = ({ open, displayU
     <div className={`lp-ss-creating${open ? ' is-open' : ''}`} role="status" aria-live="polite" aria-hidden={!open}>
       <div className="lp-ss-creating-card">
         <div className="lp-ss-creating-spinner" aria-hidden="true" />
-        <p className="lp-ss-creating-title">Criando seu menu…</p>
+        <p className="lp-ss-creating-title">Criando seu catálogo…</p>
         <ul className="lp-ss-creating-steps">
           {steps.map((label, i) => {
             const done = step > i;

@@ -4,12 +4,12 @@ import React, { useState, type CSSProperties } from 'react';
 
 const ITEMS = [
   {
-    q: 'Como eu edito o meu menu?',
+    q: 'Como eu edito o meu catálogo?',
     a: 'Pelo próprio celular. Depois de ativar, você entra no seu app e toca em qualquer texto, foto ou preço para trocar. Um passo a passo guiado mostra onde tocar na primeira vez.',
   },
   {
     q: 'Como eu cancelo o plano mensal?',
-    a: 'Quando quiser, sem multa e sem fidelidade. Você mesma cancela pelo seu app (ou no portal de assinaturas da Cakto, com o e-mail da compra), e seu menu continua no ar até o fim do mês que você já pagou.',
+    a: 'Quando quiser, sem multa e sem fidelidade. Você mesma cancela pelo seu app (ou no portal de assinaturas da Cakto, com o e-mail da compra), e seu catálogo continua no ar até o fim do mês que você já pagou.',
   },
   {
     q: 'E se eu não ativar a prévia?',
@@ -17,7 +17,7 @@ const ITEMS = [
   },
   {
     q: 'O link muda depois que eu ativo?',
-    a: 'Não. O link que você viu na prévia (seunome.studiomenu.art) é o mesmo que você vai colocar na bio e mandar para as clientes.',
+    a: 'Não. O link que você viu na prévia (seunome.lashagenda.com) é o mesmo que você vai colocar na bio e mandar para as clientes.',
   },
   {
     q: 'Qual a diferença entre o anual e o mensal?',
@@ -25,7 +25,7 @@ const ITEMS = [
   },
   {
     q: 'Minha cliente precisa baixar algum aplicativo?',
-    a: 'Não. O menu abre direto no navegador do celular dela, pelo link, em menos de 1 segundo.',
+    a: 'Não. O catálogo abre direto no navegador do celular dela, pelo link, em menos de 1 segundo.',
   },
 ];
 

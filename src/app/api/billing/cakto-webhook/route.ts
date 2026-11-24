@@ -6,6 +6,7 @@ import { normalizeWhatsappBR } from '@/lib/format';
 import { CAKTO_ANUAL_PRICE, CAKTO_MENSAL_PRICE } from '@/lib/pricing';
 import { createSelfServeLashCatalog } from '@/lib/self-serve-catalog';
 import { buildAccessEmail, sendEmail } from '@/lib/email';
+import { PRODUCTION_DOMAIN } from '@/lib/public-url';
 import {
   CAKTO_APPROVED_EVENTS,
   CAKTO_GRACE_MS,
@@ -160,14 +161,14 @@ export async function POST(request: Request) {
             subscription_status: 'cancelado',
           })
           .eq('id', order.id);
-        await sendTelegramMessage(`⚠️ Cakto: ${event === 'refund' ? 'reembolso' : 'chargeback'}\n\n👤 ${order.client_name}\n🔗 https://studiomenu.art/c/${order.slug}\n🕒 ${nowBR()}`);
+        await sendTelegramMessage(`⚠️ Cakto: ${event === 'refund' ? 'reembolso' : 'chargeback'}\n\n👤 ${order.client_name}\n🔗 https://${PRODUCTION_DOMAIN}/c/${order.slug}\n🕒 ${nowBR()}`);
         return done('processed', `acesso cortado (${event})`, order.slug);
       }
 
       if (isCanceled) {
         // Mantém `paid_until`: ela usa até o fim do período que já pagou.
         await supabaseAdmin.from('orders').update({ subscription_status: 'cancelado' }).eq('id', order.id);
-        await sendTelegramMessage(`🔕 Cakto: assinatura cancelada\n\n👤 ${order.client_name}\n🔗 https://studiomenu.art/c/${order.slug}\n📅 No ar até ${order.paid_until ? new Date(order.paid_until).toLocaleDateString('pt-BR') : '-'}`);
+        await sendTelegramMessage(`🔕 Cakto: assinatura cancelada\n\n👤 ${order.client_name}\n🔗 https://${PRODUCTION_DOMAIN}/c/${order.slug}\n📅 No ar até ${order.paid_until ? new Date(order.paid_until).toLocaleDateString('pt-BR') : '-'}`);
         return done('processed', 'assinatura cancelada (acesso mantido até paid_until)', order.slug);
       }
 
@@ -250,7 +251,7 @@ export async function POST(request: Request) {
 
     if (isFirstActivation) {
       await sendTelegramMessage(
-        `💳 Nova venda Cakto (${plan === 'anual' ? 'Anual R$127 Pix' : 'Mensal R$22,90'})!${createdWithoutPreview ? '\n⚠️ Sem prévia — catálogo criado pelo nome da compra, conferir.' : ''}\n\n👤 ${buyerName}\n🔗 https://studiomenu.art/c/${order.slug}\n🕒 ${nowBR()}\n📧${emailNote.replace(' · ', ' ')}`
+        `💳 Nova venda Cakto (${plan === 'anual' ? 'Anual R$127 Pix' : 'Mensal R$22,90'})!${createdWithoutPreview ? '\n⚠️ Sem prévia — catálogo criado pelo nome da compra, conferir.' : ''}\n\n👤 ${buyerName}\n🔗 https://${PRODUCTION_DOMAIN}/c/${order.slug}\n🕒 ${nowBR()}\n📧${emailNote.replace(' · ', ' ')}`
       );
     }
 

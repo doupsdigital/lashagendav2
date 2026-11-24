@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: ShowcasePageProps): Promise<M
   const { niche } = resolveShowcaseSlug(nicheParam);
   const nicheLabel = NICHE_METADATA_LABEL[niche];
 
-  const title = nicheLabel ? `Catálogo Digital para ${nicheLabel}` : 'Catálogo Digital — StudioMenu';
+  const title = nicheLabel ? `Catálogo Digital para ${nicheLabel}` : 'Catálogo Digital — LashAgenda';
   const description = 'Veja como fica, ao vivo, no seu celular — em menos de 1 minuto você já visualiza tudo funcionando.';
 
   return {

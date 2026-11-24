@@ -28,7 +28,7 @@ const STEP_META: Record<SelfServeStepId, { title: string; icon: React.ElementTyp
   whatsapp: { title: 'Confirme seu WhatsApp', icon: MessageCircle },
   menu: { title: 'Coloque seus serviços e preços', icon: LayoutGrid },
   acesso: { title: 'Crie seu acesso com senha', icon: KeyRound },
-  compartilhar: { title: 'Divulgue seu menu', icon: Share2 },
+  compartilhar: { title: 'Divulgue seu catálogo', icon: Share2 },
 };
 
 /** Número salvo vem com 55 na frente; no campo ela vê só DDD + número. */
@@ -149,7 +149,7 @@ export const SelfServeChecklist: React.FC<SelfServeChecklistProps> = ({ slug, na
         return (
           <form onSubmit={saveWhatsapp} className="flex flex-col gap-3">
             <p className="text-[15px] text-ink-soft leading-relaxed">
-              Quando uma cliente escolher um serviço no seu menu, ela vai chamar <strong className="text-ink">neste número</strong>. Confira se está certo.
+              Quando uma cliente escolher um serviço no seu catálogo, ela vai chamar <strong className="text-ink">neste número</strong>. Confira se está certo.
             </p>
             <StepVideo url={SELF_SERVE_STEP_VIDEOS.whatsapp} />
             <input
@@ -176,7 +176,7 @@ export const SelfServeChecklist: React.FC<SelfServeChecklistProps> = ({ slug, na
         return (
           <div className="flex flex-col gap-3">
             <p className="text-[15px] text-ink-soft leading-relaxed">
-              Seu menu veio com serviços de exemplo. Troque a <strong className="text-ink">foto de capa</strong>, os{' '}
+              Seu catálogo veio com serviços de exemplo. Troque a <strong className="text-ink">foto de capa</strong>, os{' '}
               <strong className="text-ink">serviços</strong> e os <strong className="text-ink">preços</strong> pelos seus. Um passo a passo mostra onde tocar.
             </p>
             <p className="text-[13px] text-ink-soft bg-cream rounded-xl px-3 py-2.5">
@@ -189,7 +189,7 @@ export const SelfServeChecklist: React.FC<SelfServeChecklistProps> = ({ slug, na
               className="h-12 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-[15px] font-bold flex items-center justify-center gap-2 transition-colors"
             >
               <LayoutGrid className="w-4 h-4" />
-              Abrir meu menu pra editar
+              Abrir meu catálogo pra editar
             </Link>
           </div>
         );
@@ -215,7 +215,7 @@ export const SelfServeChecklist: React.FC<SelfServeChecklistProps> = ({ slug, na
         return (
           <div className="flex flex-col gap-3">
             <p className="text-[15px] text-ink-soft leading-relaxed">
-              Seu menu já está no ar. Agora é só mostrar pras suas clientes:
+              Seu catálogo já está no ar. Agora é só mostrar pras suas clientes:
             </p>
             <div className="flex items-center gap-2 rounded-xl bg-cream px-3 py-2.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
@@ -263,10 +263,10 @@ export const SelfServeChecklist: React.FC<SelfServeChecklistProps> = ({ slug, na
 
       <div className="rounded-2xl p-5 bg-gradient-to-br from-rose-200 to-rose-100 border border-rose-200/60">
         <h1 className="font-serif-pro font-bold text-2xl text-rose-900 leading-tight">
-          {allDone ? `Tudo pronto, ${firstName}! ✨` : `Vamos deixar seu menu pronto, ${firstName}`}
+          {allDone ? `Tudo pronto, ${firstName}! ✨` : `Vamos deixar seu catálogo pronto, ${firstName}`}
         </h1>
         <p className="text-[15px] text-rose-800/70 mt-1">
-          {allDone ? 'Seu menu está configurado e no ar.' : 'São só 4 passos rápidos. Você pode parar e voltar quando quiser.'}
+          {allDone ? 'Seu catálogo está configurado e no ar.' : 'São só 4 passos rápidos. Você pode parar e voltar quando quiser.'}
         </p>
         <div className="flex items-center gap-3 mt-4">
           <div className="flex-1 h-2 rounded-full bg-white/70 overflow-hidden">

@@ -462,7 +462,8 @@ abrir o agendamento seguinte dela e ver o resumo.
 **F9.1 — Início:** atenção primeiro (agendamentos aguardando confirmação), agenda de hoje,
 números (agendamentos hoje, faturado hoje, faturado no mês, novas clientes no mês), ações
 rápidas (novo agendamento, bloquear horário, compartilhar link). Card "Continue de onde parou"
-dos primeiros passos (liga na F11).
+dos primeiros passos (liga na F11). **Visual: seguir o protótipo aprovado
+`docs/referencias/prototipo-inicio-app.html`** (cores, cards, ícones).
 **F9.2 — Relatórios:** períodos (hoje, ontem, 7 dias, este mês, mês passado, este ano,
 personalizado); total de agendamentos, concluídos, cancelamentos, faltas, valor recebido,
 novas clientes, serviços mais feitos. Gráfico simples de receita.

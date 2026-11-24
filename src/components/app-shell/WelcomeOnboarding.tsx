@@ -54,7 +54,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({ slug, plan
     () => [
       {
         icon: Home,
-        title: 'Bem-vinda ao seu StudioMenu!',
+        title: 'Bem-vinda ao seu LashAgenda!',
         subtitle:
           planTier === 'plus'
             ? 'Esse é o app onde você cuida do seu catálogo e da sua agenda, tudo num só lugar.'
@@ -100,7 +100,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({ slug, plan
       className="fixed inset-0 z-[10050] flex flex-col bg-rose-200"
       role="dialog"
       aria-modal="true"
-      aria-label="Bem-vinda ao StudioMenu"
+      aria-label="Bem-vinda ao LashAgenda"
     >
       <div className="flex items-center justify-between px-5 pt-5 pb-2 shrink-0">
         <div className="flex gap-1.5">

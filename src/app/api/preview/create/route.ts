@@ -87,7 +87,7 @@ export async function POST(request: Request) {
           {
             success: false,
             code: 'slug_taken',
-            message: `Já existe um menu com o nome "${name}". Coloque também seu sobrenome ou o nome do seu studio.`,
+            message: `Já existe um catálogo com o nome "${name}". Coloque também seu sobrenome ou o nome do seu studio.`,
           },
           { status: 409 }
         );

@@ -32,7 +32,7 @@ export const ProcedureImagePlaceholder: React.FC<ProcedureImagePlaceholderProps>
       <div className="procedimento-placeholder__nome">
         <span className="procedimento-placeholder__label">Studio</span>
         <div className="procedimento-placeholder__linha" />
-        <strong className="procedimento-placeholder__cliente">{clientName || 'StudioMenu'}</strong>
+        <strong className="procedimento-placeholder__cliente">{clientName || 'LashAgenda'}</strong>
       </div>
       <span className="procedimento-placeholder__texto">Imagem em breve...</span>
     </div>

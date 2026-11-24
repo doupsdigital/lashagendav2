@@ -62,8 +62,8 @@ export type CatalogBillingMode = 'avulso' | 'recorrente' | 'anual';
  *  `basico` = Plano Catálogo (pagamento único), `plus` = Plano Agenda
  *  (assinatura mensal). */
 export const PLAN_PRICING: Record<PayablePlanTier, { price: number; label: string; description: string }> = {
-  basico: { price: CATALOGO_PRICE, label: CATALOGO_PRICE_LABEL, description: 'StudioMenu Catálogo' },
-  plus: { price: AGENDA_PRICE, label: AGENDA_PRICE_LABEL, description: 'StudioMenu Agenda' },
+  basico: { price: CATALOGO_PRICE, label: CATALOGO_PRICE_LABEL, description: 'LashAgenda Catálogo' },
+  plus: { price: AGENDA_PRICE, label: AGENDA_PRICE_LABEL, description: 'LashAgenda Agenda' },
 };
 
 /** Preço resolvido do Plano Catálogo pra uma order específica — padrão

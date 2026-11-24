@@ -42,7 +42,7 @@ export const PreviewBanner: React.FC<PreviewBannerProps> = ({ expiresAt, activat
       <div className="pointer-events-auto flex items-center gap-2 max-w-md w-full rounded-full bg-neutral-950/80 backdrop-blur-md border border-white/15 shadow-lg pl-3 pr-1 py-1 text-white">
         <Sparkles className="w-4 h-4 shrink-0 text-rose-300" aria-hidden="true" />
         <p className="flex-1 min-w-0 text-[12px] leading-tight">
-          <strong className="font-semibold">Prévia do seu menu</strong>
+          <strong className="font-semibold">Prévia do seu catálogo</strong>
           <span className="text-white/70">
             {remaining === null ? '' : ` · expira em ${formatRemaining(remaining)}`}
           </span>

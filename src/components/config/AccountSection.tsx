@@ -172,7 +172,7 @@ export const AccountSection: React.FC<AccountSectionProps> = ({ slug, hasAccount
                 Você não depende mais do link mágico pra acessar. Da próxima vez, é só entrar direto com seu e-mail e senha
                 (ou Google) em{' '}
                 <Link href="/entrar" className="font-semibold text-rose-800 underline underline-offset-2">
-                  studiomenu.art/entrar
+                  lashagenda.com/entrar
                 </Link>
                 .
               </p>

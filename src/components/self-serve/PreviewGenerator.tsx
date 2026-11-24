@@ -34,7 +34,7 @@ export const PreviewGenerator = forwardRef<HTMLInputElement, PreviewGeneratorPro
   if (preview) {
     return (
       <div className="lp-ss-gen-card lp-ss-gen-card--dark lp-ss-gen-card--ready">
-        <p className="lp-ss-gen-kicker">✨ Seu menu está pronto</p>
+        <p className="lp-ss-gen-kicker">✨ Seu catálogo está pronto</p>
         <h2 className="lp-ss-gen-title">
           Ficou lindo, <em>{firstName(preview.name)}</em>!
         </h2>
@@ -49,10 +49,10 @@ export const PreviewGenerator = forwardRef<HTMLInputElement, PreviewGeneratorPro
         )}
         <div className="lp-ss-gen-actions">
           <button type="button" className="lp-btn lp-btn--primary lp-ss-btn-block lp-tier-cta-pulse" onClick={onActivate}>
-            Ativar meu menu
+            Ativar meu catálogo
           </button>
           <button type="button" className="lp-ss-btn-ghost" onClick={onOpenPreview}>
-            Ver meu menu de novo
+            Ver meu catálogo de novo
           </button>
         </div>
         <button type="button" className="lp-ss-text-link" onClick={onStartOver}>
@@ -73,7 +73,7 @@ export const PreviewGenerator = forwardRef<HTMLInputElement, PreviewGeneratorPro
     >
       <p className="lp-ss-gen-kicker">Grátis · Leva 10 segundos</p>
       <h2 className="lp-ss-gen-title">
-        Veja o <em>seu</em> menu pronto agora
+        Veja o <em>seu</em> catálogo pronto agora
       </h2>
       <p className="lp-ss-gen-sub">É só digitar seu nome. A gente monta o resto e você vê na hora como fica.</p>
 
@@ -102,13 +102,13 @@ export const PreviewGenerator = forwardRef<HTMLInputElement, PreviewGeneratorPro
         </p>
       ) : (
         <p id="lp-ss-name-help" className="lp-ss-field-help">
-          É assim que vai aparecer no seu menu. Dá pra mudar depois.
+          É assim que vai aparecer no seu catálogo. Dá pra mudar depois.
         </p>
       )}
 
       <button type="submit" className="lp-btn lp-btn--primary lp-ss-btn-block" disabled={busy}>
         {SparkleIcon}
-        {busy ? 'Criando seu menu…' : 'Criar meu menu grátis'}
+        {busy ? 'Criando seu catálogo…' : 'Criar meu catálogo grátis'}
       </button>
 
       <ul className="lp-ss-trust" aria-label="Sem compromisso">

@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: CatalogPageProps): Promise<Me
 
   if (!catalog) {
     return {
-      title: 'Catálogo Não Encontrado | StudioMenu',
+      title: 'Catálogo Não Encontrado | LashAgenda',
       description: 'O catálogo solicitado não existe ou expirou.',
     };
   }
@@ -141,14 +141,14 @@ export default async function CatalogPage({ params, searchParams }: CatalogPageP
           </div>
           <h1 className="font-serif text-2xl font-bold mb-2 text-rose-900">Essa prévia expirou</h1>
           <p className="text-sm text-rose-900/70 leading-relaxed mb-6">
-            A prévia gratuita do menu fica disponível por 24 horas. Crie a sua de novo, leva só alguns segundos.
+            A prévia gratuita do catálogo fica disponível por 24 horas. Crie a sua de novo, leva só alguns segundos.
           </p>
           <a
             href={funnelUrl}
             className="inline-flex items-center justify-center gap-2 w-full px-5 py-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-sm font-bold transition-all shadow-md"
           >
             <Sparkles className="w-4 h-4" />
-            <span>Criar meu menu grátis</span>
+            <span>Criar meu catálogo grátis</span>
           </a>
         </div>
       </main>

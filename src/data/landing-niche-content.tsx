@@ -138,13 +138,13 @@ export const LANDING_NICHE_CONTENT: Record<LandingNiche, LandingNicheContent> = 
     ),
     heroTagline: (
       <>
-        Transforme seu Catálogo de <strong className="lp-text-gradient">Lash Designer</strong> em um <strong className="lp-text-wine">Menu Digital</strong> profissional que valoriza seu trabalho.
+        Transforme seus serviços de <strong className="lp-text-gradient">Lash Designer</strong> em um <strong className="lp-text-wine">Catálogo Digital</strong> profissional que valoriza seu trabalho.
       </>
     ),
     heroSubtitle: (
       <>
         <span className="lp-hero-subtitle-lead">
-          Conheça o <strong className="lp-hero-subtitle-brand">Studio<em className="lp-text-gradient">Menu</em></strong>.
+          Conheça o <strong className="lp-hero-subtitle-brand">Lash<em className="lp-text-gradient">Agenda</em></strong>.
         </span>
         <strong className="lp-text-wine">Prático para a cliente escolher, irresistível para ela agendar.</strong>
       </>
@@ -164,7 +164,7 @@ export const LANDING_NICHE_CONTENT: Record<LandingNiche, LandingNicheContent> = 
         <br />
         <strong>Seu trabalho como Lash Designer.</strong>
         <br />
-        Deixe que o StudioMenu cuide do resto.
+        Deixe que o LashAgenda cuide do resto.
       </>
     ),
     goodMockupImage: '/mockup_lash_bom.webp',
@@ -172,7 +172,7 @@ export const LANDING_NICHE_CONTENT: Record<LandingNiche, LandingNicheContent> = 
     socialProofHighlight: '350+ Lash Designers',
     faqFirstItem: {
       question: '1. Só serve pra extensão de cílios ou dá pra colocar outros serviços também?',
-      answer: 'Dá pra colocar qualquer serviço que você oferecer no seu studio! Fio a Fio, Volume Russo, Híbrido, Egípcio, Design de Sobrancelha, Henna — você organiza o seu Menu Digital do jeitinho que atende de verdade, sem limite de categoria.',
+      answer: 'Dá pra colocar qualquer serviço que você oferecer no seu studio! Fio a Fio, Volume Russo, Híbrido, Egípcio, Design de Sobrancelha, Henna — você organiza o seu Catálogo Digital do jeitinho que atende de verdade, sem limite de categoria.',
     },
     anualValueAnchor: 'Sai por menos que 1 aplicação de Volume Brasileiro',
     cornerBadge: (
@@ -192,7 +192,7 @@ export const LANDING_NICHE_CONTENT: Record<LandingNiche, LandingNicheContent> = 
     },
     subscriptionFaqOverride: {
       question: 'Por que o pagamento é anual?',
-      answer: 'Diferente de um catálogo em PDF ou imagem, seu Menu Digital é um Site de verdade — precisa ficar hospedado, no ar, seguro e rápido 365 dias por ano. Esse valor garante exatamente isso: que ele nunca saia do ar, nunca fique lento e que suas clientes consigam acessar sempre através do seu link.',
+      answer: 'Diferente de um catálogo em PDF ou imagem, seu Catálogo Digital é um Site de verdade — precisa ficar hospedado, no ar, seguro e rápido 365 dias por ano. Esse valor garante exatamente isso: que ele nunca saia do ar, nunca fique lento e que suas clientes consigam acessar sempre através do seu link.',
     },
   },
 };

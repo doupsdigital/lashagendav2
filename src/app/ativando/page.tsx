@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { ActivationScreen } from '@/components/self-serve/ActivationScreen';
 
 export const metadata: Metadata = {
-  title: 'Ativando seu menu — StudioMenu',
+  title: 'Ativando seu acesso — LashAgenda',
   robots: { index: false, follow: false },
 };
 

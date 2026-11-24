@@ -80,7 +80,7 @@ export function ProfessionalLoginForm() {
             <LogIn className="w-6 h-6" />
           </div>
           <h1 className="font-serif-pro font-bold text-2xl text-ink">Entrar</h1>
-          <p className="text-[13px] text-ink-soft mt-1">Acesse o painel do seu catálogo StudioMenu</p>
+          <p className="text-[13px] text-ink-soft mt-1">Acesse o painel do seu LashAgenda</p>
         </div>
 
         <form onSubmit={handlePasswordLogin} className="flex flex-col gap-3">

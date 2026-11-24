@@ -69,7 +69,7 @@ const isTourSeen = (tourId: string, slug: string, steps: Step[]): boolean => {
  *  toque extra antes do balão abrir — atrapalhava mais que ajudava, e o
  *  visual genérico destoava do resto do app): `skipBeacon` pula direto pro
  *  balão, cores/fontes batem com a paleta real do app
- *  (`tailwind.config.js`: rose-600 `#b04e6c`, `ink` `#2C1810`, fontes
+ *  (`tailwind.config.js`: rose-600 `#A85560`, `ink` `#2C1810`, fontes
  *  Fraunces/Jost de `globals.css`, não as `font-serif`/`font-sans` padrão
  *  do Tailwind que não estão carregadas aqui). */
 export const ProductTour: React.FC<ProductTourProps> = ({ tourId, slug, steps, enabled, initialStepId, onFinish, scrollOffset = 90 }) => {
@@ -123,7 +123,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({ tourId, slug, steps, e
         skip: 'Pular',
       }}
       options={{
-        primaryColor: '#b04e6c',
+        primaryColor: '#A85560',
         textColor: '#2C1810',
         backgroundColor: '#ffffff',
         arrowColor: '#ffffff',
@@ -174,7 +174,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({ tourId, slug, steps, e
         },
         buttonPrimary: {
           fontFamily: "'Jost', system-ui, -apple-system, sans-serif",
-          backgroundColor: '#b04e6c',
+          backgroundColor: '#A85560',
           color: '#ffffff',
           borderRadius: 12,
           fontWeight: 700,

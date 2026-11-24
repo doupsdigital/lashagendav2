@@ -20,7 +20,7 @@ const FRAME_W = DESIGN_W + BEZEL * 2;
 const FRAME_H = DESIGN_H + BEZEL * 2;
 const MAX_SCALE = 400 / FRAME_W;
 /** Margens do overlay em volta do celular: em cima só um respiro, embaixo o
- *  espaço do botão "Gostou? Ativar meu menu". O tamanho do celular é
+ *  espaço do botão "Gostou? Ativar meu catálogo". O tamanho do celular é
  *  calculado a partir delas — a moldura mantém SEMPRE a proporção de um
  *  celular de verdade (390×844 + bezel) e nunca é achatada. */
 /** O "X" NÃO fica acima da moldura aqui (fica na lateral, ver
@@ -34,7 +34,7 @@ const PAD_BOTTOM = 92;
 /** Revelação da prévia em tela cheia (página `/lash`, 2026-11-17). Mesma
  *  moldura de celular do `MockupModal` (mesmas classes CSS), mas com o
  *  catálogo DELA (`/c/<slug>?embed=1`) e, por baixo do celular, só o botão
- *  "Gostou? Ativar meu menu" (link/contagem por cima foram tirados a pedido
+ *  "Gostou? Ativar meu catálogo" (link/contagem por cima foram tirados a pedido
  *  da dona: tomavam altura e deixavam o celular "quadrado"). Componente à parte de
  *  propósito, pra não mexer no modal da página `/` que está no ar.
  *
@@ -83,7 +83,7 @@ export const PreviewRevealModal: React.FC<PreviewRevealModalProps> = ({ preview,
       aria-hidden={!isOpen}
       role="dialog"
       aria-modal="true"
-      aria-label="Prévia do seu menu"
+      aria-label="Prévia do seu catálogo"
     >
       <div
         className="lp-mockup-modal-phone"
@@ -102,7 +102,7 @@ export const PreviewRevealModal: React.FC<PreviewRevealModalProps> = ({ preview,
             <iframe
               key={preview.slug}
               src={`/c/${preview.slug}?embed=1`}
-              title={`Prévia do menu de ${preview.name}`}
+              title={`Prévia do catálogo de ${preview.name}`}
               onLoad={onLoaded}
             />
           </div>
@@ -111,7 +111,7 @@ export const PreviewRevealModal: React.FC<PreviewRevealModalProps> = ({ preview,
 
       <div className="lp-ss-reveal-bottom" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="lp-btn lp-btn--primary lp-ss-reveal-cta lp-tier-cta-pulse" onClick={onActivate}>
-          Gostou? Ativar meu menu
+          Gostou? Ativar meu catálogo
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M5 12h14m-7-7 7 7-7 7" />
           </svg>

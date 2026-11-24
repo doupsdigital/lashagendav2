@@ -964,7 +964,7 @@ export default function AdminCatalogosPage() {
               <h1 className="font-serif text-3xl md:text-4xl font-bold">Catálogos</h1>
             </div>
             <p className="text-sm text-slate-400 mt-1.5">
-              Administração, criação e edição dos catálogos do <span className="text-rose-400 font-semibold">StudioMenu</span>.
+              Administração, criação e edição dos catálogos do <span className="text-rose-400 font-semibold">LashAgenda</span>.
             </p>
           </div>
 
@@ -1137,7 +1137,7 @@ export default function AdminCatalogosPage() {
                                 : `Plano ${item.cakto_plan || '—'} · pago até ${item.paid_until ? formatShortDate(item.paid_until, true) : '—'} · ${item.subscription_status || '—'}`}
                             </p>
                             <p className="text-xs text-slate-500">
-                              Compra que não caiu neste menu? Ative à mão (+1 mês ou +1 ano a partir de hoje ou do vencimento atual).
+                              Compra que não caiu neste catálogo? Ative à mão (+1 mês ou +1 ano a partir de hoje ou do vencimento atual).
                             </p>
                             <div className="grid grid-cols-2 gap-2">
                               {(['mensal', 'anual'] as const).map((plan) => {

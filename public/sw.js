@@ -1,4 +1,4 @@
-// Service worker básico do StudioMenu — só o necessário pra tornar o app de
+// Service worker básico do LashAgenda — só o necessário pra tornar o app de
 // /app/[slug] instalável (Chrome exige um worker ativo controlando a página).
 // Sem cache offline nesta versão: o guia oficial do Next 16 não cobre cache
 // offline nativo, só menciona a lib de terceiros Serwist pra isso — fora do
@@ -27,7 +27,7 @@ self.addEventListener('push', (event) => {
     data = {};
   }
 
-  const title = data.title || 'StudioMenu';
+  const title = data.title || 'LashAgenda';
   const options = {
     body: data.body || '',
     icon: '/icon-192.png',

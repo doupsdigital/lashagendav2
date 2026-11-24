@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     // depois do pagamento aprovado.
     if (existingOrder && isPreviewOrder(existingOrder)) {
       return NextResponse.json(
-        { success: false, message: 'Ative seu menu para poder editar.' },
+        { success: false, message: 'Ative seu catálogo para poder editar.' },
         { status: 403 }
       );
     }

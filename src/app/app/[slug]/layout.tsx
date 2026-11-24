@@ -41,10 +41,10 @@ export async function generateMetadata({ params }: AppLayoutProps): Promise<Meta
 
   const base: Metadata = catalog
     ? {
-        title: `${catalog.studio_name || catalog.client_name} — App StudioMenu`,
+        title: `${catalog.studio_name || catalog.client_name} — LashAgenda`,
         description: 'Acesse seu catálogo digital e faça as edições que quiser, direto pelo celular.',
         openGraph: {
-          title: `${catalog.studio_name || catalog.client_name} — App StudioMenu`,
+          title: `${catalog.studio_name || catalog.client_name} — LashAgenda`,
           description: 'Acesse seu catálogo digital e faça as edições que quiser, direto pelo celular.',
           images: [
             {

@@ -9,7 +9,7 @@ import { InstallPromptProvider } from "@/components/app-shell/InstallPromptProvi
 // device-pixel-ratio do aparelho, cada uma apontando pra um PNG estático
 // (bug real reportado no iPhone, 2026-09-23 — sem isso o iOS mostra tela
 // branca até carregar). PNGs gerados em `public/splash/` (fundo
-// `#F8E7E7`, mesmo `background_color` do manifest, com o ícone
+// `#F7ECEB`, mesmo `background_color` do manifest, com o desenho do ícone
 // centralizado) — cobre as gerações de iPhone de uso comum em 2026 (a
 // partir do SE 2ª geração/6s; aparelhos mais antigos ficam sem splash mas
 // continuam funcionando normalmente, só sem o visual). Só retrato — o app
@@ -36,11 +36,11 @@ const APPLE_SPLASH_DEVICES = [
 ];
 
 export const metadata: Metadata = {
-  title: "StudioMenu — Menu Digital para Studios de Beleza",
-  description: "O Menu Digital que valoriza o seu Studio. Perfeito para Lash Designers, Nail Designers e Studios de Beleza.",
+  title: "LashAgenda — Catálogo e agendamento para Lash Designers",
+  description: "Seu catálogo de serviços com agendamento online, agenda e clientes no celular.",
   appleWebApp: {
     capable: true,
-    title: 'StudioMenu',
+    title: 'LashAgenda',
     statusBarStyle: 'default',
     startupImage: APPLE_SPLASH_DEVICES.flatMap((d) => {
       const base = `(device-width: ${d.cssW}px) and (device-height: ${d.cssH}px) and (-webkit-device-pixel-ratio: ${d.dpr}) and (orientation: portrait)`;

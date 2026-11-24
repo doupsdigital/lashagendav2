@@ -153,6 +153,12 @@ O carro-chefe vendido é o agendamento (automático ou com aprovação).
 - Domínio: **`lashagenda.com`** (já é da usuária, está ativo).
 - Link da profissional: **`<slug>.lashagenda.com`** (como `fernanda.studiomenu.art`).
 - Nome do produto: **LashAgenda**. "v2" é só o nome do repositório.
+- **Paleta do app da profissional (2026-11-24): a do LashAgenda v1** — fundo bege `#F7F3EE`,
+  cards brancos, rosa-terroso (`#A85560` nos botões), dourado `#C9A96E` de destaque, texto
+  `#2C1810`. Os temas do catálogo público (Rosé/Luxury) não mudam.
+- **Referência visual do app:** `docs/referencias/prototipo-inicio-app.html` (aprovado pela
+  usuária em 2026-11-24, incluindo os ícones). As telas do app, em especial o Início (F9.1),
+  devem seguir esse protótipo.
 
 ---
 

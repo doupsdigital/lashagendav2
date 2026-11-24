@@ -9,18 +9,26 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Paleta do app da profissional = a do LashAgenda v1 (decisão de 2026-11-24,
+        // DECISOES_DE_PRODUTO.md seção 7). 50/100/200/400/600/800 são os valores
+        // exatos do v1; 300/500/700/900/950 não existiam lá e são intermediários.
+        // Os temas do catálogo público usam catalog-theme.css, não esta escala.
         rose: {
-          50: '#fdf8f9',
-          100: '#f9eef1',
-          200: '#f3dae1',
-          300: '#e8b8c7',
-          400: '#d88ba2',
-          500: '#c46884',
-          600: '#b04e6c',
-          700: '#923c56',
-          800: '#793448',
-          900: '#663040',
-          950: '#3c1622',
+          50: '#FDF5F5',
+          100: '#FAE8E8',
+          200: '#F5CECE',
+          300: '#E5A9AC',
+          400: '#D4848A',
+          500: '#BE6C75',
+          600: '#A85560',
+          700: '#91424C',
+          800: '#7A2E38',
+          900: '#5E2129',
+          950: '#3A1319',
+        },
+        gold: {
+          DEFAULT: '#C9A96E',
+          light: '#F0E6D3',
         },
         luxury: {
           gold: '#d4af37',
@@ -30,17 +38,14 @@ module.exports = {
           card: '#161618',
           border: '#2a2a2e',
         },
-        // Paleta neutra clara do app da profissional (/app/[slug]) — extensão
-        // aditiva, não mexe em nada existente. Inspirada no fundo creme/cards
-        // brancos do LashAgenda (docs/REESTRUTURACAO_VISUAL_APP.md), mas com
-        // a cor de destaque continuando a ser `rose` (já definida acima).
-        cream: '#F3F5F8',
+        // Neutros do app da profissional (/app/[slug]) — também do v1.
+        cream: '#F7F3EE',
         surface: '#FFFFFF',
-        linen: '#E7E9EE',
+        linen: '#ECE4DD',
         ink: {
           DEFAULT: '#2C1810',
-          soft: '#6B5D53',
-          faint: '#A8998C',
+          soft: '#7A6A62',
+          faint: '#B0A097',
         },
       },
       fontFamily: {
@@ -48,7 +53,7 @@ module.exports = {
         serif: ['Playfair Display', 'serif'],
       },
       boxShadow: {
-        'glass': '0 8px 32px 0 rgba(196, 104, 132, 0.12)',
+        'glass': '0 8px 32px 0 rgba(168, 85, 96, 0.12)',
         'glass-dark': '0 8px 32px 0 rgba(0, 0, 0, 0.4)',
         'gold-glow': '0 0 20px rgba(212, 175, 55, 0.25)',
       },

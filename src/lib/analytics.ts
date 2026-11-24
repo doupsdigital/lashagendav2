@@ -1,15 +1,16 @@
 import posthog from 'posthog-js';
+import { PRODUCTION_DOMAIN } from './public-url';
 
 /** Só registra no PostHog quando o host é produção de verdade
- *  (`studiomenu.art` ou `{slug}.studiomenu.art`) — localhost e previews da
+ *  (`lashagenda.com` ou `{slug}.lashagenda.com`) — localhost e previews da
  *  Vercel (domínio `*.vercel.app`) nunca inicializam o PostHog, pra não
  *  poluir os dados reais com testes/desenvolvimento (pedido explícito,
  *  2026-10-13). Pra testar captura de verdade de propósito, combinar isso
- *  antes (ex: testar direto em studiomenu.art). */
+ *  antes (ex: testar direto em lashagenda.com). */
 function isProductionHost(): boolean {
   if (typeof window === 'undefined') return false;
   const host = window.location.hostname;
-  return host === 'studiomenu.art' || host.endsWith('.studiomenu.art');
+  return host === PRODUCTION_DOMAIN || host.endsWith('.' + PRODUCTION_DOMAIN);
 }
 
 type PostHogInitOptions = Parameters<typeof posthog.init>[1];

@@ -5,7 +5,10 @@
  *
  *  Mensal: R$ 22,90/mês, assinatura, só cartão de crédito.
  *  Anual:  R$ 127, pagamento único no Pix, acesso de 1 ano. */
-export const CAKTO_CHECKOUT_URLS = {
-  mensal: 'https://pay.cakto.com.br/h2p6djs_1336617',
-  anual: 'https://pay.cakto.com.br/ts7e24e_1336652',
-} as const;
+/** Desligado na F1.4 (2026-11-24): os links que vieram do StudioMenu eram dos
+ *  produtos REAIS dele na Cakto. Os produtos do LashAgenda (mensal R$ 22,90 e
+ *  anual R$ 197) entram na F11; até lá, o botão de assinar não leva a lugar nenhum. */
+export const CAKTO_CHECKOUT_URLS: Record<'mensal' | 'anual', string | null> = {
+  mensal: null,
+  anual: null,
+};
