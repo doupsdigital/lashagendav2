@@ -2,22 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Palette, ExternalLink, Link2, Scissors, Sparkles as SparklesIcon, Flower2, Building2 } from 'lucide-react';
+import { ArrowLeft, Palette, ExternalLink, Link2, Scissors } from 'lucide-react';
 import { NicheType } from '@/types/catalog';
-import { NICHE_OPTIONS } from '@/data/niche-options';
 
-const NICHE_ICONS: Record<NicheType, React.ReactNode> = {
-  lash: <Scissors className="w-5 h-5" />,
-  nail: <SparklesIcon className="w-5 h-5" />,
-  estetica: <Flower2 className="w-5 h-5" />,
-  studio: <Building2 className="w-5 h-5" />,
-};
-
-const NICHE_CARDS: { niche: NicheType; label: string; icon: React.ReactNode }[] = NICHE_OPTIONS.map((o) => ({
-  niche: o.value,
-  label: o.label,
-  icon: NICHE_ICONS[o.value],
-}));
+const NICHE_CARDS: { niche: NicheType; label: string; icon: React.ReactNode }[] = [
+  { niche: 'lash', label: 'Lash Designer', icon: <Scissors className="w-5 h-5" /> },
+];
 
 export default function AdminShowroomPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -51,31 +41,13 @@ export default function AdminShowroomPage() {
             <h1 className="font-serif text-3xl md:text-4xl font-bold">Showroom & Modelos Oficiais</h1>
           </div>
           <p className="text-sm text-slate-400 mt-1.5">
-            Links prontos pra mandar pra leads no WhatsApp, e o ambiente interno de testes de UI/UX.
+            Vitrine de exemplo do catálogo, com o agendamento de demonstração.
           </p>
         </header>
 
-        {/* Ambiente de Testes Interno */}
+        {/* Vitrine de exemplo */}
         <section className="space-y-2.5">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">Ambiente de Testes Interno</h2>
-          <Link
-            href="/c/demo"
-            target="_blank"
-            className="group p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-rose-500/50 transition-all flex items-center justify-between gap-3"
-          >
-            <div>
-              <h3 className="font-bold text-white text-base">Testes StudioMenu (todos os nichos)</h3>
-              <p className="text-sm text-slate-400 mt-1">
-                Alterne nicho, modelo e tema livremente para aprovar melhorias de UI/UX.
-              </p>
-            </div>
-            <ExternalLink className="w-5 h-5 text-slate-500 group-hover:text-rose-400 transition-all flex-shrink-0" />
-          </Link>
-        </section>
-
-        {/* Vitrines por Nicho — links para leads */}
-        <section className="space-y-2.5">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">Vitrines por Nicho (links para leads)</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">Vitrine de exemplo</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {NICHE_CARDS.map(({ niche, label, icon }) => (
               <div
@@ -110,50 +82,6 @@ export default function AdminShowroomPage() {
           </div>
         </section>
 
-        {/* Exemplos reduzidos — produto "Catálogo apenas" (pedido real,
-         *  2026-11-04): exemplo fiel do que o lead recebe de verdade por
-         *  R$79, sem Orientações/Contato. Só Lash por enquanto. */}
-        <section className="space-y-2.5">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-            Exemplos "Catálogo apenas" (Lash)
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              { slug: 'lashcatalogo', label: 'Só o Catálogo', description: 'Abre direto no nome da profissional + procedimentos, sem Capa.' },
-              { slug: 'lashcapa', label: 'Capa + Catálogo', description: 'Abre na Capa e depois cai no Catálogo.' },
-            ].map(({ slug, label, description }) => (
-              <div
-                key={slug}
-                className="p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-rose-500/50 transition-all space-y-3.5"
-              >
-                <div className="flex items-center gap-2.5 text-rose-400">
-                  <Scissors className="w-5 h-5" />
-                  <h3 className="font-bold text-white text-base">{label}</h3>
-                </div>
-                <p className="text-xs text-slate-400">{description}</p>
-                <p className="text-xs font-mono text-slate-500 truncate">/c/showcase/{slug}</p>
-                <div className="flex items-center gap-2">
-                  <Link
-                    href={`/c/showcase/${slug}`}
-                    target="_blank"
-                    className="flex-1 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-semibold text-white flex items-center justify-center gap-1.5 transition-all"
-                  >
-                    <span>Ver</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => copyShowcaseLink(slug)}
-                    className="flex-1 px-3 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-sm font-bold flex items-center justify-center gap-1.5 transition-all"
-                  >
-                    <Link2 className="w-3.5 h-3.5" />
-                    <span>Copiar Link</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
 
       {toastMessage && (

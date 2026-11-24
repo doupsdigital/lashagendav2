@@ -1,10 +1,6 @@
 import type { Metadata } from 'next';
 import { NicheType, CatalogOrderData } from '@/types/catalog';
 import { ShowcaseClient } from './ShowcaseClient';
-import { landingMockupPreset } from '@/data/niche-presets/landing-mockup';
-import { lashLandingMockupPreset } from '@/data/niche-presets/lash-landing-mockup';
-import { nailLandingMockupPreset } from '@/data/niche-presets/nail-landing-mockup';
-import { lashCatalogoMockupPreset, lashCapaCatalogoMockupPreset } from '@/data/niche-presets/lash-catalogo-mockup';
 
 interface ShowcasePageProps {
   params: Promise<{ niche: string }>;
@@ -26,44 +22,6 @@ interface ShowcasePageProps {
  *  intocados, pra não perder os exemplos já em uso. */
 const SHOWCASE_SLUGS: Record<string, { niche: NicheType; forceBasico: boolean; coverOverride?: string; presetOverride?: CatalogOrderData }> = {
   lash: { niche: 'lash', forceBasico: false },
-  nail: { niche: 'nail', forceBasico: false },
-  lashdesigner: { niche: 'lash', forceBasico: true },
-  naildesigner: { niche: 'nail', forceBasico: true },
-  lashs: { niche: 'lash', forceBasico: true, coverOverride: '/capa_lash.png' },
-  nails: { niche: 'nail', forceBasico: true, coverOverride: '/capa_nail.png' },
-  estetica: { niche: 'estetica', forceBasico: false },
-  // Capa padronizada do Studio direto na rota existente (pedido real,
-  // 2026-10-08), e versão Básico (WhatsApp) nova — igual lashdesigner/
-  // naildesigner, que o Studio ainda não tinha.
-  studio: { niche: 'studio', forceBasico: false, coverOverride: '/capa_studio.png' },
-  studiodesigner: { niche: 'studio', forceBasico: true, coverOverride: '/capa_studio.png' },
-  // Preset próprio, só pro mockup de celular da landing page de vendas
-  // (pedido real, 2026-10-08) — editável à vontade sem afetar o showroom
-  // real do Studio (`studio`/`studiodesigner` acima continuam intactos).
-  // `coverOverride` fixo (pedido real, 2026-10-08): diferente dos outros
-  // showrooms, aqui a foto NÃO deve trocar ao alternar Mosaico/Clássico —
-  // sempre a mesma mulher morena, independente do modelo escolhido.
-  landingpage: { niche: 'studio', forceBasico: true, coverOverride: '/modelos/mosaico/assets/img/Hero.webp', presetOverride: landingMockupPreset },
-  // Preset próprio, só pro modal de teste da landing nichada de Lash
-  // (pedido real, 2026-10-14) — só 4 procedimentos (os mesmos do criativo
-  // de anúncio), editável à vontade sem afetar o showroom real do nicho
-  // Lash (`lash`/`lashdesigner` acima continuam intactos). `coverOverride`
-  // trocado da foto de modelo (mulher) pra capa padronizada do nicho
-  // (pedido real, 2026-10-19) — mesma imagem usada em `lashs`.
-  lashlanding: { niche: 'lash', forceBasico: true, coverOverride: '/capa_lash.png', presetOverride: lashLandingMockupPreset },
-  // Equivalente pro Nail (pedido real, 2026-10-19) — mesmo preset real do
-  // nicho (sem filtrar procedimentos, diferente do lashlanding acima), só
-  // com a tela de Orientações esvaziada (ver `nail-landing-mockup.ts`).
-  // Substitui `nails` como `showcaseSlug` do conteúdo da landing (`nail` em
-  // `landing-niche-content.tsx`) — `nails` continua intocado, sem o
-  // presetOverride, pra não perder esse exemplo também.
-  naillanding: { niche: 'nail', forceBasico: true, coverOverride: '/capa_nail.png', presetOverride: nailLandingMockupPreset },
-  // Exemplos reais do produto "Catálogo apenas" pra mandar de link pro lead
-  // no WhatsApp (pedido real, 2026-11-04) — só Lash por enquanto. Diferente
-  // de `lashlanding` (procedimentos filtrados, só pro mockup da landing),
-  // esses usam o preset completo do nicho.
-  lashcatalogo: { niche: 'lash', forceBasico: true, coverOverride: '/capa_lash.png', presetOverride: lashCatalogoMockupPreset },
-  lashcapa: { niche: 'lash', forceBasico: true, coverOverride: '/capa_lash.png', presetOverride: lashCapaCatalogoMockupPreset },
 };
 
 function resolveShowcaseSlug(slug: string): { niche: NicheType; forceBasico: boolean; coverOverride?: string; presetOverride?: CatalogOrderData } {
@@ -74,9 +32,6 @@ function resolveShowcaseSlug(slug: string): { niche: NicheType; forceBasico: boo
 // singular usado em NICHE_OPTIONS, que é pra UI de seleção).
 const NICHE_METADATA_LABEL: Record<NicheType, string> = {
   lash: 'Lash Designers',
-  nail: 'Nail Designers',
-  estetica: 'Clínicas de Estética',
-  studio: 'Studios de Beleza',
 };
 
 /** Preview do link no WhatsApp pra esse showroom — pedido real, 2026-10-01:

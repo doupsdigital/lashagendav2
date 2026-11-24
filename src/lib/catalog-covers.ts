@@ -11,6 +11,4 @@ import type { NicheType } from '@/types/catalog';
  *  outro o que aparece no preview do link no WhatsApp). */
 export const NICHE_DEFAULT_COVER: Partial<Record<NicheType, string>> = {
   lash: '/capa_lash.png',
-  nail: '/capa_nail.png',
-  studio: '/capa_studio.png',
 };

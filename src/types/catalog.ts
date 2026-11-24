@@ -1,4 +1,4 @@
-export type NicheType = 'lash' | 'nail' | 'estetica' | 'studio';
+export type NicheType = 'lash';
 export type LayoutModel = 'mosaico' | 'classico';
 export type ThemeVariant = 'rose' | 'luxury';
 

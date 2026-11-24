@@ -12,7 +12,7 @@ import type { ReactNode } from 'react';
  *  mandando PDF/fotos soltas no WhatsApp → "não é PDF nem Canva, é site de
  *  verdade"). `lash`/`nail` continuam intocados de propósito — já rodando
  *  anúncio com a copy antiga, não mexer enquanto ainda estiver em teste. */
-export type LandingNiche = 'geral' | 'lash' | 'nail' | 'lashdesigner' | 'naildesigner';
+export type LandingNiche = 'lash';
 
 export interface LandingNicheContent {
   /** Linha pequena acima do título na Hero. */
@@ -112,27 +112,6 @@ export interface LandingNicheContent {
 }
 
 export const LANDING_NICHE_CONTENT: Record<LandingNiche, LandingNicheContent> = {
-  geral: {
-    eyebrow: 'Menu Digital Interativo para Studios de Beleza',
-    heroTitle: (
-      <>
-        O Menu Digital que valoriza o{' '}
-        <span className="lp-text-gradient">seu Studio</span>.
-      </>
-    ),
-    heroSubtitle: (
-      <>
-        Seu menu online como um <strong>site profissional</strong>, sempre no ar. Fotos, procedimentos e valores em um <strong>Link exclusivo</strong> para a bio do seu Instagram e WhatsApp.
-      </>
-    ),
-    showcaseSlug: 'landingpage',
-    socialProofHighlight: '350+ Studios de Beleza',
-    faqFirstItem: {
-      question: '1. Serve para o meu tipo de Studio / procedimento?',
-      answer: 'Com certeza! O StudioMenu foi desenvolvido sob medida para Lash Designers, Nail Designers, Esteticistas, Micropigmentadoras, Cabeleireiras e Studios de Beleza em geral.',
-    },
-    anualValueAnchor: 'Sai por menos que 1 atendimento do seu studio',
-  },
   lash: {
     // Copy do Hero atualizada pra bater com a nova campanha de criativos
     // (pedido real, 2026-10-19 — ela testou `lashdesigner` em localhost,
@@ -215,160 +194,5 @@ export const LANDING_NICHE_CONTENT: Record<LandingNiche, LandingNicheContent> = 
       question: 'Por que o pagamento é anual?',
       answer: 'Diferente de um catálogo em PDF ou imagem, seu Menu Digital é um Site de verdade — precisa ficar hospedado, no ar, seguro e rápido 365 dias por ano. Esse valor garante exatamente isso: que ele nunca saia do ar, nunca fique lento e que suas clientes consigam acessar sempre através do seu link.',
     },
-  },
-  nail: {
-    // Copy do Hero atualizada pra bater com a nova campanha de criativos
-    // (pedido real, 2026-10-19 — ver comentário equivalente em `lash`
-    // acima). Idêntica à de `naildesigner` abaixo de propósito.
-    heroBrandName: { prefix: 'Ei, ', highlight: 'NailDesigner' },
-    eyebrow: (
-      <>
-        Feito para <span className="lp-eyebrow-highlight">Nail Designer</span>
-      </>
-    ),
-    heroTitle: (
-      <>
-        Você ainda manda <span className="lp-text-gradient">Tabela de Preços em PDF</span> ou{' '}
-        <span className="lp-text-wine">fotos soltas no WhatsApp?</span>
-      </>
-    ),
-    heroSubtitle: (
-      <>
-        <span className="lp-hero-subtitle-lead">
-          Conheça o <strong className="lp-hero-subtitle-brand">Studio<em className="lp-text-gradient">Menu</em></strong>.
-        </span>
-        <strong className="lp-text-wine">Não é PDF nem Canva</strong>.
-        <br />
-        Apresente seus procedimentos em um <strong className="lp-text-gradient">Catálogo Digital interativo</strong> direto no celular da cliente.
-      </>
-    ),
-    whatsappPainImage: '/whatsapp_nail.webp',
-    secondPainImage: '/whatsapp_vermelho_nail.webp',
-    secondPainHeading: (
-      <>
-        Pare de <span className="lp-pain-reinforce-highlight">perder tempo</span> copiando
-        tabela de preços no <span className="lp-pain-reinforce-highlight lp-pain-reinforce-highlight--plain">WhatsApp</span>.
-      </>
-    ),
-    secondPainText: (
-      <>
-        Foque no que você faz de melhor:
-        <br />
-        <strong>Seu trabalho como Nail Designer.</strong>
-        <br />
-        Deixe que o StudioMenu cuide do resto.
-      </>
-    ),
-    goodMockupImage: '/mockup_nail_bom.webp',
-    // 'naillanding', não 'nail' — o slug 'nail' cai no agendamento
-    // automático (Plus), mas a copy acima promete "agenda direto no
-    // WhatsApp" (igual lash); 'naillanding' é a versão Básico (WhatsApp)
-    // com a capa padronizada do nicho (sem foto de modelo) e sem a tela de
-    // Orientações (fica muita informação pro lead frio) — preset próprio,
-    // mesmo padrão do `lashlanding` acima (ver `nail-landing-mockup.ts`).
-    showcaseSlug: 'naillanding',
-    socialProofHighlight: '350+ Nail Designers',
-    faqFirstItem: {
-      question: '1. Só serve pra unha ou dá pra colocar outros serviços também?',
-      answer: 'Dá pra colocar qualquer serviço que você oferecer no seu studio! Alongamento em Gel, Fibra de Vidro, Esmaltação em Gel, Nail Art, Spa dos Pés, Cuticulagem — você organiza o seu Menu Digital do jeitinho que atende de verdade, sem limite de categoria.',
-    },
-    // Trocado de "1 alongamento em Gel" pra "1 esmaltação em Gel" (pedido
-    // real, 2026-10-19) — serviço mais popular/universal entre as opções
-    // sugeridas, só pro teste de plano único (naildesigner mantém o texto
-    // antigo, de propósito, como referência/backup).
-    anualValueAnchor: 'Sai por menos que 1 Esmaltação em Gel',
-    cornerBadge: (
-      <div className="lp-hero-niche-ribbon-wrap" aria-hidden="true">
-        <span className="lp-hero-niche-ribbon" />
-      </div>
-    ),
-    // Teste de plano único anual (pedido real, 2026-10-19) — ver
-    // comentário de `singleAnnualPlanTest` na interface acima.
-    singleAnnualPlanTest: {
-      price: 97.0,
-      anchorPrice: 199.9,
-      ctaLabel: 'QUERO MEU MENU DIGITAL',
-      nicheLabel: 'Nail Designer',
-    },
-    subscriptionFaqOverride: {
-      question: 'Por que o pagamento é anual?',
-      answer: 'Diferente de um catálogo em PDF ou imagem, seu Menu Digital é um Site de verdade — precisa ficar hospedado, no ar, seguro e rápido 365 dias por ano. Esse valor garante exatamente isso: que ele nunca saia do ar, nunca fique lento e que suas clientes consigam acessar sempre através do seu link.',
-    },
-  },
-  // lashdesigner/naildesigner (2026-10-19) — ver comentário de
-  // `LandingNiche` acima. Hero com copy de dor/objeção, mesma frase nos 2
-  // nichos (os criativos novos usam o MESMO texto de dor/quebra de
-  // objeção pra lash e nail, só badge/fotos do mockup mudam) — o resto do
-  // conteúdo (faqFirstItem, anualValueAnchor, cornerBadge) reaproveita
-  // exatamente o que já existe pra `lash`/`nail`.
-  lashdesigner: {
-    eyebrow: (
-      <>
-        Feito para <span className="lp-eyebrow-highlight">Lash Designer</span>
-      </>
-    ),
-    heroTitle: (
-      <>
-        Você ainda <span className="lp-text-gradient">perde clientes</span> mandando Tabela de{' '}
-        <span className="lp-text-wine">preços e fotos do seu trabalho</span> soltas no WhatsApp?
-      </>
-    ),
-    heroSubtitle: (
-      <>
-        <span className="lp-hero-subtitle-lead">
-          Conheça o <strong className="lp-hero-subtitle-brand">Studio<em className="lp-text-gradient">Menu</em></strong>.
-        </span>
-        <strong className="lp-text-wine">Não é PDF nem Canva</strong>.
-        <br />
-        É seu próprio <strong className="lp-text-gradient">Site/Menu Digital interativo</strong>.
-      </>
-    ),
-    showcaseSlug: 'lashlanding',
-    socialProofHighlight: '350+ Lash Designers',
-    faqFirstItem: {
-      question: '1. Só serve pra extensão de cílios ou dá pra colocar outros serviços também?',
-      answer: 'Dá pra colocar qualquer serviço que você oferecer no seu studio! Fio a Fio, Volume Russo, Híbrido, Egípcio, Design de Sobrancelha, Henna — você organiza o seu Menu Digital do jeitinho que atende de verdade, sem limite de categoria.',
-    },
-    anualValueAnchor: 'Sai por menos que 1 aplicação de Volume Brasileiro',
-    cornerBadge: (
-      <div className="lp-hero-niche-ribbon-wrap" aria-hidden="true">
-        <span className="lp-hero-niche-ribbon" />
-      </div>
-    ),
-  },
-  naildesigner: {
-    eyebrow: (
-      <>
-        Feito para <span className="lp-eyebrow-highlight">Nail Designer</span>
-      </>
-    ),
-    heroTitle: (
-      <>
-        Você ainda <span className="lp-text-gradient">perde tempo</span> mandando Tabela de{' '}
-        <span className="lp-text-wine">preços e fotos do seu trabalho</span> soltas no WhatsApp?
-      </>
-    ),
-    heroSubtitle: (
-      <>
-        <span className="lp-hero-subtitle-lead">
-          Conheça o <strong className="lp-hero-subtitle-brand">Studio<em className="lp-text-gradient">Menu</em></strong>.
-        </span>
-        <strong className="lp-text-wine">Não é PDF nem Canva</strong>.
-        <br />
-        É seu próprio <strong className="lp-text-gradient">Site/Menu Digital interativo</strong>.
-      </>
-    ),
-    showcaseSlug: 'naildesigner',
-    socialProofHighlight: '350+ Nail Designers',
-    faqFirstItem: {
-      question: '1. Só serve pra unha ou dá pra colocar outros serviços também?',
-      answer: 'Dá pra colocar qualquer serviço que você oferecer no seu studio! Alongamento em Gel, Fibra de Vidro, Esmaltação em Gel, Nail Art, Spa dos Pés, Cuticulagem — você organiza o seu Menu Digital do jeitinho que atende de verdade, sem limite de categoria.',
-    },
-    anualValueAnchor: 'Sai por menos que 1 alongamento em Gel',
-    cornerBadge: (
-      <div className="lp-hero-niche-ribbon-wrap" aria-hidden="true">
-        <span className="lp-hero-niche-ribbon" />
-      </div>
-    ),
   },
 };

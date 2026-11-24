@@ -976,13 +976,6 @@ export default function AdminCatalogosPage() {
               <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
               <span>Atualizar</span>
             </button>
-            <Link
-              href="/form"
-              className="px-5 py-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-sm font-bold tracking-wider uppercase flex items-center gap-2 shadow-lg transition-all"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Novo Catálogo</span>
-            </Link>
           </div>
         </header>
 

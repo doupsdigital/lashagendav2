@@ -1,60 +1,7 @@
-import { SalesLandingPage } from '@/components/sales/SalesLandingPage';
-import { FbclidTracker } from '@/components/sales/FbclidTracker';
-import { PostHogTracker } from '@/components/sales/PostHogTracker';
-import { MetaPixelTracker } from '@/components/sales/MetaPixelTracker';
-import { LANDING_NICHE_CONTENT, type LandingNiche } from '@/data/landing-niche-content';
-import { cookies } from 'next/headers';
 import { LashSelfServeEntry } from '@/components/self-serve/LashSelfServeEntry';
 
-interface StudioMenuLandingPageProps {
-  searchParams: Promise<{ nicho?: string; v?: string }>;
-}
-
-/** `?nicho=` troca a Hero pra falar a língua de quem clicou num anúncio
- *  nichado (ex: "Ei, Lash Designer") — ver `src/data/landing-niche-content.tsx`
- *  pro porquê. Lido aqui (Server Component), não no client, pra nunca piscar
- *  o conteúdo genérico antes de trocar pelo certo. Qualquer valor que não
- *  seja um nicho implementado cai em `geral` (a landing de sempre).
- *
- *  `?v=curta` ou `?v=longa` permite forçar uma variante para testes.
- *  Se não vier na URL, confere o cookie `sm_lp_variant` para manter o visitante
- *  na mesma versão (split test 70/30 a favor de 'curta', determinístico
- *  via código). */
-export default async function StudioMenuLandingPage({ searchParams }: StudioMenuLandingPageProps) {
-  const { nicho, v } = await searchParams;
-  const resolvedNiche: LandingNiche = nicho && nicho in LANDING_NICHE_CONTENT ? (nicho as LandingNiche) : 'geral';
-  const content = LANDING_NICHE_CONTENT[resolvedNiche];
-
-  // `?nicho=lash` é o link do anúncio que está rodando (2026-11-18): passa a
-  // mostrar a página de autosserviço (prévia grátis + Cakto), sem precisar
-  // trocar a URL no Gerenciador. A landing antiga de Lash (X1/WhatsApp)
-  // continua acessível em `?nicho=lash&v=antiga`, caso precise voltar.
-  if (resolvedNiche === 'lash' && v !== 'antiga') {
-    return <LashSelfServeEntry />;
-  }
-
-  const cookieStore = await cookies();
-  const savedVariant = cookieStore.get('sm_lp_variant')?.value;
-
-  let variant: 'longa' | 'curta';
-  if (v === 'curta' || v === 'longa') {
-    variant = v;
-  } else if (savedVariant === 'curta' || savedVariant === 'longa') {
-    variant = savedVariant;
-  } else {
-    // Sorteio 70/30 a favor de 'curta' (pedido real, 2026-10-27) — sinal
-    // inicial (padrão de sessões indecisas na 'longa' nos últimos dias +
-    // 1ª conversão rápida na 'curta') favorece ela; ainda não é prova
-    // definitiva, então mantém as duas rodando, só com mais peso.
-    variant = Math.random() < 0.7 ? 'curta' : 'longa';
-  }
-
-  return (
-    <>
-      <MetaPixelTracker />
-      <FbclidTracker />
-      <PostHogTracker variant={variant} />
-      <SalesLandingPage content={content} variant={variant} />
-    </>
-  );
+/** Home: página de autosserviço (prévia pelo nome + Cakto). A landing própria
+ *  do LashAgenda é refeita na F15. */
+export default function HomePage() {
+  return <LashSelfServeEntry />;
 }
