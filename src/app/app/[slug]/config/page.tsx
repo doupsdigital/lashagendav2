@@ -31,21 +31,9 @@ export default async function ConfigPage({ params }: ConfigPageProps) {
           slug={slug}
           businessHours={businessHours}
           scheduleBlocks={scheduleBlocks}
-          planTier={order.plan_tier}
-          subscriptionStatus={order.subscription_status}
-          billingEmail={order.billing_email}
-          billingCpfCnpj={order.billing_cpf_cnpj}
-          paymentMethod={order.payment_method}
           bookingEnabled={order.booking_enabled}
           agendaPaused={order.agenda_paused}
           authUserId={order.auth_user_id}
-          manualPlan={order.manual_plan}
-          hasRealSubscription={order.has_real_subscription}
-          billingPriceOverride={order.billing_price_override}
-          catalogBillingMode={order.catalog_billing_mode}
-          agendaBillingMode={order.agenda_billing_mode}
-          agendaPriceOverride={order.agenda_price_override}
-          lifetimePriceOverride={order.lifetime_price_override}
         />
       </main>
     </>

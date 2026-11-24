@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Clock, CalendarX, PauseCircle, CreditCard, UserCircle, Bell, LifeBuoy } from 'lucide-react';
+import { Clock, CalendarX, PauseCircle, UserCircle, Bell, LifeBuoy } from 'lucide-react';
 import type { Step } from 'react-joyride';
 import { SectionCard } from '@/components/app-shell/SectionCard';
 import { ProductTour } from '@/components/tour/ProductTour';
 import { BusinessHoursEditor } from './BusinessHoursEditor';
 import { ScheduleBlocksManager } from './ScheduleBlocksManager';
 import { AgendaPauseSection } from './AgendaPauseSection';
-import { SubscriptionSection } from './SubscriptionSection';
 import { AccountSection } from './AccountSection';
 import { NotificationsSection } from './NotificationsSection';
 import { SupportSection } from './SupportSection';
@@ -19,11 +18,6 @@ interface ConfigAccordionProps {
   slug: string;
   businessHours: BusinessHoursConfigRow[];
   scheduleBlocks: ScheduleBlockConfigRow[];
-  planTier: 'catalog' | 'basico' | 'plus';
-  subscriptionStatus: 'none' | 'ativo' | 'suspenso' | 'cancelado';
-  billingEmail?: string;
-  billingCpfCnpj?: string;
-  paymentMethod: 'pix' | 'card' | null;
   /** Agendamento automático de fato ligado (Plus ativo ou toggle manual do
    *  admin) — sem isso, Horários e Bloqueios não têm nenhum efeito prático
    *  (a Agenda nem chega a mostrar conteúdo real), então ficam travados. */
@@ -33,30 +27,9 @@ interface ConfigAccordionProps {
   /** Conta do Supabase Auth já vinculada pro login real (Fase 17) — null
    *  enquanto a profissional só entra pelo link mágico. */
   authUserId: string | null;
-  /** Plano concedido manualmente pelo admin, fora do Asaas (Fase 26). */
-  manualPlan: boolean;
-  /** Existe uma assinatura Asaas de verdade por trás (Fase 27) — repassado
-   *  direto pra `SubscriptionSection`. */
-  hasRealSubscription: boolean;
-  /** Preço customizado do Plano Catálogo (admin) — repassado direto pra
-   *  `SubscriptionSection` mostrar a mensalidade real de quem é recorrente. */
-  billingPriceOverride: number | null;
-  /** Preço customizado da conversão de Catálogo recorrente pra vitalício
-   *  (Fase 28) — repassado direto pra `SubscriptionSection`. */
-  lifetimePriceOverride: number | null;
-  /** Se o Catálogo dessa cliente nasceu recorrente — mensal (Fase 27) ou
-   *  anual (2026-10-15) — repassado direto pra `SubscriptionSection` decidir
-   *  as opções de cancelamento. */
-  catalogBillingMode: 'avulso' | 'recorrente' | 'anual';
-  /** Se o Plano Agenda dessa cliente é vendido mensal (padrão) ou anual
-   *  (2026-10-15) — repassado direto pra `SubscriptionSection`. */
-  agendaBillingMode: 'recorrente' | 'anual';
-  /** Preço customizado do Plano Agenda — campo próprio, separado do do
-   *  Catálogo (2026-10-15) — repassado direto pra `SubscriptionSection`. */
-  agendaPriceOverride: number | null;
 }
 
-type SectionKey = 'horarios' | 'bloqueios' | 'pausar' | 'assinatura' | 'conta' | 'notificacoes' | 'suporte';
+type SectionKey = 'horarios' | 'bloqueios' | 'pausar' | 'conta' | 'notificacoes' | 'suporte';
 
 /** Acordeão da aba Config — 3 seções que já existiam (`BusinessHoursEditor`,
  *  `ScheduleBlocksManager`, `SubscriptionSection`), agora dentro de
@@ -69,27 +42,14 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
   slug,
   businessHours,
   scheduleBlocks,
-  planTier,
-  subscriptionStatus,
-  billingEmail,
-  billingCpfCnpj,
-  paymentMethod,
   bookingEnabled,
   agendaPaused,
   authUserId,
-  manualPlan,
-  hasRealSubscription,
-  billingPriceOverride,
-  catalogBillingMode,
-  agendaBillingMode,
-  agendaPriceOverride,
-  lifetimePriceOverride,
 }) => {
   const [open, setOpen] = useState<Record<SectionKey, boolean>>({
     horarios: false,
     bloqueios: true,
     pausar: false,
-    assinatura: false,
     conta: false,
     notificacoes: false,
     suporte: false,
@@ -110,19 +70,9 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
   // o hash pro tour começar por ali (Fase 20) — sem isso, o tour sempre
   // começava do primeiro card e "puxava" a tela de volta, brigando com o
   // scroll que o link já tinha feito (achado testando o card "Criar acesso").
-  //
-  // `upgrade-plus` é um hash "extra", à parte das 5 seções: fica DENTRO da
-  // seção "assinatura" (só existe no DOM pra quem já é Básico ativo — ver
-  // `SubscriptionSection`) e rola direto pro formulário de assinar o Plus
-  // (e-mail/CPF já preenchidos, botão "Assinar por R$34,90"), em vez de
-  // parar no topo do card "Básico ativo" que fica acima dele — pedido
-  // explícito do usuário, o CTA de upgrade deve levar direto pra ação, não
-  // só pra seção genérica.
   useEffect(() => {
     const hash = window.location.hash.slice(1);
     const sectionForHash: Partial<Record<string, SectionKey>> = {
-      assinatura: 'assinatura',
-      'upgrade-plus': 'assinatura',
       conta: 'conta',
       horarios: 'horarios',
       bloqueios: 'bloqueios',
@@ -189,7 +139,6 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
               : []),
           ]
         : []),
-      buildStep('assinatura', 'Plano', 'Veja seu plano por aqui — evolua pro Agenda ou gerencie sua assinatura.'),
       buildStep(
         'conta',
         'Minha conta',
@@ -265,32 +214,6 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
           </SectionCard>
         </div>
       )}
-
-      <div id="assinatura">
-        <SectionCard
-          icon={CreditCard}
-          title="Plano"
-          isOpen={open.assinatura}
-          onToggle={() => toggle('assinatura')}
-          dataTour="assinatura-header"
-        >
-          <SubscriptionSection
-            slug={slug}
-            planTier={planTier}
-            subscriptionStatus={subscriptionStatus}
-            billingEmail={billingEmail}
-            billingCpfCnpj={billingCpfCnpj}
-            paymentMethod={paymentMethod}
-            manualPlan={manualPlan}
-            hasRealSubscription={hasRealSubscription}
-            billingPriceOverride={billingPriceOverride}
-            catalogBillingMode={catalogBillingMode}
-            agendaBillingMode={agendaBillingMode}
-            agendaPriceOverride={agendaPriceOverride}
-            lifetimePriceOverride={lifetimePriceOverride}
-          />
-        </SectionCard>
-      </div>
 
       <div id="conta">
         <SectionCard

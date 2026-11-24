@@ -1,5 +1,3 @@
-import type { AsaasCycle } from './asaas';
-
 /** Preços dos planos pagos — fonte única de verdade, não hardcoded em
  *  vários arquivos (decisão registrada em docs/historico/PLANO_AGENDAMENTO_STUDIOMENU_PLUS.md,
  *  ampliada na Fase 19 pro tier Básico).
@@ -139,20 +137,4 @@ export function resolveFullCatalogUpgradePrice(fullCatalogUpgradePriceOverride: 
   const override = fullCatalogUpgradePriceOverride === null || fullCatalogUpgradePriceOverride === undefined ? null : Number(fullCatalogUpgradePriceOverride);
   const price = override !== null && Number.isFinite(override) && override >= 5 ? override : CATALOGO_COMPLETO_UPGRADE_PRICE;
   return { price, label: `R$ ${price.toFixed(2).replace('.', ',')}` };
-}
-
-/** Única fonte de verdade pra "qual ciclo Asaas (MONTHLY/YEARLY) esse tier
- *  resolve hoje" (2026-10-15) — usada tanto pela cobrança real
- *  (`checkout/route.ts`, decide se precisa trocar de ciclo numa troca de
- *  tier) quanto pela exibição de preço ANTES de pagar
- *  (`FirstContactScreen.tsx`/`SubscriptionSection.tsx`), pra nunca mostrar
- *  um rótulo "/mês" ou "/ano" diferente do que de fato vai ser cobrado. */
-export function resolveBillingCycle(
-  plan: PayablePlanTier,
-  order: { catalog_billing_mode?: string | null; agenda_billing_mode?: string | null }
-): AsaasCycle {
-  if (plan === 'basico') {
-    return order.catalog_billing_mode === 'anual' ? 'YEARLY' : 'MONTHLY';
-  }
-  return order.agenda_billing_mode === 'anual' ? 'YEARLY' : 'MONTHLY';
 }

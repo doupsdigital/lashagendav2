@@ -2,11 +2,9 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { getOrderForProfessionalApp } from '@/lib/professional-app-service';
-import { getCatalogBySlug } from '@/lib/catalog-service';
 import { getAppointmentsForDay, getAppointmentsForRange, getPendingAppointments, getManualBookingServices } from '@/lib/scheduling/agenda-service';
 import { getBusinessHours, getScheduleBlocks } from '@/lib/scheduling/config-service';
 import { getWeekdayForDate } from '@/lib/scheduling/availability';
-import { PlusUpsellCard } from '@/components/app-shell/PlusUpsellCard';
 import { GradientHeader } from '@/components/app-shell/GradientHeader';
 import { PageTitleBar } from '@/components/app-shell/PageTitleBar';
 import { MarkAgendaVisited } from '@/components/app-shell/MarkAgendaVisited';
@@ -123,7 +121,7 @@ export default async function AgendaPage({ params, searchParams }: AgendaPagePro
   // outra, só `order.id`/`selectedDate`/`view`, já conhecidos aqui). Cada
   // rodada a mais custa uma ida-e-volta inteira ao banco — sensível com
   // Vercel (Virgínia) e Supabase (São Paulo) em regiões diferentes.
-  const [pendingAppointments, services, businessHours, scheduleBlocks, dayAppointments, monthAppointments, plusUpsellCatalog] =
+  const [pendingAppointments, services, businessHours, scheduleBlocks, dayAppointments, monthAppointments] =
     await Promise.all([
       getPendingAppointments(order.id),
       getManualBookingServices(order.id),
@@ -131,9 +129,6 @@ export default async function AgendaPage({ params, searchParams }: AgendaPagePro
       getScheduleBlocks(order.id),
       view === 'dia' ? getAppointmentsForDay(order.id, selectedDate) : Promise.resolve([]),
       view === 'mes' ? getAppointmentsForRange(order.id, monthDays[0], shiftDate(monthDays[41], 1)) : Promise.resolve([]),
-      // Só busca o catálogo completo (com procedures) quando o card de
-      // upsell vai aparecer — mesma condição `!bookingEnabled` logo abaixo.
-      !bookingEnabled ? getCatalogBySlug(slug) : Promise.resolve(null),
     ]);
 
   const prevHref =
@@ -216,27 +211,6 @@ export default async function AgendaPage({ params, searchParams }: AgendaPagePro
           bookingEnabled={bookingEnabled}
         />
       </div>
-
-      {!bookingEnabled && (
-        // `fixed` (não `absolute`) de propósito — a grade de horários
-        // desfocada atrás pode ficar bem mais alta que a tela (sem
-        // expediente configurado ainda, a grade cai no intervalo padrão
-        // 8h-20h inteiro), e `absolute inset-0` centralizava em relação a
-        // essa altura toda, jogando o card pra baixo da área visível
-        // (achado testando de verdade). `fixed` centraliza sempre na tela
-        // que está à vista, e os insets de 60px/68px deixam o card livre da
-        // barra de título e do menu inferior (ambos fixos também).
-        <div className="fixed top-[60px] bottom-[68px] left-0 right-0 z-20 flex items-center justify-center px-5">
-          <PlusUpsellCard
-            variant="full"
-            slug={slug}
-            catalog={plusUpsellCatalog}
-            billingEmail={order.billing_email}
-            billingCpfCnpj={order.billing_cpf_cnpj}
-            hasRealSubscription={order.has_real_subscription}
-          />
-        </div>
-      )}
       </main>
     </>
   );

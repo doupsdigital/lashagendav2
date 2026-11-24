@@ -1,22 +1,16 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { getOrderForProfessionalApp } from '@/lib/professional-app-service';
-import { getCatalogBySlug } from '@/lib/catalog-service';
 import { getAppointmentsForDay, getPendingAppointments } from '@/lib/scheduling/agenda-service';
 import { getBusinessHours } from '@/lib/scheduling/config-service';
 import { GradientHeader } from '@/components/app-shell/GradientHeader';
 import { StatCard } from '@/components/app-shell/StatCard';
 import { ViewCatalogCard } from '@/components/app-shell/ViewCatalogCard';
 import { EditCatalogCard } from '@/components/app-shell/EditCatalogCard';
-import { PlusUpsellCard } from '@/components/app-shell/PlusUpsellCard';
 import { ShareLinkButton } from '@/components/app-shell/ShareLinkButton';
 import { PageTitleBar } from '@/components/app-shell/PageTitleBar';
-import { FirstContactScreen } from '@/components/app-shell/FirstContactScreen';
-import { FullCatalogOfferCard } from '@/components/app-shell/FullCatalogOfferCard';
 import { OnboardingCardStack } from '@/components/app-shell/OnboardingCardStack';
-import { OpenChargeBanner } from '@/components/billing/OpenChargeBanner';
 import { InicioTour } from '@/components/tour/InicioTour';
-import { resolveFullCatalogUpgradePrice } from '@/lib/pricing';
 import { countSelfServeStepsDone, SELF_SERVE_STEP_ORDER } from '@/lib/self-serve-onboarding';
 import Link from 'next/link';
 import { CaktoPlanCard } from '@/components/billing/CaktoPlanCard';
@@ -50,43 +44,16 @@ export default async function InicioPage({ params }: InicioPageProps) {
 
   if (!order) notFound();
 
-  // Nunca assinou nada ainda — tela de primeiro contato, deliberadamente
-  // simples (Fase 19). Permanece assim até ela pagar Básico ou Plus; não
-  // regride de volta aqui mesmo se cancelar depois (ver `SubscriptionSection`).
-  // Sem `PageTitleBar` aqui de propósito (2026-09-24): ela ainda nem está
-  // "no app" de verdade, só conhecendo o catálogo — uma barra com título
-  // "Início" e botão de instalar não fazia sentido ainda. Volta normalmente
-  // assim que ela assina (branch abaixo, que já tem a sua própria).
-  if (order.plan_tier === 'catalog') {
-    return <FirstContactScreen order={order} />;
-  }
-
   const isPlusAtivo = order.plan_tier === 'plus' && order.subscription_status === 'ativo';
   // Mesmo gate da Agenda: `booking_enabled` decide se o agendamento está de
   // fato funcionando pro cliente final, não o plano diretamente (pode estar
   // ligado via toggle manual do admin sem ela ser Plus — Fase 6).
   const schedulingLive = order.booking_enabled;
-  // Mesma condição de exibição do card de upsell logo abaixo — só busca o
-  // catálogo completo (com procedures) quando ele de fato vai aparecer, pra
-  // não pagar essa consulta extra em quem já é Plus.
-  // Produto "Catálogo apenas" (2026-10-27): com Agenda/Config inacessíveis
-  // (`show_full_app === false`), não faz sentido anunciar o Plus/Agenda aqui.
-  const showPlusUpsell = order.show_full_app !== false && !isPlusAtivo && order.subscription_status !== 'suspenso';
-  // Oferta "Catálogo Completo" (2026-10-28) — pra quem já paga o Catálogo
-  // simples (plan_tier 'basico', ativo); quem ainda não pagou nada vê a
-  // versão dessa mesma oferta em `FirstContactScreen`, não aqui.
-  const showFullCatalogOffer =
-    order.plan_tier === 'basico' &&
-    order.subscription_status === 'ativo' &&
-    order.full_catalog_offer_enabled &&
-    order.full_catalog_offer_decision !== 'declined';
-
-  const [todayAppointments, pendingAppointments, businessHours, plusUpsellCatalog] = await Promise.all([
+  const [todayAppointments, pendingAppointments, businessHours] = await Promise.all([
     getAppointmentsForDay(order.id, todayInSaoPaulo()),
     getPendingAppointments(order.id),
     // Só o checklist de "próximos passos" do Plus usa isso (item de horários).
     isPlusAtivo ? getBusinessHours(order.id) : Promise.resolve([]),
-    showPlusUpsell ? getCatalogBySlug(slug) : Promise.resolve(null),
   ]);
   const hoursDone = businessHours.length > 0;
 
@@ -135,8 +102,6 @@ export default async function InicioPage({ params }: InicioPageProps) {
           </div>
         )}
       </GradientHeader>
-
-      <OpenChargeBanner slug={slug} />
 
       {caktoNeedsAttention && caktoPlanCard}
 
@@ -195,33 +160,6 @@ export default async function InicioPage({ params }: InicioPageProps) {
           <ShareLinkButton slug={order.slug} />
         </div>
       </div>
-
-      {/* Sem card nenhum aqui quando já é Plus de verdade — o badge PLUS no
-       *  banner do topo já avisa disso, não precisa repetir embaixo
-       *  (Fase 15). O upsell fica sempre visível pra quem não é Plus, mesmo
-       *  que o agendamento já esteja ligado manualmente via admin — o
-       *  objetivo é sempre incentivar a assinatura de verdade. */}
-      {/* Suspensa (mensalidade em atraso): oferecer "Assinar o Plus" aqui só
-       *  confunde — o que ela precisa é pagar a cobrança em aberto, que já
-       *  aparece no aviso lá no topo (Fase 21). */}
-      {showPlusUpsell && (
-        <PlusUpsellCard
-          variant="card"
-          slug={slug}
-          catalog={plusUpsellCatalog}
-          billingEmail={order.billing_email}
-          billingCpfCnpj={order.billing_cpf_cnpj}
-          hasRealSubscription={order.has_real_subscription}
-        />
-      )}
-
-      {showFullCatalogOffer && (
-        <FullCatalogOfferCard
-          slug={order.slug}
-          price={resolveFullCatalogUpgradePrice(order.full_catalog_upgrade_price_override)}
-          alreadyPaid
-        />
-      )}
 
       {isCakto && !caktoNeedsAttention && caktoPlanCard}
 

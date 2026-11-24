@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { isAdminRequestAuthorized } from '@/lib/admin-session';
-import { AsaasConfigError, AsaasApiError, cancelSubscription } from '@/lib/asaas';
 
 export async function PATCH(request: Request) {
   if (!(await isAdminRequestAuthorized())) {
@@ -150,11 +149,6 @@ export async function PATCH(request: Request) {
       full_catalog_offer_decision?: 'pending' | 'accepted' | 'declined';
       full_catalog_price_override?: number | null;
       full_catalog_upgrade_price_override?: number | null;
-      /** Só escrito internamente aqui (nunca vem do request) — limpa a
-       *  assinatura real cancelada ao conceder plano manual, ver abaixo. */
-      asaas_subscription_id?: string | null;
-      pending_plan_tier?: 'basico' | 'plus' | null;
-      pending_lifetime_payment_id?: string | null;
     } = {};
     if (status !== undefined) updates.status = status;
     if (booking_enabled !== undefined) updates.booking_enabled = booking_enabled;
@@ -176,52 +170,6 @@ export async function PATCH(request: Request) {
     if (full_catalog_offer_decision !== undefined) updates.full_catalog_offer_decision = full_catalog_offer_decision;
     if (full_catalog_price_override !== undefined) updates.full_catalog_price_override = full_catalog_price_override;
     if (full_catalog_upgrade_price_override !== undefined) updates.full_catalog_upgrade_price_override = full_catalog_upgrade_price_override;
-
-    // Conceder plano manual (Fase 26) numa cliente que JÁ tem uma assinatura
-    // Asaas de verdade por trás (Fase 27: Plano Catálogo recorrente, ou um
-    // Plano Agenda ativo) precisa cancelar essa assinatura antes — senão o
-    // app passa a mostrar "Sem cobrança — concedido manualmente" enquanto o
-    // Asaas continua cobrando ela todo mês por baixo dos panos (achado real,
-    // 2026-10-07: só virou um risco de verdade depois que o Catálogo passou
-    // a poder ser recorrente). Se o cancelamento falhar, não aplica nada do
-    // PATCH — a admin fica sabendo na hora em vez de a cliente continuar
-    // sendo cobrada com a tela já dizendo "sem cobrança".
-    if (manual_plan === true) {
-      const { data: existing, error: fetchErr } = await supabaseAdmin
-        .from('orders')
-        .select('asaas_subscription_id')
-        .eq('id', id)
-        .single();
-      if (fetchErr) {
-        console.error('[Admin Catalog Actions] Erro ao buscar assinatura antes de conceder manual:', fetchErr);
-        return NextResponse.json({ success: false, message: 'Erro ao conceder o plano manual.' }, { status: 500 });
-      }
-      if (existing?.asaas_subscription_id) {
-        try {
-          await cancelSubscription(existing.asaas_subscription_id);
-        } catch (cancelError) {
-          if (cancelError instanceof AsaasConfigError) {
-            return NextResponse.json({ success: false, message: cancelError.message }, { status: 503 });
-          }
-          if (cancelError instanceof AsaasApiError) {
-            console.error('[Admin Catalog Actions] Erro do Asaas ao cancelar antes de conceder manual:', cancelError.status, cancelError.message);
-            return NextResponse.json(
-              { success: false, message: 'Ela tem uma assinatura real ativa e não foi possível cancelá-la agora. Tente de novo em instantes.' },
-              { status: 502 }
-            );
-          }
-          throw cancelError;
-        }
-        updates.asaas_subscription_id = null;
-        updates.pending_plan_tier = null;
-        // Achado em auditoria (Fase 28): se ela tivesse um Pix de "virar
-        // vitalício" pendente (não pago) no momento da concessão manual,
-        // sem limpar esse id um pagamento futuro desse Pix velho reativaria
-        // a assinatura do zero (via activateSubscription) a partir de um
-        // pagamento que não tem mais nenhuma assinatura real por trás.
-        updates.pending_lifetime_payment_id = null;
-      }
-    }
 
     const { error } = await supabaseAdmin.from('orders').update(updates).eq('id', id);
     if (error) {
