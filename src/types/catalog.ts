@@ -106,6 +106,8 @@ export interface CatalogOrderData {
   agenda_paused?: boolean;
   /** Até quantos dias à frente a cliente pode agendar (`studios.booking_window_days`). */
   booking_window_days?: number;
+  /** Recado da profissional mostrado depois que a cliente agenda. */
+  post_booking_message?: string;
   /** Desligado pelo admin — catálogo público e link mágico bloqueados. */
   catalog_disabled?: boolean;
   /** Já pagou e o período pago (com folga) acabou — catálogo fora do ar. */

@@ -12,6 +12,7 @@ import {
   type BookingItemRef,
 } from '@/lib/scheduling/booking-service';
 import { priceToLabel } from '@/lib/service-format';
+import { manageAppointmentPath } from '@/lib/scheduling/client-appointment';
 import { INVALID_WHATSAPP_MESSAGE, isValidClientWhatsapp, normalizeClientWhatsapp } from '@/lib/scheduling/client-phone';
 import { sendPushToStudio } from '@/lib/push-notifications';
 
@@ -125,10 +126,14 @@ export async function POST(request: Request) {
       url: confirmed ? `/app/${studio.slug}/agenda` : `/app/${studio.slug}/agenda#pendentes`,
     });
 
-    const { manage_token: _manageToken, ...appointment } = result.appointment;
+    // O link único vai só para quem acabou de agendar (F5.4): é por ele que a
+    // cliente vê, adiciona à agenda e cancela.
+    const { manage_token: manageToken, ...appointment } = result.appointment;
     return NextResponse.json({
       success: true,
       appointment,
+      manageUrl: manageAppointmentPath(studio.slug, manageToken),
+      icsUrl: `/api/scheduling/appointment/${manageToken}/ics?slug=${studio.slug}`,
       service: { title: items.map((i) => i.title).join(' + '), price: priceToLabel(totalPrice(items)) },
     });
   } catch (error) {

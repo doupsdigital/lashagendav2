@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F5 — Agendamento pela cliente** (F5.1 ✅, F5.2 ✅, F5.3 ✅) |
-| **Próxima etapa** | **F5.4 — Tela de sucesso + link único** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fase atual** | **F5 — Agendamento pela cliente** (F5.1 ✅, F5.2 ✅, F5.3 ✅, F5.4 ✅) |
+| **Próxima etapa** | **F5.5 — Botão de WhatsApp opcional + agenda pausada** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -58,7 +58,12 @@
 - `scripts/test-availability.mjs` (F4.3): testes do motor de horários (almoço, bloqueios, folga,
   antecedência, janela, agendamento manual), sem banco nem servidor. Uso: `npm run test:availability`.
 - `scripts/test-client-phone.mjs` (F5.2): regras do WhatsApp da cliente (55, 0, 9 do celular,
-  fixo, inválidos). `npm test` roda os dois scripts de teste.
+  fixo, inválidos).
+- `scripts/test-client-appointment.mjs` (F5.4): prazo para a cliente cancelar e arquivo de
+  agenda (.ics). `npm test` roda os três scripts de teste.
+- Link único da cliente (F5.4): `/c/<slug>/agendamento/<manage_token>` (ver, adicionar à agenda,
+  cancelar até `cancellation_notice_hours` antes). Recado pós-agendamento e prazo ainda sem tela
+  (F10.2); no seed: recado preenchido e prazo de 24h.
 - `scripts/dev-set-booking-mode.mjs` (F5.3): troca o modo de um estúdio do dev (`auto` ou
   `aprovacao`) até existir a tela de regras (F10.2). Uso:
   `node --env-file=.env.development.local scripts/dev-set-booking-mode.mjs auto`
@@ -116,7 +121,6 @@ Web Push.
 - [ ] Herdado do StudioMenu, a resolver nas fases indicadas (anotado na F2.2):
   - **F10:** `min_notice_minutes` e `booking_window_days` já valem no agendamento (F4.3), mas
     ainda não têm tela para a profissional mudar (hoje ficam no padrão: 2h e 60 dias).
-  - **F5:** o link único da cliente (`manage_token`) já é gravado, mas ainda não é mostrado.
   - **F6:** o agendamento manual da profissional ainda aceita um serviço só (o da cliente
     aceita até 5 desde a F5.1, decidido com a usuária em 2026-11-24).
   - **F11:** preço anual exibido ainda é R$ 127 (`lib/pricing.ts`); o v2 vende a R$ 197.

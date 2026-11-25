@@ -246,6 +246,60 @@ textarea.wizard__input {
   cursor: not-allowed;
 }
 
+/* Tela de sucesso (F5.4): recado da profissional, dica do link e ações. */
+.wizard-success__recado {
+  text-align: left;
+  border: 1px solid var(--wizard-summary-border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin: 0 0 14px;
+}
+.wizard-success__recado p {
+  margin: 6px 0 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  white-space: pre-line;
+  color: var(--modal-spec-v-color);
+}
+.wizard-success__dica {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--wizard-label-color);
+  margin: 0 0 14px;
+}
+.wizard-success__acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wizard-success__acoes .modal__cta {
+  flex: none;
+  text-decoration: none;
+}
+.wizard-success__acao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid var(--wizard-input-border);
+  background: var(--wizard-input-bg);
+  color: var(--modal-spec-v-color);
+  font-size: 14.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.wizard-success__fechar {
+  height: 40px;
+  border: none;
+  background: none;
+  color: var(--wizard-label-color);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* Serviços do agendamento (F5.1) — lista no topo do passo 1, com
  *  "+ Adicionar outro serviço" e o total quando há mais de um. */
 .wizard__servicos {

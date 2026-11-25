@@ -111,6 +111,9 @@ async function main() {
     ],
     booking_mode: 'approval',
     agenda_paused: false,
+    // Recado da tela de sucesso e do link único (F5.4).
+    post_booking_message: 'Obrigada por agendar! Chegue 5 minutinhos antes e venha sem maquiagem nos olhos. Qualquer imprevisto, me chama no WhatsApp.',
+    cancellation_notice_hours: 24,
     // Acesso completo sem depender de cobrança.
     plan_status: 'active',
     manual_plan: true,

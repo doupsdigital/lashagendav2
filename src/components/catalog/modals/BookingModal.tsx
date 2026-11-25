@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, CalendarX, Plus, Sparkles, X } from 'lucide-react';
+import { CalendarPlus, CheckCircle, CalendarX, MessageCircle, Plus, Sparkles, X } from 'lucide-react';
 import { ProcedureItem } from '@/types/catalog';
 import type { AvailabilitySlot } from '@/lib/scheduling/availability';
 import { formatPhoneBR } from '@/lib/format';
@@ -21,6 +21,10 @@ interface BookingModalProps {
   professionalName?: string;
   /** Até quantos dias à frente dá para agendar (regra do estúdio). */
   bookingWindowDays?: number;
+  /** WhatsApp do estúdio (com 55) para o botão da tela de sucesso. */
+  whatsappNumber?: string;
+  /** Recado da profissional mostrado na tela de sucesso. */
+  postBookingMessage?: string;
   onClose: () => void;
 }
 
@@ -30,6 +34,9 @@ interface BookedAppointment {
   time: string;
   dateLabel: string;
   confirmed: boolean;
+  /** Link único (ver/cancelar) e arquivo de agenda — F5.4. */
+  manageUrl: string | null;
+  icsUrl: string | null;
 }
 
 /** Igual ao limite do servidor (`MAX_BOOKING_ITEMS`). */
@@ -81,6 +88,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   slug,
   professionalName,
   bookingWindowDays,
+  whatsappNumber,
+  postBookingMessage,
   onClose,
 }) => {
   // Hoje + a janela do estúdio (ex.: 60 dias → 61 botões), com teto.
@@ -198,6 +207,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         time: selectedSlot.time,
         dateLabel: formatDateLabel(selectedDate),
         confirmed: json.appointment?.status === 'confirmed',
+        manageUrl: typeof json.manageUrl === 'string' ? json.manageUrl : null,
+        icsUrl: typeof json.icsUrl === 'string' ? json.icsUrl : null,
       });
       setStep('confirm');
     } catch {
@@ -248,9 +259,44 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
           </div>
 
-          <div className="modal__acoes">
-            <button type="button" className="modal__cta" onClick={onClose}>
-              Ok, entendido
+          {postBookingMessage?.trim() && (
+            <div className="wizard-success__recado">
+              <span className="wizard__resumo-k">Recado de {(professionalName || '').trim().split(/\s+/)[0] || 'da profissional'}</span>
+              <p>{postBookingMessage.trim()}</p>
+            </div>
+          )}
+
+          {booked.manageUrl && (
+            <p className="wizard-success__dica">
+              Neste link você vê o agendamento e pode cancelar, se precisar. Guarde-o.
+            </p>
+          )}
+
+          <div className="wizard-success__acoes">
+            {booked.manageUrl && (
+              <a href={booked.manageUrl} className="modal__cta">
+                Ver meu agendamento
+              </a>
+            )}
+            {booked.icsUrl && (
+              <a href={booked.icsUrl} className="wizard-success__acao">
+                <CalendarPlus className="w-4 h-4" /> Adicionar à agenda do celular
+              </a>
+            )}
+            {whatsappNumber && (
+              <a
+                href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+                  `Olá! Acabei de agendar ${selected.map((p) => p.title).join(' + ')} para ${booked.dateLabel.toLowerCase()} às ${booked.time}. Meu nome é ${clientName.trim()}.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="wizard-success__acao"
+              >
+                <MessageCircle className="w-4 h-4" /> Falar no WhatsApp
+              </a>
+            )}
+            <button type="button" className="wizard-success__fechar" onClick={onClose}>
+              Fechar
             </button>
           </div>
         </div>
