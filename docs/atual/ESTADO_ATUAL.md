@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F6 — Agenda da profissional (marco M1)** (F6.1 ✅, F6.2 ⏭️ pulada, F6.3 ✅, F6.4 ✅) |
-| **Próxima etapa** | **F6.5 — Concluir com valor recebido, falta, cancelar, remarcar** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fase atual** | **F6 — Agenda da profissional (marco M1)** (F6.1 ✅, F6.2 ⏭️ pulada, F6.3 ✅, F6.4 ✅, F6.5 ✅) |
+| **Próxima etapa** | **F6.6 — Trancar horário direto da agenda** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -75,6 +75,10 @@
 - Agenda (F6.1): `AgendaAppointment` traz os itens (serviço, duração, preço), origem e dados do
   cancelamento. A visão do dia lista "Cancelados neste dia" à parte (sem ocupar horário); o
   detalhe mostra cada serviço + total e o WhatsApp clicável. O mês continua sem cancelados.
+- Pós-atendimento (F6.5): concluir grava `amount_received` (padrão = total; `parseAmountReceived`),
+  falta/desfazer limpam o valor; cancelar confirmado usa o modal da recusa (motivo + WhatsApp);
+  remarcar em `/api/professional/appointments/[id]/reschedule` (mesmos itens e link, ignora o
+  próprio agendamento no choque, mesma regra de encaixe da F6.4).
 - Agendamento manual (F6.4): busca de cliente (`/api/professional/clients`), até 5 serviços com
   opções, anotação em `appointments.notes`. Choque nunca passa; fora do expediente/trancado
   responde `needsConfirmation` e só grava com `allow_outside_hours` (`instantProblem` em

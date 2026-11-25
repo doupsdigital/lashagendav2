@@ -15,7 +15,9 @@ import {
  *  `getAvailableSlotsForDate` quanto por `isSlotAvailableForBooking`. */
 async function fetchDayContext(
   studioId: string,
-  dateStr: string
+  dateStr: string,
+  /** Ao remarcar (F6.5), o próprio agendamento não ocupa o horário. */
+  excludeAppointmentId?: string
 ): Promise<{ businessHours: BusinessHoursRow[]; blocks: ScheduleBlockRow[]; busyAppointments: BusyInterval[] }> {
   const [{ data: businessHours }, { data: blocks }] = await Promise.all([
     supabaseAdmin.from('business_hours').select('weekday, start_time, end_time').eq('studio_id', studioId),
@@ -33,7 +35,7 @@ async function fetchDayContext(
 
   const { data: appointments } = await supabaseAdmin
     .from('appointments')
-    .select('starts_at, ends_at')
+    .select('id, starts_at, ends_at')
     .eq('studio_id', studioId)
     .neq('status', 'canceled')
     .neq('origin', 'record')
@@ -43,7 +45,7 @@ async function fetchDayContext(
   return {
     businessHours: (businessHours || []) as BusinessHoursRow[],
     blocks: (blocks || []) as ScheduleBlockRow[],
-    busyAppointments: (appointments || []).map((a) => ({
+    busyAppointments: (appointments || []).filter((a) => a.id !== excludeAppointmentId).map((a) => ({
       startsAt: new Date(a.starts_at as string),
       endsAt: new Date(a.ends_at as string),
     })),
@@ -95,8 +97,9 @@ export async function getInstantProblem(
   studioId: string,
   startsAt: Date,
   dateStr: string,
-  durationMinutes: number
+  durationMinutes: number,
+  excludeAppointmentId?: string
 ): Promise<ReturnType<typeof instantProblem>> {
-  const ctx = await fetchDayContext(studioId, dateStr);
+  const ctx = await fetchDayContext(studioId, dateStr, excludeAppointmentId);
   return instantProblem({ startsAt, dateStr, durationMinutes, ...ctx });
 }

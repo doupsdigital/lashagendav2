@@ -1,7 +1,10 @@
 // Testes das ações da profissional (F6.3) — `node scripts/test-appointment-actions.mjs`.
 // Mudanças de status, motivo da recusa e mensagens de WhatsApp, sem banco nem servidor.
 import {
+  amountToInput,
   buildConfirmMessage,
+  buildRescheduleMessage,
+  parseAmountReceived,
   buildRejectMessage,
   canTransition,
   cleanCancelReason,
@@ -53,6 +56,28 @@ check('recusa com o catálogo', reject.includes('escolha outro horário aqui: ht
 const rejectNoReason = buildRejectMessage({ ...base, reason: null });
 check('recusa sem motivo nem catálogo', rejectNoReason.includes('Me chama aqui'), true);
 check('recusa nunca diz "null"', rejectNoReason.includes('null'), false);
+
+// Valor recebido (F6.5)
+check('valor: número', parseAmountReceived(150), 150);
+check('valor: texto inteiro', parseAmountReceived('150'), 150);
+check('valor: com vírgula', parseAmountReceived('150,5'), 150.5);
+check('valor: R$ e milhar', parseAmountReceived('R$ 1.200,00'), 1200);
+check('valor: milhar sem centavos', parseAmountReceived('1.200'), 1200);
+check('valor: ponto decimal', parseAmountReceived('99.90'), 99.9);
+check('valor: zero (cortesia)', parseAmountReceived('0'), 0);
+check('valor: vazio usa o total', parseAmountReceived(''), null);
+check('valor: ausente usa o total', parseAmountReceived(undefined), null);
+check('valor: negativo', parseAmountReceived(-5), undefined);
+check('valor: letras', parseAmountReceived('cento e vinte'), undefined);
+check('valor: acima do teto', parseAmountReceived('150000'), undefined);
+check('valor: 3 casas decimais', parseAmountReceived('10,555'), undefined);
+check('campo: inteiro', amountToInput(180), '180');
+check('campo: centavos', amountToInput(99.9), '99,90');
+check('campo: sem valor', amountToInput(null), '');
+
+const resched = buildRescheduleMessage({ ...base, manageUrl: 'https://x/c/teste/agendamento/abc' });
+check('remarcar: diz remarcado e o novo horário', resched.includes('*remarcado*') && resched.includes('26 de novembro às 14:00'), true);
+check('remarcar: leva o link da cliente', resched.includes('Para ver ou cancelar: https://x/c/teste/agendamento/abc'), true);
 
 console.log(failures ? `\n${failures} caso(s) falharam.` : '\nTodos os casos passaram.');
 process.exit(failures ? 1 : 0);

@@ -84,3 +84,50 @@ export function buildRejectMessage(input: WhatsappMessageInput): string {
   );
   return lines.join('\n');
 }
+
+/** Teto do valor recebido (evita digitação errada tipo 15000000). */
+export const MAX_AMOUNT_RECEIVED = 100000;
+
+/** Valor recebido digitado ao concluir (F6.5): aceita número ou texto
+ *  "150", "150,50", "R$ 1.200,00". Vazio/ausente → `null` (usa o total);
+ *  inválido, negativo ou acima do teto → `undefined`. */
+export function parseAmountReceived(value: unknown): number | null | undefined {
+  if (value === null || value === undefined || value === '') return null;
+  let n: number;
+  if (typeof value === 'number') {
+    n = value;
+  } else if (typeof value === 'string') {
+    const clean = value.replace(/R\$/i, '').replace(/\s/g, '');
+    if (!clean) return null;
+    // "1.200,50" → 1200.50; "1.200" (milhar) → 1200; "150.5" (ponto decimal) também vale.
+    const normalized = clean.includes(',')
+      ? clean.replace(/\./g, '').replace(',', '.')
+      : /^\d{1,3}(\.\d{3})+$/.test(clean)
+        ? clean.replace(/\./g, '')
+        : clean;
+    if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return undefined;
+    n = Number(normalized);
+  } else {
+    return undefined;
+  }
+  if (!Number.isFinite(n) || n < 0 || n > MAX_AMOUNT_RECEIVED) return undefined;
+  return Math.round(n * 100) / 100;
+}
+
+/** Número → texto do campo ("150" ou "150,50"). */
+export function amountToInput(value: number | null): string {
+  if (value === null) return '';
+  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace('.', ',');
+}
+
+export function buildRescheduleMessage(input: WhatsappMessageInput): string {
+  const lines = [
+    `Olá, ${firstName(input.clientName)}! Seu horário foi *remarcado* para:`,
+    '',
+    `📅 ${input.dateLabel} às ${input.time}`,
+    `💆 ${input.services}`,
+  ];
+  if (input.manageUrl) lines.push('', `Para ver ou cancelar: ${input.manageUrl}`);
+  lines.push('', 'Qualquer coisa, me chama aqui. 💗');
+  return lines.join('\n');
+}

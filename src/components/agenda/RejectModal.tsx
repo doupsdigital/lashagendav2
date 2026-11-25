@@ -10,13 +10,16 @@ interface RejectModalProps {
   busy: boolean;
   onClose: () => void;
   onConfirm: (sendWhatsApp: boolean, motivo: string) => void;
+  /** `reject` = recusar um aguardando; `cancel` = cancelar um confirmado (F6.5). */
+  mode?: 'reject' | 'cancel';
 }
 
 /** Modal "Recusar agendamento" — mesma estrutura do LashAgenda: cartão
  *  cliente/horário + motivo opcional + duas formas de recusar (com ou sem
  *  aviso) + voltar. O motivo é gravado (`cancel_reason`, F6.3) e aparece no
  *  link da cliente e na mensagem do WhatsApp. */
-export const RejectModal: React.FC<RejectModalProps> = ({ appointment, busy, onClose, onConfirm }) => {
+export const RejectModal: React.FC<RejectModalProps> = ({ appointment, busy, onClose, onConfirm, mode = 'reject' }) => {
+  const cancel = mode === 'cancel';
   const [motivo, setMotivo] = useState('');
   const dateStr = new Date(appointment.starts_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', timeZone: 'America/Sao_Paulo' });
   const timeStr = new Date(appointment.starts_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
@@ -26,7 +29,7 @@ export const RejectModal: React.FC<RejectModalProps> = ({ appointment, busy, onC
     <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" role="dialog" aria-modal="true">
       <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] flex flex-col">
         <div className="bg-gradient-to-br from-rose-600 to-rose-500 px-6 pt-3.5 pb-3.5 flex items-start justify-between shrink-0">
-          <h3 className="font-serif-pro font-bold text-lg text-white">Recusar agendamento</h3>
+          <h3 className="font-serif-pro font-bold text-lg text-white">{cancel ? 'Cancelar agendamento' : 'Recusar agendamento'}</h3>
           <button type="button" onClick={onClose} className="text-rose-200 hover:text-white mt-0.5" aria-label="Fechar">
             <X className="w-5 h-5" />
           </button>
@@ -65,7 +68,7 @@ export const RejectModal: React.FC<RejectModalProps> = ({ appointment, busy, onC
                 className="flex items-center justify-center gap-2 w-full py-3 bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white rounded-xl text-[15px] font-semibold transition-colors"
               >
                 <XCircle className="w-4 h-4" />
-                {busy ? 'Recusando...' : 'Recusar e avisar no WhatsApp'}
+                {busy ? (cancel ? 'Cancelando...' : 'Recusando...') : cancel ? 'Cancelar e avisar no WhatsApp' : 'Recusar e avisar no WhatsApp'}
               </button>
             )}
             <button
@@ -75,7 +78,17 @@ export const RejectModal: React.FC<RejectModalProps> = ({ appointment, busy, onC
               className="flex items-center justify-center gap-2 w-full py-3 bg-rose-600 hover:bg-rose-800 disabled:opacity-60 text-white rounded-xl text-[15px] font-semibold transition-colors"
             >
               <XCircle className="w-4 h-4" />
-              {busy ? 'Recusando...' : hasWhatsapp ? 'Recusar sem avisar' : 'Recusar'}
+              {busy
+                ? cancel
+                  ? 'Cancelando...'
+                  : 'Recusando...'
+                : cancel
+                  ? hasWhatsapp
+                    ? 'Cancelar sem avisar'
+                    : 'Cancelar agendamento'
+                  : hasWhatsapp
+                    ? 'Recusar sem avisar'
+                    : 'Recusar'}
             </button>
             <button
               type="button"

@@ -30,6 +30,9 @@ export interface AgendaAppointment {
   duration_minutes: number;
   /** Total formatado ("R$ 180", "R$ 180 + sob consulta") ou null (só sob consulta). */
   price_snapshot: string | null;
+  /** Total em número (soma dos itens com preço) e valor recebido ao concluir (F6.5). */
+  total_price: number | null;
+  amount_received: number | null;
   client_name: string;
   /** Com o 55 do país, pronto para `wa.me`. */
   client_whatsapp: string;
@@ -69,7 +72,7 @@ export interface StudioClientOption {
 }
 
 const AGENDA_SELECT =
-  'id, starts_at, ends_at, status, origin, total_price, client_notes, notes, canceled_by, canceled_at, cancel_reason, manage_token, ' +
+  'id, starts_at, ends_at, status, origin, total_price, amount_received, client_notes, notes, canceled_by, canceled_at, cancel_reason, manage_token, ' +
   'clients(name, whatsapp), appointment_items(title, duration_minutes, price, position)';
 
 interface AgendaRow {
@@ -79,6 +82,7 @@ interface AgendaRow {
   status: AgendaAppointment['status'];
   origin: AgendaAppointment['origin'];
   total_price: number | string | null;
+  amount_received: number | string | null;
   client_notes: string | null;
   notes: string | null;
   canceled_by: AgendaAppointment['canceled_by'];
@@ -105,6 +109,8 @@ function toAgendaAppointment(row: AgendaRow): AgendaAppointment {
       : items.length > 0
         ? bookingTotalLabel(items)
         : bookingTotalLabel([{ price: toNumberOrNull(row.total_price) }]),
+    total_price: toNumberOrNull(row.total_price),
+    amount_received: toNumberOrNull(row.amount_received),
     client_name: row.clients?.name || 'Cliente',
     client_whatsapp: normalizeWhatsappBR(row.clients?.whatsapp),
     client_notes: row.client_notes,

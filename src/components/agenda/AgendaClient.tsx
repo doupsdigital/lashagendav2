@@ -10,27 +10,39 @@ import { ManualBookingForm } from './ManualBookingForm';
 import { BlockSlotForm } from './BlockSlotForm';
 import { DayTimeline } from './DayTimeline';
 import { MonthCalendar } from './MonthCalendar';
-import { AppointmentDetailSheet } from './AppointmentDetailSheet';
+import { AppointmentDetailSheet, type RescheduleResult } from './AppointmentDetailSheet';
 import { ApproveModal } from './ApproveModal';
 import { RejectModal } from './RejectModal';
 import { SuccessModal, type SuccessModalRow } from './SuccessModal';
 import type { AgendaAppointment, ManualBookingService } from '@/lib/scheduling/agenda-service';
 import type { BusinessHoursConfigRow, ScheduleBlockConfigRow } from '@/lib/scheduling/config-service';
-import { buildConfirmMessage, buildRejectMessage, cleanCancelReason } from '@/lib/scheduling/appointment-actions';
+import { buildConfirmMessage, buildRejectMessage, buildRescheduleMessage, cleanCancelReason } from '@/lib/scheduling/appointment-actions';
+import { localDateTimeToUTC } from '@/lib/scheduling/availability';
 import { manageAppointmentPath } from '@/lib/scheduling/client-appointment';
 import { publicCatalogUrl } from '@/lib/public-url';
 
 /** Link do WhatsApp para avisar a cliente (F6.3): a confirmação leva o link
  *  único dela (ver/cancelar); a recusa leva o motivo e o catálogo para ela
  *  escolher outro horário. Só no navegador (usa o host atual). */
-function buildWhatsappLink(appointment: AgendaAppointment, slug: string, tipo: 'aprovado' | 'recusado', motivo?: string): string {
-  const dateLabel = new Date(appointment.starts_at).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' });
-  const time = new Date(appointment.starts_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+function buildWhatsappLink(
+  appointment: AgendaAppointment,
+  slug: string,
+  tipo: 'aprovado' | 'recusado' | 'remarcado',
+  motivo?: string,
+  /** Remarcar: o novo horário (o agendamento ainda tem o antigo). */
+  newStartsAt?: Date
+): string {
+  const startsAt = newStartsAt || new Date(appointment.starts_at);
+  const dateLabel = startsAt.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' });
+  const time = startsAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
   const input = { clientName: appointment.client_name, dateLabel, time, services: appointment.service_title };
+  const manageUrl = `${window.location.origin}${manageAppointmentPath(slug, appointment.manage_token)}`;
   const msg =
     tipo === 'aprovado'
-      ? buildConfirmMessage({ ...input, manageUrl: `${window.location.origin}${manageAppointmentPath(slug, appointment.manage_token)}` })
-      : buildRejectMessage({ ...input, reason: cleanCancelReason(motivo), catalogUrl: publicCatalogUrl(slug, window.location) });
+      ? buildConfirmMessage({ ...input, manageUrl })
+      : tipo === 'remarcado'
+        ? buildRescheduleMessage({ ...input, manageUrl })
+        : buildRejectMessage({ ...input, reason: cleanCancelReason(motivo), catalogUrl: publicCatalogUrl(slug, window.location) });
   return `https://wa.me/${appointment.client_whatsapp}?text=${encodeURIComponent(msg)}`;
 }
 
@@ -107,6 +119,8 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
   const [detailAppointment, setDetailAppointment] = useState<AgendaAppointment | null>(null);
   const [approveAppointment, setApproveAppointment] = useState<AgendaAppointment | null>(null);
   const [rejectAppointment, setRejectAppointment] = useState<AgendaAppointment | null>(null);
+  // O mesmo modal serve para recusar (aguardando) e cancelar (confirmado, F6.5).
+  const [rejectMode, setRejectMode] = useState<'reject' | 'cancel'>('reject');
   const [successInfo, setSuccessInfo] = useState<SuccessInfo | null>(null);
   // Recolhida por padrão — igual ao layout de referência (só o cabeçalho com
   // a contagem, expande ao tocar) — exceto quando a URL chega com
@@ -129,12 +143,12 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
   const patchStatus = async (
     appointment: AgendaAppointment,
     status: 'confirmed' | 'canceled' | 'completed' | 'no_show',
-    cancelReason?: string
+    extra: { cancel_reason?: string; amount_received?: string } = {}
   ) => {
     const res = await fetch(`/api/professional/appointments/${appointment.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cancelReason ? { status, cancel_reason: cancelReason } : { status }),
+      body: JSON.stringify({ status, ...extra }),
     });
     return res.json();
   };
@@ -174,9 +188,9 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
     setBusy(true);
     setActionError(null);
     try {
-      const json = await patchStatus(rejectAppointment, 'canceled', motivo);
+      const json = await patchStatus(rejectAppointment, 'canceled', { cancel_reason: motivo });
       if (!json.success) {
-        setActionError(json.message || 'Não foi possível recusar o agendamento.');
+        setActionError(json.message || (rejectMode === 'cancel' ? 'Não foi possível cancelar o agendamento.' : 'Não foi possível recusar o agendamento.'));
         setRejectAppointment(null);
         router.refresh();
         return;
@@ -184,7 +198,7 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
       const appt = rejectAppointment;
       setRejectAppointment(null);
       setDetailAppointment(null);
-      setSuccessInfo(buildSuccessSummary(appt, 'Agendamento Recusado'));
+      setSuccessInfo(buildSuccessSummary(appt, rejectMode === 'cancel' ? 'Agendamento Cancelado' : 'Agendamento Recusado'));
       router.refresh();
     } catch {
       setActionError('Falha na conexão.');
@@ -193,30 +207,16 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
     }
   };
 
-  const handleCancelConfirmed = async (appointment: AgendaAppointment) => {
-    setBusy(true);
-    setActionError(null);
-    try {
-      const json = await patchStatus(appointment, 'canceled');
-      if (!json.success) {
-        setActionError(json.message || 'Não foi possível cancelar o agendamento.');
-        return;
-      }
-      setDetailAppointment(null);
-      setSuccessInfo(buildSuccessSummary(appointment, 'Agendamento Cancelado'));
-      router.refresh();
-    } catch {
-      setActionError('Falha na conexão.');
-    } finally {
-      setBusy(false);
-    }
+  const handleCancelConfirmed = (appointment: AgendaAppointment) => {
+    setRejectMode('cancel');
+    setRejectAppointment(appointment);
   };
 
-  const handleComplete = async (appointment: AgendaAppointment) => {
+  const handleComplete = async (appointment: AgendaAppointment, amountText: string) => {
     setBusy(true);
     setActionError(null);
     try {
-      const json = await patchStatus(appointment, 'completed');
+      const json = await patchStatus(appointment, 'completed', { amount_received: amountText });
       if (!json.success) {
         setActionError(json.message || 'Não foi possível concluir o agendamento.');
         return;
@@ -228,6 +228,67 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
       setActionError('Falha na conexão.');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleUndo = async (appointment: AgendaAppointment) => {
+    setBusy(true);
+    setActionError(null);
+    try {
+      const json = await patchStatus(appointment, 'confirmed');
+      if (!json.success) {
+        setActionError(json.message || 'Não foi possível desfazer.');
+        return;
+      }
+      setDetailAppointment(null);
+      router.refresh();
+    } catch {
+      setActionError('Falha na conexão.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Remarcar (F6.5). O WhatsApp abre ANTES do await (Safari iOS), já com o
+  // novo horário; o servidor pode ainda pedir confirmação de encaixe.
+  const handleReschedule = async (
+    appointment: AgendaAppointment,
+    date: string,
+    time: string,
+    options: { allowOutside: boolean; notify: boolean }
+  ): Promise<RescheduleResult> => {
+    const startsAt = localDateTimeToUTC(date, time);
+    const waWindow = options.notify ? window.open(buildWhatsappLink(appointment, slug, 'remarcado', undefined, startsAt), '_blank') : null;
+    try {
+      const res = await fetch(`/api/professional/appointments/${appointment.id}/reschedule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ starts_at: startsAt.toISOString(), allow_outside_hours: options.allowOutside }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        // Não remarcou: a conversa aberta com o horário novo não vale.
+        waWindow?.close();
+        return json.needsConfirmation ? { ok: false, needsConfirm: json.message } : { ok: false, message: json.message };
+      }
+      setDetailAppointment(null);
+      setSuccessInfo({
+        title: json.outsideHours ? 'Encaixe remarcado!' : 'Agendamento Remarcado!',
+        rows: [
+          { label: 'Cliente', value: appointment.client_name },
+          { label: 'Procedimento(s)', value: appointment.service_title },
+          {
+            label: 'Novo dia',
+            value: startsAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' }),
+          },
+          { label: 'Novo horário', value: time },
+        ],
+      });
+      router.refresh();
+      return { ok: true };
+    } catch {
+      waWindow?.close();
+      return { ok: false, message: 'Falha na conexão.' };
     }
   };
 
@@ -350,7 +411,12 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
           <div className="border-t border-[#F3E6CE] divide-y divide-linen bg-surface">
             {pendingAppointments.length > 0 ? (
               pendingAppointments.map((a) => (
-                <AppointmentRow key={a.id} appointment={a} onApprove={setApproveAppointment} onReject={setRejectAppointment} />
+                <AppointmentRow key={a.id} appointment={a} onApprove={setApproveAppointment}
+                  onReject={(appt) => {
+                    setRejectMode('reject');
+                    setRejectAppointment(appt);
+                  }}
+                />
               ))
             ) : (
               <p className="px-5 py-4 text-sm text-ink-faint">Nenhum agendamento aguardando confirmação no momento.</p>
@@ -418,10 +484,15 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
           busy={busy}
           onClose={() => setDetailAppointment(null)}
           onApprove={setApproveAppointment}
-          onReject={setRejectAppointment}
+          onReject={(a) => {
+            setRejectMode('reject');
+            setRejectAppointment(a);
+          }}
           onCancelConfirmed={handleCancelConfirmed}
           onComplete={handleComplete}
           onNoShow={handleNoShow}
+          onUndo={handleUndo}
+          onReschedule={handleReschedule}
         />
       )}
 
@@ -437,6 +508,7 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
       {rejectAppointment && (
         <RejectModal
           appointment={rejectAppointment}
+          mode={rejectMode}
           busy={busy}
           onClose={() => setRejectAppointment(null)}
           onConfirm={handleRejectConfirm}

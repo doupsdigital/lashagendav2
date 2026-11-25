@@ -6,6 +6,7 @@ import type { BusinessHoursConfigRow, ScheduleBlockConfigRow } from '@/lib/sched
 import { localDateTimeToUTC } from '@/lib/scheduling/availability';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { STATUS_LABEL } from './status-styles';
+import { formatBRL } from '@/lib/service-format';
 
 interface DayTimelineProps {
   dateStr: string;
@@ -271,7 +272,10 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
             : appt.status === 'no_show'
               ? 'bg-red-50 border-red-200 border-l-red-500 opacity-70'
               : 'bg-surface border-linen border-l-rose-600';
-        const meta = [range, appt.price_snapshot].filter(Boolean).join(' · ');
+        // Concluído com valor recebido (F6.5): mostra o que ela recebeu.
+        const priceText =
+          appt.status === 'completed' && appt.amount_received !== null ? `recebido ${formatBRL(appt.amount_received)}` : appt.price_snapshot;
+        const meta = [range, priceText].filter(Boolean).join(' · ');
         return (
           <div key={appt.id} className="flex gap-2.5">
             {label}
