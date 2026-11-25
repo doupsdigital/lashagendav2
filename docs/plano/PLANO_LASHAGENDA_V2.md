@@ -54,7 +54,7 @@ cobre, **pare e pergunte**. Depois de decidida, registre em `DECISOES_DE_PRODUTO
 | F3 | Catálogo público + editor visual | `/c/<slug>` mostra o catálogo; a profissional edita serviços, variações, categorias, tema | ✅ |
 | F4 | Horários e bloqueios | Grade semanal com pausa de almoço, folgas e bloqueios parciais | ✅ |
 | F5 | Agendamento pela cliente | Cliente agenda pelo catálogo (automático ou com aprovação) e recebe link do agendamento | ✅ |
-| F6 | Agenda da profissional | Dia/semana/mês, confirmar/recusar, agendamento manual, concluir com valor, falta, trancar | ⬜ |
+| F6 | Agenda da profissional | Dia/mês (semana pulada), confirmar/recusar, agendamento manual, concluir com valor, falta, trancar | ✅ |
 | F7 | Clientes | Lista, busca, perfil com histórico, atendimento manual | ⬜ |
 | F8 | Ficha da cliente | Ficha técnica + saúde e cuidados, só dentro do app, com consentimento | ⬜ |
 | F9 | Início (painel) + relatórios | Números do dia/mês, pendências, relatórios por período | ⬜ |
@@ -385,7 +385,7 @@ meia-noite e em dia de mudança de mês.
 
 ---
 
-### F6 — Agenda da profissional — **marco M1**
+### F6 — Agenda da profissional — **marco M1** ✅
 
 **Objetivo:** o coração do uso diário.
 

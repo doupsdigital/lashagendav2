@@ -7,21 +7,29 @@ import type { SuccessModalRow } from './SuccessModal';
 interface BlockSlotFormProps {
   slug: string;
   defaultDate: string;
+  /** Aberto a partir de um horário livre da agenda (F6.6): já vem o trecho. */
+  defaultStartTime?: string;
+  defaultEndTime?: string;
   onClose: () => void;
   onCreated: (summary: { title: string; rows: SuccessModalRow[] }) => void;
 }
 
-export const BlockSlotForm: React.FC<BlockSlotFormProps> = ({ slug, defaultDate, onClose, onCreated }) => {
+export const BlockSlotForm: React.FC<BlockSlotFormProps> = ({ slug, defaultDate, defaultStartTime, defaultEndTime, onClose, onCreated }) => {
   const [date, setDate] = useState(defaultDate);
-  const [allDay, setAllDay] = useState(true);
-  const [startTime, setStartTime] = useState('12:00');
-  const [endTime, setEndTime] = useState('13:00');
+  // Vindo de um horário livre, o padrão é trancar só aquele trecho.
+  const [allDay, setAllDay] = useState(!defaultStartTime);
+  const [startTime, setStartTime] = useState(defaultStartTime || '12:00');
+  const [endTime, setEndTime] = useState(defaultEndTime || '13:00');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!allDay && endTime <= startTime) {
+      setError('O fim precisa ser depois do início.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -40,7 +48,7 @@ export const BlockSlotForm: React.FC<BlockSlotFormProps> = ({ slug, defaultDate,
       });
       const json = await res.json();
       if (!json.success) {
-        setError(json.message || 'Não foi possível criar o bloqueio.');
+        setError(json.message || 'Não foi possível trancar o horário.');
         return;
       }
       const dateLabel = new Date(`${date}T12:00:00Z`).toLocaleDateString('pt-BR', {
@@ -50,7 +58,7 @@ export const BlockSlotForm: React.FC<BlockSlotFormProps> = ({ slug, defaultDate,
         timeZone: 'America/Sao_Paulo',
       });
       onCreated({
-        title: 'Horário Bloqueado!',
+        title: 'Horário Trancado!',
         rows: [
           { label: 'Data', value: dateLabel },
           { label: 'Período', value: allDay ? 'Dia inteiro' : `${startTime} às ${endTime}` },
@@ -92,7 +100,7 @@ export const BlockSlotForm: React.FC<BlockSlotFormProps> = ({ slug, defaultDate,
           <X className="w-4 h-4" />
         </button>
 
-        <p className="font-serif-pro font-bold text-lg text-ink pr-8">Bloquear horário</p>
+        <p className="font-serif-pro font-bold text-lg text-ink pr-8">Trancar horário</p>
 
         <input
           type="date"
@@ -103,7 +111,7 @@ export const BlockSlotForm: React.FC<BlockSlotFormProps> = ({ slug, defaultDate,
 
         <label className="flex items-center gap-2 text-[15px] text-ink-soft">
           <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} className="w-4 h-4 accent-rose-600" />
-          Bloquear o dia inteiro
+          Trancar o dia inteiro
         </label>
 
         {!allDay && (
@@ -142,7 +150,7 @@ export const BlockSlotForm: React.FC<BlockSlotFormProps> = ({ slug, defaultDate,
             disabled={submitting || (!allDay && (!startTime || !endTime))}
             className="flex-1 h-11 rounded-xl bg-rose-600 text-white text-[15px] font-bold disabled:opacity-50"
           >
-            {submitting ? 'Bloqueando...' : 'Bloquear'}
+            {submitting ? 'Trancando...' : 'Trancar'}
           </button>
         </div>
       </form>

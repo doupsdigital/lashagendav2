@@ -16,7 +16,10 @@ interface DayTimelineProps {
   appointments: AgendaAppointment[];
   businessHours: BusinessHoursConfigRow[];
   scheduleBlocks: ScheduleBlockConfigRow[];
-  onSlotClick: (time: string) => void;
+  /** Horário livre tocado (F6.6): início e fim do trecho livre ("HH:MM"). */
+  onSlotClick: (time: string, endTime: string) => void;
+  /** Trancado tocado (F6.6): abre o detalhe com "destrancar". */
+  onBlockClick: (block: ScheduleBlockConfigRow) => void;
   onAppointmentClick: (appointment: AgendaAppointment) => void;
   onApprove: (appointment: AgendaAppointment) => void;
 }
@@ -26,7 +29,7 @@ const MIN_FREE_MINUTES = 30;
 type Item =
   | { kind: 'appt'; start: number; appt: AgendaAppointment; end: number }
   | { kind: 'free'; start: number; end: number }
-  | { kind: 'block'; start: number; label: string }
+  | { kind: 'block'; start: number; label: string; block: ScheduleBlockConfigRow }
   | { kind: 'note'; title: string; hint: string };
 
 function toMinutes(hhmmss: string): number {
@@ -72,6 +75,7 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
   businessHours,
   scheduleBlocks,
   onSlotClick,
+  onBlockClick,
   onAppointmentClick,
   onApprove,
 }) => {
@@ -114,13 +118,19 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
     const blockItems: Item[] = partialBlocks.map((b) => ({
       kind: 'block',
       start: toMinutes(b.start_time as string),
-      label: b.reason ? `Trancado — ${b.reason}` : 'Trancado',
+      label: `${b.reason ? `Trancado — ${b.reason}` : 'Trancado'} · até ${fmt(toMinutes(b.end_time as string))}`,
+      block: b,
     }));
 
     const result: Item[] = [...apptItems, ...blockItems];
 
     if (allDayBlock) {
-      result.push({ kind: 'block', start: window ? window.start : 0, label: allDayBlock.reason ? `Dia trancado — ${allDayBlock.reason}` : 'Dia trancado' });
+      result.push({
+        kind: 'block',
+        start: window ? window.start : 0,
+        label: allDayBlock.reason ? `Dia trancado — ${allDayBlock.reason}` : 'Dia trancado',
+        block: allDayBlock,
+      });
     } else if (window) {
       // Intervalos ocupados (agendamentos + bloqueios parciais) → sobra = livre.
       const busy = [
@@ -199,7 +209,7 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
               {label}
               <button
                 type="button"
-                onClick={() => onSlotClick(fmt(item.start))}
+                onClick={() => onSlotClick(fmt(item.start), fmt(item.end))}
                 style={{ height: length >= 90 ? 72 : 48 }}
                 className="flex-1 rounded-xl border-[1.5px] border-dashed border-linen flex items-center justify-center text-sm text-ink-faint hover:bg-rose-50/60 transition-colors"
               >
@@ -213,12 +223,14 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
           return (
             <div key={`block-${index}`} className="flex gap-2.5">
               {label}
-              <div
-                className="flex-1 min-h-[52px] rounded-xl flex items-center px-3.5 text-sm text-ink-soft"
+              <button
+                type="button"
+                onClick={() => onBlockClick(item.block)}
+                className="flex-1 min-h-[52px] rounded-xl flex items-center px-3.5 text-sm text-ink-soft text-left"
                 style={{ background: 'repeating-linear-gradient(135deg, rgba(44,24,16,0.07) 0 7px, rgba(44,24,16,0.03) 7px 14px)' }}
               >
                 {item.label}
-              </div>
+              </button>
             </div>
           );
         }

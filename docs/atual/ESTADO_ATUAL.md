@@ -11,9 +11,9 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F6 — Agenda da profissional (marco M1)** (F6.1 ✅, F6.2 ⏭️ pulada, F6.3 ✅, F6.4 ✅, F6.5 ✅) |
-| **Próxima etapa** | **F6.6 — Trancar horário direto da agenda** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
-| **Fases concluídas** | F0, F1, F2, F3, F4, F5 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
+| **Fase atual** | **F7 — Clientes** |
+| **Próxima etapa** | **F7.1 — Lista de clientes** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6 (F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
 ## 2. O que existe no repositório
@@ -75,6 +75,9 @@
 - Agenda (F6.1): `AgendaAppointment` traz os itens (serviço, duração, preço), origem e dados do
   cancelamento. A visão do dia lista "Cancelados neste dia" à parte (sem ocupar horário); o
   detalhe mostra cada serviço + total e o WhatsApp clicável. O mês continua sem cancelados.
+- Trancar pela agenda (F6.6): tocar num horário livre pergunta Agendar/Trancar (trancar já vem
+  com o trecho); tocar num trancado mostra período/motivo e Destrancar (bloqueio de vários dias
+  sai inteiro, com aviso). Componentes em `components/agenda/SlotSheets.tsx`.
 - Pós-atendimento (F6.5): concluir grava `amount_received` (padrão = total; `parseAmountReceived`),
   falta/desfazer limpam o valor; cancelar confirmado usa o modal da recusa (motivo + WhatsApp);
   remarcar em `/api/professional/appointments/[id]/reschedule` (mesmos itens e link, ignora o

@@ -8,6 +8,7 @@ import { ProductTour } from '@/components/tour/ProductTour';
 import { AppointmentRow } from './AppointmentRow';
 import { ManualBookingForm } from './ManualBookingForm';
 import { BlockSlotForm } from './BlockSlotForm';
+import { BlockDetailSheet, SlotChoiceSheet } from './SlotSheets';
 import { DayTimeline } from './DayTimeline';
 import { MonthCalendar } from './MonthCalendar';
 import { AppointmentDetailSheet, type RescheduleResult } from './AppointmentDetailSheet';
@@ -55,7 +56,7 @@ const AGENDA_TOUR_STEPS: Step[] = [
   { target: '[data-tour="agenda-block"]', title: 'Trancar horário', content: 'Bloqueie um horário ou o dia inteiro (folga, compromisso, etc).' },
   { target: '[data-tour="agenda-view-toggle"]', title: 'Dia ou Mês', content: 'Troque entre a visão de um dia só e a visão do mês inteiro.' },
   { target: '#pendentes', title: 'Aguardando confirmação', content: 'Agendamentos que ainda esperam sua aprovação aparecem aqui.' },
-  { target: '[data-tour="agenda-day-grid"]', title: 'Seu dia', content: 'Toque num horário livre pra agendar, ou num agendamento existente pra ver os detalhes.' },
+  { target: '[data-tour="agenda-day-grid"]', title: 'Seu dia', content: 'Toque num horário livre pra agendar ou trancar, num trancado pra destrancar, ou num agendamento pra ver os detalhes.' },
 ];
 
 interface SuccessInfo {
@@ -116,6 +117,11 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
   const [showManualForm, setShowManualForm] = useState(false);
   const [manualPrefillTime, setManualPrefillTime] = useState<string | undefined>(undefined);
   const [showBlockForm, setShowBlockForm] = useState(false);
+  // F6.6: trecho livre tocado (agendar ou trancar), trecho a trancar já
+  // preenchido e trancado tocado (destrancar).
+  const [slotChoice, setSlotChoice] = useState<{ start: string; end: string } | null>(null);
+  const [blockPrefill, setBlockPrefill] = useState<{ start: string; end: string } | null>(null);
+  const [detailBlock, setDetailBlock] = useState<ScheduleBlockConfigRow | null>(null);
   const [detailAppointment, setDetailAppointment] = useState<AgendaAppointment | null>(null);
   const [approveAppointment, setApproveAppointment] = useState<AgendaAppointment | null>(null);
   const [rejectAppointment, setRejectAppointment] = useState<AgendaAppointment | null>(null);
@@ -311,10 +317,19 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
     }
   };
 
-  const handleSlotClick = (time: string) => {
-    setManualPrefillTime(time);
-    setShowManualForm(true);
-    setShowBlockForm(false);
+  const handleSlotClick = (time: string, endTime: string) => {
+    setSlotChoice({ start: time, end: endTime });
+  };
+
+  // Trancar a partir de um horário livre: 1h (ou o que sobrar do trecho).
+  const lockFromSlot = (start: string, end: string) => {
+    const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+    const endMin = Math.min(toMin(start) + 60, toMin(end));
+    const endLabel = `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+    setSlotChoice(null);
+    setShowManualForm(false);
+    setBlockPrefill({ start, end: endLabel });
+    setShowBlockForm(true);
   };
 
   return (
@@ -339,6 +354,7 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
           type="button"
           data-tour="agenda-block"
           onClick={() => {
+            setBlockPrefill(null);
             setShowBlockForm((v) => !v);
             setShowManualForm(false);
           }}
@@ -429,6 +445,7 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
 
       {showManualForm && (
         <ManualBookingForm
+          key={manualPrefillTime || 'novo'}
           slug={slug}
           services={services}
           defaultDate={formDefaultDate}
@@ -444,8 +461,12 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
 
       {showBlockForm && (
         <BlockSlotForm
+          // Remonta quando muda o trecho pré-preenchido (formulário já aberto).
+          key={blockPrefill ? `${blockPrefill.start}-${blockPrefill.end}` : 'novo'}
           slug={slug}
           defaultDate={formDefaultDate}
+          defaultStartTime={blockPrefill?.start}
+          defaultEndTime={blockPrefill?.end}
           onClose={() => setShowBlockForm(false)}
           onCreated={(summary) => {
             setShowBlockForm(false);
@@ -473,8 +494,35 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
           businessHours={businessHours}
           scheduleBlocks={scheduleBlocks}
           onSlotClick={handleSlotClick}
+          onBlockClick={setDetailBlock}
           onAppointmentClick={setDetailAppointment}
           onApprove={setApproveAppointment}
+        />
+      )}
+
+      {slotChoice && (
+        <SlotChoiceSheet
+          start={slotChoice.start}
+          end={slotChoice.end}
+          onClose={() => setSlotChoice(null)}
+          onBook={() => {
+            setManualPrefillTime(slotChoice.start);
+            setSlotChoice(null);
+            setShowBlockForm(false);
+            setShowManualForm(true);
+          }}
+          onLock={() => lockFromSlot(slotChoice.start, slotChoice.end)}
+        />
+      )}
+
+      {detailBlock && (
+        <BlockDetailSheet
+          block={detailBlock}
+          onClose={() => setDetailBlock(null)}
+          onRemoved={() => {
+            setDetailBlock(null);
+            router.refresh();
+          }}
         />
       )}
 
