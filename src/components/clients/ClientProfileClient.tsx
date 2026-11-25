@@ -21,12 +21,16 @@ interface ClientProfileClientProps {
   appointments: number;
   /** "AAAA-MM-DD" no fuso do estúdio (idade e limite da data de nascimento). */
   today: string;
+  /** Resumo do histórico (F7.3), logo abaixo do nome. */
+  summary?: React.ReactNode;
+  /** Próximos e passados (F7.3), antes do excluir. */
+  history?: React.ReactNode;
 }
 
 const inputClass =
   'h-12 rounded-xl border border-linen bg-cream px-4 text-[16px] text-ink placeholder:text-ink-faint focus:outline-none focus:border-rose-400';
 
-export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, client, appointments, today }) => {
+export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, client, appointments, today, summary, history }) => {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -50,6 +54,8 @@ export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, 
           </p>
         </div>
       </div>
+
+      {!editing && summary}
 
       {saved && !editing && (
         <p className="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[15px] px-4 py-3">Dados salvos.</p>
@@ -97,6 +103,8 @@ export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, 
           >
             <Pencil className="w-4 h-4" /> Editar dados
           </button>
+
+          {history}
 
           <DeleteClientBlock slug={slug} client={client} appointments={appointments} onDeleted={() => router.replace(listHref)} />
         </>

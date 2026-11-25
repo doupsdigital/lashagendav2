@@ -2,6 +2,8 @@ import 'server-only';
 import { supabaseAdmin } from '../supabase-admin';
 import { legacyWhatsappVariants, normalizeClientWhatsapp } from '../scheduling/client-phone';
 import { sortClientsByName, summarizeVisits, type ClientAppointmentRow, type ClientListItem } from './client-list';
+import type { HistoryAppointment } from './client-history';
+import { toNumberOrNull } from '../service-format';
 
 /** Leitura em páginas: o Supabase devolve no máximo 1000 linhas por vez. */
 const PAGE = 1000;
@@ -221,4 +223,31 @@ export async function deleteClient(studioId: string, clientId: string): Promise<
     return { ok: false, reason: 'error' };
   }
   return data && data.length > 0 ? { ok: true } : { ok: false, reason: 'not_found' };
+}
+
+/** Todos os agendamentos da cliente (F7.3), com os serviços — até 500, do
+ *  mais recente ao mais antigo (quem mostra separa futuros e passados). */
+export async function getClientHistory(studioId: string, clientId: string): Promise<HistoryAppointment[]> {
+  if (!UUID_RE.test(clientId)) return [];
+  const { data, error } = await supabaseAdmin
+    .from('appointments')
+    .select('id, starts_at, status, origin, total_price, amount_received, canceled_by, cancel_reason, appointment_items(title, position)')
+    .eq('studio_id', studioId)
+    .eq('client_id', clientId)
+    .order('starts_at', { ascending: false })
+    .limit(500);
+  if (error) console.error('[client-service] getClientHistory:', error);
+  return ((data || []) as Record<string, unknown>[]).map((r) => ({
+    id: r.id as string,
+    starts_at: r.starts_at as string,
+    status: r.status as string,
+    origin: r.origin as string,
+    total_price: toNumberOrNull(r.total_price as number | string | null),
+    amount_received: toNumberOrNull(r.amount_received as number | string | null),
+    canceled_by: (r.canceled_by as string) || null,
+    cancel_reason: (r.cancel_reason as string) || null,
+    services: [...((r.appointment_items as { title: string; position: number }[]) || [])]
+      .sort((a, b) => a.position - b.position)
+      .map((i) => i.title),
+  }));
 }

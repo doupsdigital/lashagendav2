@@ -2,7 +2,9 @@ import { notFound, redirect } from 'next/navigation';
 import { Users } from 'lucide-react';
 import { getStudioForProfessionalApp } from '@/lib/studio-service';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
-import { countClientAppointments, getClientProfile } from '@/lib/clients/client-service';
+import { getClientHistory, getClientProfile } from '@/lib/clients/client-service';
+import { splitHistory, summarizeHistory } from '@/lib/clients/client-history';
+import { ClientHistoryList, ClientHistorySummaryCard } from '@/components/clients/ClientHistory';
 import { PageTitleBar } from '@/components/app-shell/PageTitleBar';
 import { ClientProfileClient } from '@/components/clients/ClientProfileClient';
 
@@ -10,7 +12,7 @@ interface ClientePageProps {
   params: Promise<{ slug: string; id: string }>;
 }
 
-/** Perfil da cliente (F7.2): dados, editar e excluir. */
+/** Perfil da cliente: dados, editar e excluir (F7.2); resumo e histórico (F7.3). */
 export default async function ClientePage({ params }: ClientePageProps) {
   const { slug, id } = await params;
   // Sem sessão não lê nada (o layout só esconde — ver clientes/page.tsx).
@@ -22,14 +24,23 @@ export default async function ClientePage({ params }: ClientePageProps) {
   const client = await getClientProfile(studio.id, id);
   // Link antigo de cliente excluída (ou de outro estúdio): volta para a lista.
   if (!client) redirect(`/app/${slug}/clientes`);
-  const appointments = await countClientAppointments(studio.id, client.id);
+  const history = await getClientHistory(studio.id, client.id);
+  const now = new Date();
+  const { upcoming, past } = splitHistory(history, now);
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
   return (
     <>
       <PageTitleBar title="Clientes" icon={<Users className="w-5 h-5 text-ink-soft" />} slug={slug} />
       <main className="max-w-md mx-auto px-5 pt-6 pb-6 flex flex-col gap-4">
-        <ClientProfileClient slug={slug} client={client} appointments={appointments} today={today} />
+        <ClientProfileClient
+          slug={slug}
+          client={client}
+          appointments={history.length}
+          today={today}
+          summary={<ClientHistorySummaryCard summary={summarizeHistory(history, now)} />}
+          history={<ClientHistoryList slug={slug} upcoming={upcoming} past={past} nowIso={now.toISOString()} />}
+        />
       </main>
     </>
   );
