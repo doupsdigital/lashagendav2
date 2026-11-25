@@ -1,7 +1,8 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { getStudioForProfessionalApp } from '@/lib/studio-service';
-import { getAppointmentsForDay, getPendingAppointments } from '@/lib/scheduling/agenda-service';
+import { getAppointmentsForDay, getPendingAppointments, getRecentClientActivity } from '@/lib/scheduling/agenda-service';
+import { ClientActivityCard } from '@/components/app-shell/ClientActivityCard';
 import { getBusinessHours } from '@/lib/scheduling/config-service';
 import { GradientHeader } from '@/components/app-shell/GradientHeader';
 import { StatCard } from '@/components/app-shell/StatCard';
@@ -46,11 +47,14 @@ export default async function InicioPage({ params }: InicioPageProps) {
   const hasPaidAccess = order.has_paid_access;
   // Agendamento de fato funcionando para a cliente final (`isBookingLive`).
   const schedulingLive = order.booking_live;
-  const [todayAppointments, pendingAppointments, businessHours] = await Promise.all([
+  const [todayAppointments, pendingAppointments, businessHours, clientActivity] = await Promise.all([
     getAppointmentsForDay(order.id, todayInSaoPaulo()),
     getPendingAppointments(order.id),
     // Só o checklist de "próximos passos" usa isso (item de horários).
     hasPaidAccess ? getBusinessHours(order.id) : Promise.resolve([]),
+    // Novidades das clientes (F5.6) — também com a agenda pausada, para ela
+    // ver o que entrou antes de pausar.
+    hasPaidAccess ? getRecentClientActivity(order.id) : Promise.resolve([]),
   ]);
   const hoursDone = businessHours.length > 0;
 
@@ -129,6 +133,8 @@ export default async function InicioPage({ params }: InicioPageProps) {
           />
         </div>
       )}
+
+      <ClientActivityCard slug={slug} activity={clientActivity} />
 
       <ViewCatalogCard slug={order.slug} />
 

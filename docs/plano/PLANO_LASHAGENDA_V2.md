@@ -53,7 +53,7 @@ cobre, **pare e pergunte**. Depois de decidida, registre em `DECISOES_DE_PRODUTO
 | F2 | Modelo de dados v2 + camada de serviço | Banco dev com o schema novo; estúdio de teste criado por script | ✅ |
 | F3 | Catálogo público + editor visual | `/c/<slug>` mostra o catálogo; a profissional edita serviços, variações, categorias, tema | ✅ |
 | F4 | Horários e bloqueios | Grade semanal com pausa de almoço, folgas e bloqueios parciais | ✅ |
-| F5 | Agendamento pela cliente | Cliente agenda pelo catálogo (automático ou com aprovação) e recebe link do agendamento | ⬜ |
+| F5 | Agendamento pela cliente | Cliente agenda pelo catálogo (automático ou com aprovação) e recebe link do agendamento | ✅ |
 | F6 | Agenda da profissional | Dia/semana/mês, confirmar/recusar, agendamento manual, concluir com valor, falta, trancar | ⬜ |
 | F7 | Clientes | Lista, busca, perfil com histórico, atendimento manual | ⬜ |
 | F8 | Ficha da cliente | Ficha técnica + saúde e cuidados, só dentro do app, com consentimento | ⬜ |
@@ -351,7 +351,7 @@ cliente e conferir que os horários oferecidos respeitam tudo.
 
 ---
 
-### F5 — Agendamento pela cliente
+### F5 — Agendamento pela cliente ✅
 
 **Objetivo:** o carro-chefe. A cliente agenda sozinha, em poucos toques, bonito.
 

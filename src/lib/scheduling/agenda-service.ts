@@ -2,6 +2,13 @@ import { supabaseAdmin } from '../supabase-admin';
 import { normalizeWhatsappBR } from '../format';
 import { priceToLabel } from '../service-format';
 import { localDateTimeToUTC } from './availability';
+import {
+  ACTIVITY_LIMIT,
+  ACTIVITY_WINDOW_HOURS,
+  classifyActivity,
+  type ActivityKind,
+  type ActivitySourceRow,
+} from './client-activity';
 
 /** Formato que as telas da Agenda (herdadas do StudioMenu) usam. Montado a
  *  partir de `appointments` + `clients` + `appointment_items` (F2.2); a F6
@@ -108,6 +115,57 @@ export async function getPendingAppointments(studioId: string, limit = 50): Prom
 
   if (error) console.error('[agenda-service] getPendingAppointments:', error);
   return ((data as unknown as AgendaRow[]) || []).map(toAgendaAppointment);
+}
+
+export interface ClientActivity {
+  id: string;
+  kind: ActivityKind;
+  /** Quando a cliente agendou/cancelou (ISO). */
+  at: string;
+  status: AgendaAppointment['status'];
+  starts_at: string;
+  client_name: string;
+  service_title: string;
+}
+
+/** Novidades do Início (F5.6): agendamentos feitos pelas clientes no
+ *  catálogo e cancelamentos pelo link único, das últimas
+ *  `ACTIVITY_WINDOW_HOURS`, mais recentes primeiro. */
+export async function getRecentClientActivity(studioId: string, now: Date = new Date()): Promise<ClientActivity[]> {
+  const since = new Date(now.getTime() - ACTIVITY_WINDOW_HOURS * 3600000);
+  const sinceIso = since.toISOString();
+  const { data, error } = await supabaseAdmin
+    .from('appointments')
+    .select('id, created_at, canceled_at, canceled_by, status, origin, starts_at, clients(name), appointment_items(title, position)')
+    .eq('studio_id', studioId)
+    .neq('origin', 'record')
+    .or(`created_at.gte.${sinceIso},canceled_at.gte.${sinceIso}`)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) console.error('[agenda-service] getRecentClientActivity:', error);
+  type Row = ActivitySourceRow & {
+    id: string;
+    starts_at: string;
+    clients: { name: string } | null;
+    appointment_items: { title: string; position: number }[] | null;
+  };
+  const list: ClientActivity[] = [];
+  for (const row of (data as unknown as Row[]) || []) {
+    const activity = classifyActivity(row, since);
+    if (!activity) continue;
+    const items = [...(row.appointment_items || [])].sort((a, b) => a.position - b.position);
+    list.push({
+      id: row.id,
+      kind: activity.kind,
+      at: activity.at.toISOString(),
+      status: row.status,
+      starts_at: row.starts_at,
+      client_name: row.clients?.name || 'Cliente',
+      service_title: items.map((i) => i.title).join(' + ') || 'Atendimento',
+    });
+  }
+  return list.sort((a, b) => b.at.localeCompare(a.at)).slice(0, ACTIVITY_LIMIT);
 }
 
 /** Serviços que a profissional pode escolher num agendamento manual — todos
