@@ -1,7 +1,7 @@
 // Testes do motor de disponibilidade (F4.3) — `node scripts/test-availability.mjs`.
 // Roda o arquivo TypeScript de verdade (o Node 22 entende TS sem compilar),
 // sem banco nem servidor. Sai com código 1 se algum caso falhar.
-import { computeAvailableSlots, isInstantAvailable } from '../src/lib/scheduling/availability.ts';
+import { computeAvailableSlots, instantProblem, isInstantAvailable } from '../src/lib/scheduling/availability.ts';
 
 // Quarta-feira 03/03/2027; "agora" fixo dois dias antes, ao meio-dia.
 const DAY = '2027-03-03';
@@ -109,6 +109,24 @@ check('manual 14:15 com bloqueio 14–16', manual('14:15', 60, {
   blocks: [{ start_date: DAY, end_date: DAY, all_day: false, start_time: '14:00', end_time: '16:00' }],
 }), false);
 check('manual 17:00 de 1h termina 18:00', manual('17:00'), true);
+
+// 15. Motivo do horário ocupado no agendamento manual (F6.4): choque nunca
+// passa; fora do expediente/trancado a profissional pode encaixar.
+const why = (hhmm, duration = 60, extra = {}) =>
+  instantProblem({ startsAt: at(hhmm), durationMinutes: duration, dateStr: DAY, businessHours: lunchHours, blocks: [], busyAppointments: [], ...extra });
+const busy10 = [{ startsAt: at('10:00'), endsAt: at('11:00') }];
+check('motivo: livre', why('14:00'), null);
+check('motivo: choque com agendamento', why('10:30', 60, { busyAppointments: busy10 }), 'conflict');
+check('motivo: encostado no agendamento não é choque', why('11:00', 60, { busyAppointments: busy10 }), null);
+check('motivo: almoço = fora do expediente', why('12:15'), 'outside_hours');
+check('motivo: depois das 18h', why('18:30'), 'outside_hours');
+check('motivo: dia sem expediente', why('10:00', 60, { businessHours: [] }), 'outside_hours');
+check('motivo: bloqueio parcial', why('14:15', 60, {
+  blocks: [{ start_date: DAY, end_date: DAY, all_day: false, start_time: '14:00', end_time: '16:00' }],
+}), 'blocked');
+check('motivo: dia trancado', why('10:00', 60, { blocks: [{ start_date: DAY, end_date: DAY, all_day: true, start_time: null, end_time: null }] }), 'blocked');
+check('motivo: choque vence fora do expediente', why('18:30', 60, { busyAppointments: [{ startsAt: at('18:00'), endsAt: at('19:00') }] }), 'conflict');
+check('motivo: duração inválida', why('10:00', 0), 'invalid');
 
 console.log(failures ? `\n${failures} caso(s) falharam.` : '\nTodos os casos passaram.');
 process.exit(failures ? 1 : 0);

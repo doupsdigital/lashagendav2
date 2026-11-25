@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../supabase-admin';
 import {
   computeAvailableSlots,
+  instantProblem,
   isInstantAvailable,
   localDateTimeToUTC,
   AvailabilitySlot,
@@ -86,4 +87,16 @@ export async function isSlotAvailableForBooking(
 ): Promise<boolean> {
   const ctx = await fetchDayContext(studioId, dateStr);
   return isInstantAvailable({ startsAt, dateStr, durationMinutes, ...ctx });
+}
+
+/** Como `isSlotAvailableForBooking`, mas diz o motivo (F6.4): `conflict`
+ *  (outro agendamento), `blocked`, `outside_hours`, `invalid` ou `null`. */
+export async function getInstantProblem(
+  studioId: string,
+  startsAt: Date,
+  dateStr: string,
+  durationMinutes: number
+): Promise<ReturnType<typeof instantProblem>> {
+  const ctx = await fetchDayContext(studioId, dateStr);
+  return instantProblem({ startsAt, dateStr, durationMinutes, ...ctx });
 }

@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F6 — Agenda da profissional (marco M1)** (F6.1 ✅, F6.2 ⏭️ pulada, F6.3 ✅) |
-| **Próxima etapa** | **F6.4 — Agendamento manual (vários serviços)** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fase atual** | **F6 — Agenda da profissional (marco M1)** (F6.1 ✅, F6.2 ⏭️ pulada, F6.3 ✅, F6.4 ✅) |
+| **Próxima etapa** | **F6.5 — Concluir com valor recebido, falta, cancelar, remarcar** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -75,6 +75,10 @@
 - Agenda (F6.1): `AgendaAppointment` traz os itens (serviço, duração, preço), origem e dados do
   cancelamento. A visão do dia lista "Cancelados neste dia" à parte (sem ocupar horário); o
   detalhe mostra cada serviço + total e o WhatsApp clicável. O mês continua sem cancelados.
+- Agendamento manual (F6.4): busca de cliente (`/api/professional/clients`), até 5 serviços com
+  opções, anotação em `appointments.notes`. Choque nunca passa; fora do expediente/trancado
+  responde `needsConfirmation` e só grava com `allow_outside_hours` (`instantProblem` em
+  `availability.ts`). Serviço com opções exige a opção escolhida também no servidor.
 - Aguardando (F6.3): confirmar/recusar só pelas mudanças de `lib/scheduling/appointment-actions.ts`
   (testes em `scripts/test-appointment-actions.mjs`); motivo da recusa gravado em `cancel_reason`
   e mostrado no link da cliente; WhatsApp de confirmação leva o link único, o de recusa leva o
@@ -136,8 +140,6 @@ Web Push.
 - [ ] Herdado do StudioMenu, a resolver nas fases indicadas (anotado na F2.2):
   - **F10:** `min_notice_minutes` e `booking_window_days` já valem no agendamento (F4.3), mas
     ainda não têm tela para a profissional mudar (hoje ficam no padrão: 2h e 60 dias).
-  - **F6:** o agendamento manual da profissional ainda aceita um serviço só (o da cliente
-    aceita até 5 desde a F5.1, decidido com a usuária em 2026-11-24).
   - **F11:** preço anual exibido ainda é R$ 127 (`lib/pricing.ts`); o v2 vende a R$ 197.
   - **F12:** `/admin/catalogos` virou uma lista enxuta (status, links, +1 mês/ano, liberar à
     mão, desativar, excluir). Saíram o "Cadastrar serviços com IA" (`extract-catalog`,

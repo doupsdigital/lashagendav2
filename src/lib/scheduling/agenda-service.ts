@@ -34,6 +34,8 @@ export interface AgendaAppointment {
   /** Com o 55 do país, pronto para `wa.me`. */
   client_whatsapp: string;
   client_notes: string | null;
+  /** Anotação da profissional. */
+  notes: string | null;
   starts_at: string;
   ends_at: string;
   status: 'pending' | 'confirmed' | 'canceled' | 'completed' | 'no_show';
@@ -49,12 +51,25 @@ export interface AgendaAppointment {
 export interface ManualBookingService {
   id: string;
   title: string;
+  /** Preço formatado ("R$ 180", "A partir de R$ 70", "Sob Consulta"). */
   price: string;
+  price_value: number | null;
+  price_from: boolean;
   duration_minutes: number;
+  /** Opções do serviço (F6.4); vazio = sem opções. */
+  variations: { id: string; name: string; duration_minutes: number; price: number | null }[];
+}
+
+/** Cliente do estúdio na busca do agendamento manual (F6.4). */
+export interface StudioClientOption {
+  id: string;
+  name: string;
+  /** Só dígitos, sem o 55 ("11999990000"); vazio se não tem. */
+  whatsapp: string;
 }
 
 const AGENDA_SELECT =
-  'id, starts_at, ends_at, status, origin, total_price, client_notes, canceled_by, canceled_at, cancel_reason, manage_token, ' +
+  'id, starts_at, ends_at, status, origin, total_price, client_notes, notes, canceled_by, canceled_at, cancel_reason, manage_token, ' +
   'clients(name, whatsapp), appointment_items(title, duration_minutes, price, position)';
 
 interface AgendaRow {
@@ -65,6 +80,7 @@ interface AgendaRow {
   origin: AgendaAppointment['origin'];
   total_price: number | string | null;
   client_notes: string | null;
+  notes: string | null;
   canceled_by: AgendaAppointment['canceled_by'];
   canceled_at: string | null;
   cancel_reason: string | null;
@@ -92,6 +108,7 @@ function toAgendaAppointment(row: AgendaRow): AgendaAppointment {
     client_name: row.clients?.name || 'Cliente',
     client_whatsapp: normalizeWhatsappBR(row.clients?.whatsapp),
     client_notes: row.client_notes,
+    notes: row.notes,
     starts_at: row.starts_at,
     ends_at: row.ends_at,
     status: row.status,
@@ -209,20 +226,64 @@ export async function getRecentClientActivity(studioId: string, now: Date = new 
 
 /** Serviços que a profissional pode escolher num agendamento manual — todos
  *  os ativos, não só os `bookable` (ela marca o que quiser; a cliente final
- *  respeita `bookable`). */
+ *  respeita `bookable`), com as opções (F6.4). */
 export async function getManualBookingServices(studioId: string): Promise<ManualBookingService[]> {
   const { data, error } = await supabaseAdmin
     .from('services')
-    .select('id, title, price, price_from, duration_minutes')
+    .select('id, title, price, price_from, duration_minutes, service_variations(id, name, duration_minutes, price, position)')
     .eq('studio_id', studioId)
     .eq('active', true)
     .order('position', { ascending: true });
 
   if (error) console.error('[agenda-service] getManualBookingServices:', error);
-  return (data || []).map((s) => ({
-    id: s.id as string,
-    title: s.title as string,
-    price: priceToLabel(s.price as number | string | null, Boolean(s.price_from)),
-    duration_minutes: s.duration_minutes as number,
+  type Row = {
+    id: string;
+    title: string;
+    price: number | string | null;
+    price_from: boolean | null;
+    duration_minutes: number;
+    service_variations: { id: string; name: string; duration_minutes: number; price: number | string | null; position: number }[] | null;
+  };
+  return ((data as unknown as Row[]) || []).map((s) => ({
+    id: s.id,
+    title: s.title,
+    price: priceToLabel(s.price, Boolean(s.price_from)),
+    price_value: toNumberOrNull(s.price),
+    price_from: Boolean(s.price_from),
+    duration_minutes: s.duration_minutes,
+    variations: [...(s.service_variations || [])]
+      .sort((a, b) => a.position - b.position)
+      .map((v) => ({ id: v.id, name: v.name, duration_minutes: v.duration_minutes, price: toNumberOrNull(v.price) })),
   }));
+}
+
+/** Busca por nome (parte do nome) ou WhatsApp (3+ dígitos) — no máximo 8.
+ *  Sem texto: as clientes mais recentes. */
+export async function searchStudioClients(studioId: string, query: string): Promise<StudioClientOption[]> {
+  // Tira os curingas do `ilike` e o que o filtro do PostgREST interpreta.
+  const text = query.replace(/[%_,()*\\]/g, ' ').replace(/\s+/g, ' ').trim();
+  const digits = text.replace(/\D/g, '');
+  let q = supabaseAdmin.from('clients').select('id, name, whatsapp_digits').eq('studio_id', studioId);
+  if (digits.length >= 3 && digits.length === text.replace(/[\s()+-]/g, '').length) {
+    q = q.ilike('whatsapp_digits', `%${digits.replace(/^55(?=\d{10,11}$)/, '')}%`).order('name');
+  } else if (text) {
+    q = q.ilike('name', `%${text}%`).order('name');
+  } else {
+    q = q.order('created_at', { ascending: false });
+  }
+  const { data, error } = await q.limit(8);
+  if (error) console.error('[agenda-service] searchStudioClients:', error);
+  return (data || []).map((c) => ({ id: c.id as string, name: c.name as string, whatsapp: (c.whatsapp_digits as string) || '' }));
+}
+
+/** Uma cliente do estúdio (agendamento manual com cliente existente). */
+export async function getStudioClient(studioId: string, clientId: string): Promise<StudioClientOption | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(clientId)) return null;
+  const { data } = await supabaseAdmin
+    .from('clients')
+    .select('id, name, whatsapp_digits')
+    .eq('studio_id', studioId)
+    .eq('id', clientId)
+    .maybeSingle();
+  return data ? { id: data.id as string, name: data.name as string, whatsapp: (data.whatsapp_digits as string) || '' } : null;
 }

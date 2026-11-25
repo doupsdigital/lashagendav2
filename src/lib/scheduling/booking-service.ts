@@ -97,6 +97,14 @@ export async function loadBookingItem(
     };
   }
 
+  // Serviço com opções exige escolher uma (F6.4): sem isso entraria a
+  // duração/preço "genéricos" do serviço, que não valem para nenhuma opção.
+  const { count: variationCount } = await supabaseAdmin
+    .from('service_variations')
+    .select('id', { count: 'exact', head: true })
+    .eq('service_id', service.id);
+  if ((variationCount ?? 0) > 0) return null;
+
   return {
     serviceId: service.id as string,
     variationId: null,
@@ -168,6 +176,8 @@ export interface CreateAppointmentInput {
   status: Extract<AppointmentStatus, 'pending' | 'confirmed'>;
   origin: Exclude<AppointmentOrigin, 'record'>;
   clientNotes?: string | null;
+  /** Anotação da profissional (agendamento manual, F6.4). */
+  notes?: string | null;
 }
 
 export type CreateAppointmentResult =
@@ -191,6 +201,7 @@ export async function createAppointment(input: CreateAppointmentInput): Promise<
       origin: input.origin,
       total_price: totalPrice(input.items),
       client_notes: input.clientNotes?.trim().slice(0, MAX_CLIENT_NOTES) || null,
+      notes: input.notes?.trim().slice(0, MAX_CLIENT_NOTES) || null,
     })
     .select('id, starts_at, ends_at, status, manage_token')
     .single();

@@ -128,6 +128,11 @@ export const AppointmentDetailSheet: React.FC<AppointmentDetailSheetProps> = ({
               <span className="font-semibold text-ink">Recado da cliente:</span> {appointment.client_notes}
             </p>
           )}
+          {appointment.notes && (
+            <p className="text-sm text-ink-soft rounded-xl border border-linen px-3.5 py-2.5">
+              <span className="font-semibold text-ink">Sua anotação:</span> {appointment.notes}
+            </p>
+          )}
           {appointment.status === 'canceled' && (
             <p className="text-sm text-ink-soft rounded-xl bg-linen/50 px-3.5 py-2.5">
               {appointment.canceled_by === 'client' ? 'Cancelado pela cliente' : 'Cancelado por você'}

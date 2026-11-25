@@ -184,14 +184,27 @@ export interface IsInstantAvailableParams {
  *  pode digitar qualquer horário (ex.: 14:15). Sem antecedência nem janela:
  *  ela pode estar com a cliente na frente agora mesmo. */
 export function isInstantAvailable(params: IsInstantAvailableParams): boolean {
+  return instantProblem(params) === null;
+}
+
+/** Por que um instante exato não está livre (F6.4), na ordem de gravidade:
+ *  - `invalid`: duração inválida;
+ *  - `conflict`: bate com outro agendamento — nunca dá para encaixar;
+ *  - `blocked`: cai num bloqueio (dia inteiro ou parcial);
+ *  - `outside_hours`: fora das faixas de atendimento do dia.
+ *  `blocked` e `outside_hours` a profissional pode encaixar mesmo assim,
+ *  depois de confirmar. `null` = livre. */
+export function instantProblem(params: IsInstantAvailableParams): 'invalid' | 'conflict' | 'blocked' | 'outside_hours' | null {
   const { startsAt, durationMinutes, dateStr, businessHours, blocks, busyAppointments } = params;
-  if (!durationMinutes || durationMinutes <= 0) return false;
+  if (!durationMinutes || durationMinutes <= 0) return 'invalid';
 
   const endsAt = addMinutes(startsAt, durationMinutes);
-  const windows = dayWindows(dateStr, businessHours);
-  if (!windows.some((w) => startsAt >= w.startsAt && endsAt <= w.endsAt)) return false;
+  if (busyAppointments.some((b) => intervalsOverlap(startsAt, endsAt, b.startsAt, b.endsAt))) return 'conflict';
 
-  const busy = dayBusyIntervals(dateStr, blocks, busyAppointments);
-  if (busy === null) return false;
-  return !busy.some((b) => intervalsOverlap(startsAt, endsAt, b.startsAt, b.endsAt));
+  const blockBusy = dayBusyIntervals(dateStr, blocks, []);
+  if (blockBusy === null || blockBusy.some((b) => intervalsOverlap(startsAt, endsAt, b.startsAt, b.endsAt))) return 'blocked';
+
+  const windows = dayWindows(dateStr, businessHours);
+  if (!windows.some((w) => startsAt >= w.startsAt && endsAt <= w.endsAt)) return 'outside_hours';
+  return null;
 }
