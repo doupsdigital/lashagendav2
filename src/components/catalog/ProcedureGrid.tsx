@@ -40,6 +40,8 @@ interface ProcedureGridProps {
   onDeleteCategory?: (categoryName: string, count: number) => void;
   onMoveCategory?: (categoryName: string, direction: 'left' | 'right') => void;
   bookingEnabled?: boolean;
+  /** Mostrar também "agendar pelo WhatsApp" no detalhe do serviço (F5.5). */
+  whatsappAlsoEnabled?: boolean;
   onRequestBooking?: (item: ProcedureItem) => void;
   onFakeWhatsapp?: (item: ProcedureItem) => void;
   /** Só o showroom (`/c/showcase/[niche]`) passa isso (pedido real,
@@ -163,6 +165,7 @@ export const ProcedureGrid: React.FC<ProcedureGridProps> = ({
   onDeleteCategory,
   onMoveCategory,
   bookingEnabled = false,
+  whatsappAlsoEnabled = false,
   onRequestBooking,
   onFakeWhatsapp,
   layoutSwitcher,
@@ -549,6 +552,7 @@ export const ProcedureGrid: React.FC<ProcedureGridProps> = ({
               : undefined
           }
           bookingEnabled={bookingEnabled}
+          whatsappAlsoEnabled={whatsappAlsoEnabled}
           onBook={
             onRequestBooking
               ? (proc) => {

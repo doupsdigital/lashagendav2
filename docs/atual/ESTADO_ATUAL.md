@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F5 — Agendamento pela cliente** (F5.1 ✅, F5.2 ✅, F5.3 ✅, F5.4 ✅) |
-| **Próxima etapa** | **F5.5 — Botão de WhatsApp opcional + agenda pausada** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fase atual** | **F5 — Agendamento pela cliente** (F5.1 ✅, F5.2 ✅, F5.3 ✅, F5.4 ✅, F5.5 ✅) |
+| **Próxima etapa** | **F5.6 — Aviso para a profissional** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -64,9 +64,13 @@
 - Link único da cliente (F5.4): `/c/<slug>/agendamento/<manage_token>` (ver, adicionar à agenda,
   cancelar até `cancellation_notice_hours` antes). Recado pós-agendamento e prazo ainda sem tela
   (F10.2); no seed: recado preenchido e prazo de 24h.
-- `scripts/dev-set-booking-mode.mjs` (F5.3): troca o modo de um estúdio do dev (`auto` ou
-  `aprovacao`) até existir a tela de regras (F10.2). Uso:
+- `scripts/dev-set-booking-mode.mjs` (F5.3/F5.5): troca o modo de um estúdio do dev (`auto` ou
+  `aprovacao`) e liga/desliga o "ou agende pelo WhatsApp" (`whatsapp-on`/`whatsapp-off`) até
+  existir a tela de regras (F10.2). Uso:
   `node --env-file=.env.development.local scripts/dev-set-booking-mode.mjs auto`
+- Catálogo (F5.5): com agendamento online ligado, `whatsapp_button_enabled` mostra também
+  "ou agende pelo WhatsApp" no detalhe do serviço; com `agenda_paused` (Configurações →
+  Desligar Agenda), só o WhatsApp.
 
 ### Ambientes
 

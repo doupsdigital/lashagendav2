@@ -221,6 +221,7 @@ export function studioToCatalog(
     booking_mode: studio.booking_mode,
     booking_window_days: studio.booking_window_days,
     post_booking_message: studio.post_booking_message || '',
+    whatsapp_button_enabled: studio.whatsapp_button_enabled,
     agenda_paused: studio.agenda_paused,
     catalog_disabled: studio.disabled,
     catalog_payment_lapsed: isAccessLapsed(studio),

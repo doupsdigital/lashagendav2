@@ -754,6 +754,9 @@ export const CatalogLayout: React.FC<CatalogLayoutProps> = ({
           // temporariamente — cliente final cai no WhatsApp, como se fosse
           // Básico, sem nenhum outro efeito (a Agenda dela continua normal).
           bookingEnabled={!isEditMode && Boolean(catalogState.booking_enabled) && !catalogState.agenda_paused}
+          // F5.5: com o agendamento online ligado, a profissional escolhe se
+          // a cliente também vê "agendar pelo WhatsApp". Pausada, só WhatsApp.
+          whatsappAlsoEnabled={catalogState.whatsapp_button_enabled === true}
           onRequestBooking={!isEditMode && catalogState.booking_enabled && !catalogState.agenda_paused ? setBookingItem : undefined}
           // Só no showroom (demoBookingOnly), quando o agendamento automático
           // está "desligado" nessa demo (sem booking_enabled, ou com

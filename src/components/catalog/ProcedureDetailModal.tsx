@@ -14,6 +14,11 @@ interface ProcedureDetailModalProps {
   onPrev?: () => void;
   onNext?: () => void;
   bookingEnabled?: boolean;
+  /** Com o agendamento online ligado, mostrar também "agendar pelo WhatsApp"
+   *  (`studios.whatsapp_button_enabled`, F5.5). Sem agendamento online
+   *  (agenda pausada, serviço que não agenda online), o botão principal já é
+   *  o WhatsApp. */
+  whatsappAlsoEnabled?: boolean;
   onBook?: (item: ProcedureItem) => void;
   /** Só o showroom em modo "Básico" usa isso — em vez do link real de
    *  WhatsApp (que abriria o WhatsApp de verdade na gravação), mostra a
@@ -29,6 +34,7 @@ export const ProcedureDetailModal: React.FC<ProcedureDetailModalProps> = ({
   onPrev,
   onNext,
   bookingEnabled = false,
+  whatsappAlsoEnabled = false,
   onBook,
   onFakeWhatsapp,
 }) => {
@@ -240,6 +246,18 @@ export const ProcedureDetailModal: React.FC<ProcedureDetailModalProps> = ({
               </button>
             )}
           </div>
+
+          {canBook && !needsVariationChoice && whatsappAlsoEnabled && whatsappNumber && (
+            onFakeWhatsapp ? (
+              <button type="button" className="modal__whatsapp-alt" onClick={() => onFakeWhatsapp(bookingTarget)}>
+                ou agende pelo WhatsApp
+              </button>
+            ) : (
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="modal__whatsapp-alt">
+                ou agende pelo WhatsApp
+              </a>
+            )
+          )}
         </div>
       </div>
 

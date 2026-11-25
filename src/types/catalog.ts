@@ -104,6 +104,8 @@ export interface CatalogOrderData {
   booking_mode?: 'auto' | 'approval';
   /** Ela pausou o agendamento pelo catálogo (o app continua normal). */
   agenda_paused?: boolean;
+  /** Mostrar também "agendar pelo WhatsApp" ao lado do agendamento online (F5.5). */
+  whatsapp_button_enabled?: boolean;
   /** Até quantos dias à frente a cliente pode agendar (`studios.booking_window_days`). */
   booking_window_days?: number;
   /** Recado da profissional mostrado depois que a cliente agenda. */

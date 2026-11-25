@@ -2122,6 +2122,24 @@ button {
   background: var(--modal-cta-hover-bg);
 }
 
+/* F5.5 — "ou agende pelo WhatsApp", abaixo do "Agendar agora" quando a
+ *  profissional deixa os dois caminhos ligados. */
+.modal__whatsapp-alt {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 6px 0;
+  border: none;
+  background: none;
+  text-align: center;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--modal-spec-v-color);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
 /* Pedido real, 2026-10-23 — "anterior" é o mesmo visual de "próximo"
  *  (`.modal__proximo`), só que à esquerda do botão "Agendar agora" em vez
  *  da direita (ordem no DOM em `ProcedureDetailModal.tsx`). */

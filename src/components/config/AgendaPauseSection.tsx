@@ -51,7 +51,7 @@ export const AgendaPauseSection: React.FC<AgendaPauseSectionProps> = ({ slug, in
        *  senha" da Minha conta). */}
       <div className="flex flex-col gap-1">
         <p className="text-[15px] font-bold text-ink leading-snug">
-          Pause o agendamento automático temporariamente
+          Pause o agendamento online temporariamente
         </p>
         <p className="text-sm text-ink-soft leading-relaxed">
           Suas clientes voltam a combinar horário com você pelo WhatsApp — útil pra férias, imprevistos ou qualquer folga.
@@ -68,7 +68,7 @@ export const AgendaPauseSection: React.FC<AgendaPauseSectionProps> = ({ slug, in
         }`}
       >
         <span className={`text-[15px] font-bold ${paused ? 'text-amber-800' : 'text-ink'}`}>
-          Agenda automática: {paused ? 'Pausada' : 'Ativa'}
+          Agendamento online: {paused ? 'Pausado' : 'Ativo'}
         </span>
         <span
           className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
@@ -85,7 +85,7 @@ export const AgendaPauseSection: React.FC<AgendaPauseSectionProps> = ({ slug, in
 
       {paused && (
         <p className="text-[13px] text-amber-700 leading-relaxed">
-          Sua agenda está pausada — suas clientes não conseguem agendar sozinhas até você ativar de novo.
+          Agendamento online pausado — no catálogo, suas clientes só veem o botão do WhatsApp até você ativar de novo.
         </p>
       )}
       {error && <p className="text-[13px] text-rose-600">{error}</p>}
