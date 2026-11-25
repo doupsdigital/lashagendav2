@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-24 — F5.3 concluída (modos de agendamento).**
+> Última atualização: **2026-11-25 — F7.1 concluída (lista de clientes).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F7 — Clientes** |
-| **Próxima etapa** | **F7.1 — Lista de clientes** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F7.2 — Perfil da cliente** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6 (F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -75,6 +75,13 @@
 - Agenda (F6.1): `AgendaAppointment` traz os itens (serviço, duração, preço), origem e dados do
   cancelamento. A visão do dia lista "Cancelados neste dia" à parte (sem ocupar horário); o
   detalhe mostra cada serviço + total e o WhatsApp clicável. O mês continua sem cancelados.
+- Clientes (F7.1): aba nova `app/[slug]/clientes` (barra: Início · Clientes · [Agenda] · Config).
+  `lib/clients/client-list.ts` (puro: resumo de atendimentos — só `completed` conta —, busca sem
+  acento por nome ou pedaço do WhatsApp, rótulos) e `lib/clients/client-service.ts` (lista
+  paginada de 1000 em 1000; cadastro manual que avisa WhatsApp repetido em vez de reaproveitar).
+  POST `/api/professional/clients` cria cliente (`source='manual'`, 409 `duplicate`).
+- Páginas do app sem sessão: Agenda e Clientes conferem a sessão na própria página e não leem
+  nada (o layout só esconde; sem isso os dados iam no HTML). Corrigido na F7.1.
 - Trancar pela agenda (F6.6): tocar num horário livre pergunta Agendar/Trancar (trancar já vem
   com o trecho); tocar num trancado mostra período/motivo e Destrancar (bloqueio de vários dias
   sai inteiro, com aviso). Componentes em `components/agenda/SlotSheets.tsx`.

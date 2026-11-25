@@ -3,14 +3,18 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Settings, CalendarCheck } from 'lucide-react';
+import { Home, Settings, CalendarCheck, Users } from 'lucide-react';
 
 interface BottomNavProps {
   slug: string;
 }
 
-const SIDE_TAB_LEFT = { key: 'inicio', label: 'Início', icon: Home } as const;
-const SIDE_TAB_RIGHT = { key: 'config', label: 'Config', icon: Settings } as const;
+const TABS_LEFT = [
+  { key: 'inicio', label: 'Início', icon: Home },
+  { key: 'clientes', label: 'Clientes', icon: Users },
+] as const;
+const TABS_RIGHT = [{ key: 'config', label: 'Config', icon: Settings }] as const;
+type Tab = (typeof TABS_LEFT)[number] | (typeof TABS_RIGHT)[number];
 
 /** Navegação inferior do app da profissional — Início à esquerda, Config à
  *  direita, e um botão central elevado pra Agenda, mesmo padrão do `TabBar`
@@ -27,7 +31,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ slug }) => {
 
   const isAgendaActive = pathname?.startsWith(`/app/${slug}/agenda`);
 
-  const renderTab = ({ key, label, icon: Icon }: typeof SIDE_TAB_LEFT | typeof SIDE_TAB_RIGHT) => {
+  const renderTab = ({ key, label, icon: Icon }: Tab) => {
     const href = `/app/${slug}/${key}`;
     const isActive = pathname?.startsWith(href);
     return (
@@ -63,12 +67,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({ slug }) => {
       style={{ transform: 'translateZ(0)', WebkitBackfaceVisibility: 'hidden' }}
     >
       <div className="max-w-md mx-auto relative flex items-stretch h-[68px]">
-        {/* Sem coluna reservada pro botão central — ele já é posicionado de
-         *  forma absoluta por cima, então as 2 abas dividem a largura toda
-         *  em metades (mais perto do centro do que ficariam em 3 colunas
-         *  iguais, que empurrava tudo pras bordas). */}
-        {renderTab(SIDE_TAB_LEFT)}
-        {renderTab(SIDE_TAB_RIGHT)}
+        {/* Duas metades com um vão no meio pro botão central (posicionado de
+         *  forma absoluta por cima): Início e Clientes (F7.1) à esquerda,
+         *  Config à direita. */}
+        <div className="flex-1 flex">{TABS_LEFT.map(renderTab)}</div>
+        <div className="w-20 shrink-0" aria-hidden="true" />
+        <div className="flex-1 flex">{TABS_RIGHT.map(renderTab)}</div>
 
         {/* Botão central em destaque — Agenda */}
         {(

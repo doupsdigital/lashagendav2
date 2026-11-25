@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { getStudioForProfessionalApp } from '@/lib/studio-service';
+import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
 import { getAppointmentsForDay, getAppointmentsForRange, getPendingAppointments, getManualBookingServices } from '@/lib/scheduling/agenda-service';
 import { getBusinessHours, getScheduleBlocks } from '@/lib/scheduling/config-service';
 import { getWeekdayForDate } from '@/lib/scheduling/availability';
@@ -85,6 +86,9 @@ function formatMonthLabel(dateStr: string): string {
 export default async function AgendaPage({ params, searchParams }: AgendaPageProps) {
   const { slug } = await params;
   const { date, view: viewParam } = await searchParams;
+  // O layout mostra "link inválido" sem sessão, mas a página roda mesmo
+  // assim e os agendamentos iam no HTML — sem sessão não lê nada.
+  if (!(await isProfessionalRequestAuthorized(slug))) return null;
   const order = await getStudioForProfessionalApp(slug);
 
   if (!order) notFound();
