@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
+import { cleanCancelReason, transitionProblem, type AppointmentStatus } from '@/lib/scheduling/appointment-actions';
 
 const ALLOWED_STATUSES = ['confirmed', 'canceled', 'completed', 'no_show'] as const;
 type AllowedStatus = (typeof ALLOWED_STATUSES)[number];
@@ -10,7 +11,9 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-/** PATCH /api/professional/appointments/[id]  Body: { status: 'confirmed' | 'canceled' | 'completed' | 'no_show' }
+/** PATCH /api/professional/appointments/[id]  Body: { status: 'confirmed' | 'canceled' | 'completed' | 'no_show', cancel_reason? }
+ *  Só aceita as mudanças de `appointment-actions.ts` (F6.3); o motivo vai junto
+ *  na recusa/cancelamento e aparece no link da cliente.
  *  A autorização nunca confia num `slug` vindo do navegador: resolve o
  *  estúdio a partir do próprio agendamento no banco e confere a sessão contra
  *  esse slug real — uma sessão de um estúdio não mexe no agendamento de outro. */
@@ -23,7 +26,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
 
     const { id } = await params;
-    const { status } = (await request.json()) as { status?: string };
+    const { status, cancel_reason } = (await request.json()) as { status?: string; cancel_reason?: unknown };
 
     if (!status || !ALLOWED_STATUSES.includes(status as AllowedStatus)) {
       return NextResponse.json({ success: false, message: 'Status inválido.' }, { status: 400 });
@@ -44,25 +47,41 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ success: false, message: 'Sessão inválida ou expirada.' }, { status: 401 });
     }
 
-    // Cancelado não volta: o horário pode já ter sido ocupado por outra
-    // cliente (para remarcar, cria-se um agendamento novo).
-    if (appointment.status === 'canceled' && status !== 'canceled') {
-      return NextResponse.json({ success: false, message: 'Esse agendamento já foi cancelado.' }, { status: 409 });
+    // Cancelado não volta (o horário pode já ter sido ocupado); aguardando
+    // precisa ser confirmado antes de concluir — regras em appointment-actions.
+    const problem = transitionProblem(appointment.status as AppointmentStatus, status as AppointmentStatus);
+    if (problem) {
+      return NextResponse.json({ success: false, message: problem }, { status: 409 });
     }
 
     const update: Record<string, unknown> = { status };
     if (status === 'canceled') {
       update.canceled_at = new Date().toISOString();
       update.canceled_by = 'professional';
+      update.cancel_reason = cleanCancelReason(cancel_reason);
     }
 
-    const { error: updateErr } = await supabaseAdmin.from('appointments').update(update).eq('id', id);
+    // Condicional ao status lido: se a cliente cancelou pelo link nesse meio
+    // tempo, nada é sobrescrito.
+    const { data: updated, error: updateErr } = await supabaseAdmin
+      .from('appointments')
+      .update(update)
+      .eq('id', id)
+      .eq('status', appointment.status)
+      .select('id');
     if (updateErr) {
       if (updateErr.code === '23P01') {
         return NextResponse.json({ success: false, message: 'Já existe outro agendamento nesse horário.' }, { status: 409 });
       }
       console.error('[API Professional Appointment Update] Erro:', updateErr);
       return NextResponse.json({ success: false, message: 'Erro ao atualizar o agendamento.' }, { status: 500 });
+    }
+
+    if (!updated || updated.length === 0) {
+      return NextResponse.json(
+        { success: false, message: 'Esse agendamento mudou agora há pouco (a cliente pode ter cancelado). Atualize a tela.' },
+        { status: 409 }
+      );
     }
 
     return NextResponse.json({ success: true });

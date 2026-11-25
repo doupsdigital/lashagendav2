@@ -393,7 +393,7 @@ meia-noite e em dia de mudança de mês.
 
 **F6.1 — Visão dia e mês do StudioMenu** sobre o modelo novo (timeline do dia, calendário do
 mês com marcações).
-**F6.2 — Visão semana** (do v1, no visual do StudioMenu) — **confirmar com a usuária se vale**;
+**F6.2 — Visão semana** — ⏭️ **pulada** (decisão da usuária em 2026-11-25: Dia + Mês bastam no celular). Texto original: (do v1, no visual do StudioMenu) — confirmar com a usuária se vale;
 no celular a visão dia costuma bastar.
 **F6.3 — Pendentes:** confirmar / recusar (com motivo opcional e botão de WhatsApp já com a
 mensagem).

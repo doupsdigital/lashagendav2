@@ -16,19 +16,21 @@ import { RejectModal } from './RejectModal';
 import { SuccessModal, type SuccessModalRow } from './SuccessModal';
 import type { AgendaAppointment, ManualBookingService } from '@/lib/scheduling/agenda-service';
 import type { BusinessHoursConfigRow, ScheduleBlockConfigRow } from '@/lib/scheduling/config-service';
+import { buildConfirmMessage, buildRejectMessage, cleanCancelReason } from '@/lib/scheduling/appointment-actions';
+import { manageAppointmentPath } from '@/lib/scheduling/client-appointment';
+import { publicCatalogUrl } from '@/lib/public-url';
 
-/** Link do WhatsApp pra avisar a cliente — mesmo texto (com emojis) que o
- *  LashAgenda usa nas duas situações. */
-function buildWhatsappLink(appointment: AgendaAppointment, tipo: 'aprovado' | 'recusado', motivo?: string): string {
-  const dateStr = new Date(appointment.starts_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' });
-  const timeStr = new Date(appointment.starts_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
-  const firstName = appointment.client_name.split(' ')[0];
-
+/** Link do WhatsApp para avisar a cliente (F6.3): a confirmação leva o link
+ *  único dela (ver/cancelar); a recusa leva o motivo e o catálogo para ela
+ *  escolher outro horário. Só no navegador (usa o host atual). */
+function buildWhatsappLink(appointment: AgendaAppointment, slug: string, tipo: 'aprovado' | 'recusado', motivo?: string): string {
+  const dateLabel = new Date(appointment.starts_at).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' });
+  const time = new Date(appointment.starts_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+  const input = { clientName: appointment.client_name, dateLabel, time, services: appointment.service_title };
   const msg =
     tipo === 'aprovado'
-      ? `Olá ${firstName}! 🎉 Seu agendamento foi *confirmado*!\n\n📅 *Data:* ${dateStr}\n🕐 *Horário:* ${timeStr}\n💆 *Serviço:* ${appointment.service_title}\n\nTe esperamos! 😊`
-      : `Olá ${firstName}! Infelizmente precisamos recusar seu agendamento de *${dateStr} às ${timeStr}*.${motivo?.trim() ? `\n\n_${motivo.trim()}_` : ''}\n\nEntre em contato para reagendarmos. 💗`;
-
+      ? buildConfirmMessage({ ...input, manageUrl: `${window.location.origin}${manageAppointmentPath(slug, appointment.manage_token)}` })
+      : buildRejectMessage({ ...input, reason: cleanCancelReason(motivo), catalogUrl: publicCatalogUrl(slug, window.location) });
   return `https://wa.me/${appointment.client_whatsapp}?text=${encodeURIComponent(msg)}`;
 }
 
@@ -124,11 +126,15 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
   // como padrão, que ela pode trocar no próprio formulário.
   const formDefaultDate = view === 'mes' ? todayStr : selectedDate;
 
-  const patchStatus = async (appointment: AgendaAppointment, status: 'confirmed' | 'canceled' | 'completed' | 'no_show') => {
+  const patchStatus = async (
+    appointment: AgendaAppointment,
+    status: 'confirmed' | 'canceled' | 'completed' | 'no_show',
+    cancelReason?: string
+  ) => {
     const res = await fetch(`/api/professional/appointments/${appointment.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(cancelReason ? { status, cancel_reason: cancelReason } : { status }),
     });
     return res.json();
   };
@@ -137,7 +143,7 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
     if (!approveAppointment || busy) return;
     // window.open ANTES de qualquer await — só assim funciona no Safari iOS
     // (mesmo cuidado do LashAgenda).
-    if (sendWhatsApp) window.open(buildWhatsappLink(approveAppointment, 'aprovado'), '_blank');
+    if (sendWhatsApp) window.open(buildWhatsappLink(approveAppointment, slug, 'aprovado'), '_blank');
 
     setBusy(true);
     setActionError(null);
@@ -145,6 +151,8 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
       const json = await patchStatus(approveAppointment, 'confirmed');
       if (!json.success) {
         setActionError(json.message || 'Não foi possível confirmar o agendamento.');
+        setApproveAppointment(null);
+        router.refresh();
         return;
       }
       const appt = approveAppointment;
@@ -161,14 +169,16 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
 
   const handleRejectConfirm = async (sendWhatsApp: boolean, motivo: string) => {
     if (!rejectAppointment || busy) return;
-    if (sendWhatsApp) window.open(buildWhatsappLink(rejectAppointment, 'recusado', motivo), '_blank');
+    if (sendWhatsApp) window.open(buildWhatsappLink(rejectAppointment, slug, 'recusado', motivo), '_blank');
 
     setBusy(true);
     setActionError(null);
     try {
-      const json = await patchStatus(rejectAppointment, 'canceled');
+      const json = await patchStatus(rejectAppointment, 'canceled', motivo);
       if (!json.success) {
         setActionError(json.message || 'Não foi possível recusar o agendamento.');
+        setRejectAppointment(null);
+        router.refresh();
         return;
       }
       const appt = rejectAppointment;

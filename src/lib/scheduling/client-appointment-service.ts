@@ -17,6 +17,8 @@ export interface ClientAppointmentView {
   items: { title: string; durationMinutes: number; price: number | null }[];
   totalPrice: number | null;
   canceledBy: 'client' | 'professional' | null;
+  /** Motivo que a profissional escreveu ao recusar/cancelar (F6.3). */
+  cancelReason: string;
   cancel: ClientCancelState;
   cancellationNoticeHours: number;
   studio: {
@@ -39,6 +41,7 @@ interface Row {
   ends_at: string;
   total_price: number | string | null;
   canceled_by: 'client' | 'professional' | null;
+  cancel_reason: string | null;
   manage_token: string;
   clients: { name: string } | null;
   appointment_items: { title: string; duration_minutes: number; price: number | string | null; position: number }[] | null;
@@ -58,7 +61,7 @@ interface Row {
 }
 
 const SELECT =
-  'id, status, starts_at, ends_at, total_price, canceled_by, manage_token, clients(name), ' +
+  'id, status, starts_at, ends_at, total_price, canceled_by, cancel_reason, manage_token, clients(name), ' +
   'appointment_items(title, duration_minutes, price, position), ' +
   'studios(id, slug, studio_name, owner_name, whatsapp, address, maps_url, theme_variant, post_booking_message, cancellation_notice_hours, disabled)';
 
@@ -93,6 +96,7 @@ export async function getClientAppointment(slug: string, token: string, now: Dat
       .map((i) => ({ title: i.title, durationMinutes: i.duration_minutes, price: toNumberOrNull(i.price) })),
     totalPrice: toNumberOrNull(row.total_price),
     canceledBy: row.canceled_by,
+    cancelReason: row.canceled_by === 'professional' ? (row.cancel_reason || '').trim() : '',
     cancel: clientCancelState(row.status, new Date(row.starts_at), studio.cancellation_notice_hours, now),
     cancellationNoticeHours: studio.cancellation_notice_hours,
     studio: {

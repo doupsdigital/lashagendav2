@@ -141,6 +141,12 @@ export default async function ClientAppointmentPage({ params }: PageProps) {
             )}
           </div>
 
+          {view.status === 'canceled' && view.cancelReason && (
+            <p className={`mt-4 text-[14px] whitespace-pre-line ${t.muted}`}>
+              <span className="font-semibold">Recado de {ownerFirst}:</span> {view.cancelReason}
+            </p>
+          )}
+
           {view.status === 'pending' && (
             <p className={`mt-4 text-[14px] ${t.muted}`}>A profissional vai confirmar seu horário. Você pode voltar neste link para ver a confirmação.</p>
           )}

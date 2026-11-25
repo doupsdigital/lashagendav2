@@ -42,6 +42,8 @@ export interface AgendaAppointment {
   canceled_by: 'client' | 'professional' | null;
   canceled_at: string | null;
   cancel_reason: string | null;
+  /** Código do link único da cliente (vai na mensagem de confirmação, F6.3). */
+  manage_token: string;
 }
 
 export interface ManualBookingService {
@@ -52,7 +54,7 @@ export interface ManualBookingService {
 }
 
 const AGENDA_SELECT =
-  'id, starts_at, ends_at, status, origin, total_price, client_notes, canceled_by, canceled_at, cancel_reason, ' +
+  'id, starts_at, ends_at, status, origin, total_price, client_notes, canceled_by, canceled_at, cancel_reason, manage_token, ' +
   'clients(name, whatsapp), appointment_items(title, duration_minutes, price, position)';
 
 interface AgendaRow {
@@ -66,6 +68,7 @@ interface AgendaRow {
   canceled_by: AgendaAppointment['canceled_by'];
   canceled_at: string | null;
   cancel_reason: string | null;
+  manage_token: string;
   clients: { name: string; whatsapp: string | null } | null;
   appointment_items: { title: string; duration_minutes: number; price: number | string | null; position: number }[] | null;
 }
@@ -96,6 +99,7 @@ function toAgendaAppointment(row: AgendaRow): AgendaAppointment {
     canceled_by: row.canceled_by,
     canceled_at: row.canceled_at,
     cancel_reason: row.cancel_reason,
+    manage_token: row.manage_token,
   };
 }
 

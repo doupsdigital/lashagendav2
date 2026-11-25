@@ -103,7 +103,7 @@ superior no futuro; no lançamento está no plano único) · ❌ sai.
 | 2 | Login (e-mail/senha, Google, recuperar senha) | 🔁 "Criar acesso" do StudioMenu (Google ou senha, depois da compra) | F11 |
 | 3 | Trial de 7 dias | ❌ Substituído pela prévia de 24h | F11 |
 | 4 | Painel "Meu Estúdio" (hoje, aguardando, faturado, receita 7 dias, novas clientes, ações rápidas) | ✅ Mais enxuto, no estilo do Início do StudioMenu | F9 |
-| 5 | Agenda (dia/semana/mês, manual, confirmar/recusar, concluir com valor recebido, falta, trancar horário) | ✅ Coração do produto · 🔁 visual do StudioMenu | F6 |
+| 5 | Agenda (dia/mês — **sem semana**, decidido em 2026-11-25 na F6.2, manual, confirmar/recusar, concluir com valor recebido, falta, trancar horário) | ✅ Coração do produto · 🔁 visual do StudioMenu | F6 |
 | 6 | Meus horários + bloqueios | 🔁 Editor do StudioMenu + **pausa de almoço / mais de um intervalo por dia** (nenhum dos dois tem hoje) | F4 |
 | 7 | Serviços (foto, descrição, duração, valor, ativo, prévia) | 🔁 Editor visual do StudioMenu, com categorias | F3 |
 | 8 | Variações de serviço | ✅ **Usar** (ex.: manutenção fio a fio / volume russo) | F3 |
@@ -159,6 +159,8 @@ O carro-chefe vendido é o agendamento (automático ou com aprovação).
 - **Referência visual do app:** `docs/referencias/prototipo-inicio-app.html` (aprovado pela
   usuária em 2026-11-24, incluindo os ícones). As telas do app, em especial o Início (F9.1),
   devem seguir esse protótipo.
+- **Agenda sem visão semana (2026-11-25, F6.2):** no celular 7 colunas ficam apertadas; Dia
+  (com as setas) + Mês (com marcações) bastam.
 
 ---
 

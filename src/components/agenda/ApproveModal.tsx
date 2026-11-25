@@ -17,6 +17,9 @@ interface ApproveModalProps {
 export const ApproveModal: React.FC<ApproveModalProps> = ({ appointment, busy, onClose, onConfirm }) => {
   const dateStr = new Date(appointment.starts_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', timeZone: 'America/Sao_Paulo' });
   const timeStr = new Date(appointment.starts_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+  const hasWhatsapp = Boolean(appointment.client_whatsapp);
+  // Calculado ao abrir o modal (evento do usuário), nunca no HTML do servidor.
+  const [isPast] = React.useState(() => new Date(appointment.starts_at).getTime() < Date.now());
 
   return (
     <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" role="dialog" aria-modal="true">
@@ -45,16 +48,24 @@ export const ApproveModal: React.FC<ApproveModalProps> = ({ appointment, busy, o
             </div>
           </div>
 
+          {isPast && (
+            <p className="text-[13px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5">
+              Esse horário já passou. Confirme só se o atendimento aconteceu ou foi combinado com a cliente.
+            </p>
+          )}
+
           <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => onConfirm(true)}
-              disabled={busy}
-              className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-xl text-[15px] font-semibold transition-colors"
-            >
-              <CheckCircle className="w-4 h-4" />
-              {busy ? 'Confirmando...' : 'Confirmar e enviar pelo WhatsApp'}
-            </button>
+            {hasWhatsapp && (
+              <button
+                type="button"
+                onClick={() => onConfirm(true)}
+                disabled={busy}
+                className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-xl text-[15px] font-semibold transition-colors"
+              >
+                <CheckCircle className="w-4 h-4" />
+                {busy ? 'Confirmando...' : 'Confirmar e avisar no WhatsApp'}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => onConfirm(false)}
@@ -62,7 +73,7 @@ export const ApproveModal: React.FC<ApproveModalProps> = ({ appointment, busy, o
               className="flex items-center justify-center gap-2 w-full py-3 bg-rose-600 hover:bg-rose-800 disabled:opacity-60 text-white rounded-xl text-[15px] font-semibold transition-colors"
             >
               <CheckCircle className="w-4 h-4" />
-              {busy ? 'Confirmando...' : 'Confirmar sem enviar'}
+              {busy ? 'Confirmando...' : hasWhatsapp ? 'Confirmar sem avisar' : 'Confirmar'}
             </button>
             <button
               type="button"

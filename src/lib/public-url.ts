@@ -7,3 +7,10 @@ export const PRODUCTION_DOMAIN = 'lashagenda.com';
 export function usesSubdomainRouting(hostname: string): boolean {
   return hostname !== 'localhost' && !hostname.endsWith('.vercel.app');
 }
+
+/** Link público do catálogo no host atual — `slug.lashagenda.com` no domínio
+ *  oficial, `<origin>/c/slug` em localhost/preview (mesma regra do
+ *  `ShareLinkButton`). Só no navegador. */
+export function publicCatalogUrl(slug: string, location: { hostname: string; origin: string }): string {
+  return usesSubdomainRouting(location.hostname) ? `https://${slug}.${PRODUCTION_DOMAIN}` : `${location.origin}/c/${slug}`;
+}

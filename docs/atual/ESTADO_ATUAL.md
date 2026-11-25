@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F6 — Agenda da profissional (marco M1)** (F6.1 ✅) |
-| **Próxima etapa** | **F6.2 — Visão semana (confirmar com a usuária se vale)** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fase atual** | **F6 — Agenda da profissional (marco M1)** (F6.1 ✅, F6.2 ⏭️ pulada, F6.3 ✅) |
+| **Próxima etapa** | **F6.4 — Agendamento manual (vários serviços)** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -60,7 +60,7 @@
 - `scripts/test-client-phone.mjs` (F5.2): regras do WhatsApp da cliente (55, 0, 9 do celular,
   fixo, inválidos).
 - `scripts/test-client-appointment.mjs` (F5.4): prazo para a cliente cancelar e arquivo de
-  agenda (.ics). `npm test` roda os quatro scripts de teste.
+  agenda (.ics). `npm test` roda os cinco scripts de teste.
 - Link único da cliente (F5.4): `/c/<slug>/agendamento/<manage_token>` (ver, adicionar à agenda,
   cancelar até `cancellation_notice_hours` antes). Recado pós-agendamento e prazo ainda sem tela
   (F10.2); no seed: recado preenchido e prazo de 24h.
@@ -75,6 +75,10 @@
 - Agenda (F6.1): `AgendaAppointment` traz os itens (serviço, duração, preço), origem e dados do
   cancelamento. A visão do dia lista "Cancelados neste dia" à parte (sem ocupar horário); o
   detalhe mostra cada serviço + total e o WhatsApp clicável. O mês continua sem cancelados.
+- Aguardando (F6.3): confirmar/recusar só pelas mudanças de `lib/scheduling/appointment-actions.ts`
+  (testes em `scripts/test-appointment-actions.mjs`); motivo da recusa gravado em `cancel_reason`
+  e mostrado no link da cliente; WhatsApp de confirmação leva o link único, o de recusa leva o
+  catálogo. Atualização condicional ao status (cliente cancelou ao mesmo tempo → 409).
 - Catálogo (F5.5): com agendamento online ligado, `whatsapp_button_enabled` mostra também
   "ou agende pelo WhatsApp" no detalhe do serviço; com `agenda_paused` (Configurações →
   Desligar Agenda), só o WhatsApp.
@@ -123,7 +127,7 @@ Web Push.
 - [x] Ter um clone do StudioMenu na estação onde a F1 for feita.
 - [x] Decidir na F1.4: paleta do app → **v1** (2026-11-24; ver `DECISOES_DE_PRODUTO.md`, seção 7).
 - [x] Decidir na F5.1: vários serviços no mesmo agendamento → **sim, até 5** (2026-11-24).
-- [ ] Decidir na F6.2: se a visão "semana" da agenda entra.
+- [x] Decidir na F6.2: visão "semana" → **não entra** (2026-11-25; Dia + Mês bastam).
 - [ ] Bug herdado do StudioMenu (visto no preview em 2026-11-24): no primeiro acesso ao app, os
       tooltips do `InicioTour` ("Agendamentos de hoje", "Aguardando confirmação", "Seus próximos
       passos") aparecem **por cima da tela de boas-vindas** (`WelcomeOnboarding`), apontando
