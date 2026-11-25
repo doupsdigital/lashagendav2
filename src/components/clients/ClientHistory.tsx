@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { formatBRL } from '@/lib/service-format';
+import { DeleteRecordButton } from './DeleteRecordButton';
 import { historyStatusLabel, type ClientHistorySummary, type HistoryAppointment } from '@/lib/clients/client-history';
 
 const TZ = 'America/Sao_Paulo';
@@ -67,7 +68,7 @@ function valueLabel(a: HistoryAppointment): string | null {
   return null;
 }
 
-function HistoryItem({ slug, a, now }: { slug: string; a: HistoryAppointment; now: Date }) {
+function HistoryItem({ slug, clientId, a, now }: { slug: string; clientId: string; a: HistoryAppointment; now: Date }) {
   const value = valueLabel(a);
   const content = (
     <>
@@ -80,10 +81,18 @@ function HistoryItem({ slug, a, now }: { slug: string; a: HistoryAppointment; no
         {historyStatusLabel(a, now)}
       </span>
       {a.status === 'canceled' && a.cancel_reason && <p className="text-sm text-ink-soft">Motivo: {a.cancel_reason}</p>}
+      {a.notes && <p className="text-sm text-ink-soft whitespace-pre-line break-words">Sua anotação: {a.notes}</p>}
     </>
   );
   // Registro manual (F7.4) não tem horário na agenda — não leva até ela.
-  if (a.origin === 'record') return <li className="px-4 py-3 flex flex-col gap-1">{content}</li>;
+  if (a.origin === 'record') {
+    return (
+      <li className="px-4 py-3 flex flex-col gap-1">
+        {content}
+        <DeleteRecordButton slug={slug} clientId={clientId} recordId={a.id} />
+      </li>
+    );
+  }
   return (
     <li>
       <Link href={`/app/${slug}/agenda?date=${dateKey(a.starts_at)}`} className="px-4 py-3 flex flex-col gap-1 active:bg-cream">
@@ -95,6 +104,7 @@ function HistoryItem({ slug, a, now }: { slug: string; a: HistoryAppointment; no
 
 interface ClientHistoryListProps {
   slug: string;
+  clientId: string;
   upcoming: HistoryAppointment[];
   past: HistoryAppointment[];
   /** ISO do "agora" usado na separação (o mesmo do servidor). */
@@ -102,7 +112,7 @@ interface ClientHistoryListProps {
 }
 
 /** Agendamentos futuros e passados da cliente (F7.3). */
-export function ClientHistoryList({ slug, upcoming, past, nowIso }: ClientHistoryListProps) {
+export function ClientHistoryList({ slug, clientId, upcoming, past, nowIso }: ClientHistoryListProps) {
   const now = new Date(nowIso);
   if (upcoming.length === 0 && past.length === 0) {
     return (
@@ -118,7 +128,7 @@ export function ClientHistoryList({ slug, upcoming, past, nowIso }: ClientHistor
           <h2 className="font-serif-pro font-bold text-lg text-ink">Próximos</h2>
           <ul className="rounded-2xl bg-surface border border-linen divide-y divide-linen overflow-hidden">
             {upcoming.map((a) => (
-              <HistoryItem key={a.id} slug={slug} a={a} now={now} />
+              <HistoryItem key={a.id} slug={slug} clientId={clientId} a={a} now={now} />
             ))}
           </ul>
         </section>
@@ -128,7 +138,7 @@ export function ClientHistoryList({ slug, upcoming, past, nowIso }: ClientHistor
           <h2 className="font-serif-pro font-bold text-lg text-ink">Histórico</h2>
           <ul className="rounded-2xl bg-surface border border-linen divide-y divide-linen overflow-hidden">
             {past.map((a) => (
-              <HistoryItem key={a.id} slug={slug} a={a} now={now} />
+              <HistoryItem key={a.id} slug={slug} clientId={clientId} a={a} now={now} />
             ))}
           </ul>
         </section>

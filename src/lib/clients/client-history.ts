@@ -12,6 +12,8 @@ export interface HistoryAppointment {
   amount_received: number | null;
   canceled_by: string | null;
   cancel_reason: string | null;
+  /** Anotação da profissional. */
+  notes?: string | null;
   /** Títulos dos serviços, na ordem. */
   services: string[];
 }

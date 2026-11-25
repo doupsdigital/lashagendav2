@@ -231,7 +231,7 @@ export async function getClientHistory(studioId: string, clientId: string): Prom
   if (!UUID_RE.test(clientId)) return [];
   const { data, error } = await supabaseAdmin
     .from('appointments')
-    .select('id, starts_at, status, origin, total_price, amount_received, canceled_by, cancel_reason, appointment_items(title, position)')
+    .select('id, starts_at, status, origin, total_price, amount_received, canceled_by, cancel_reason, notes, appointment_items(title, position)')
     .eq('studio_id', studioId)
     .eq('client_id', clientId)
     .order('starts_at', { ascending: false })
@@ -246,6 +246,7 @@ export async function getClientHistory(studioId: string, clientId: string): Prom
     amount_received: toNumberOrNull(r.amount_received as number | string | null),
     canceled_by: (r.canceled_by as string) || null,
     cancel_reason: (r.cancel_reason as string) || null,
+    notes: (r.notes as string) || null,
     services: [...((r.appointment_items as { title: string; position: number }[]) || [])]
       .sort((a, b) => a.position - b.position)
       .map((i) => i.title),

@@ -3,6 +3,8 @@ import { supabaseAdmin } from '../supabase-admin';
 import { toNumberOrNull } from '../service-format';
 import { legacyWhatsappVariants, normalizeClientWhatsapp } from './client-phone';
 import type { AppointmentOrigin, AppointmentStatus } from '@/types/studio';
+import { localDateTimeToUTC } from './availability';
+import { MAX_RECORD_NOTES, RECORD_TIME } from '../clients/client-record';
 
 /** Gravação de agendamentos no modelo v2 (F2.2): cliente (com dedupe por
  *  WhatsApp) + `appointments` + `appointment_items`. Fonte única usada pelo
@@ -234,4 +236,77 @@ export async function createAppointment(input: CreateAppointmentInput): Promise<
     ok: true,
     appointment: appointment as { id: string; starts_at: string; ends_at: string; status: string; manage_token: string },
   };
+}
+
+export interface CreateRecordInput {
+  studioId: string;
+  clientId: string;
+  /** "AAAA-MM-DD", já validada (`recordDateProblem`). */
+  date: string;
+  items: BookingItem[];
+  /** null = usar o total (ou nada, se sob consulta). */
+  amountReceived: number | null;
+  notes?: string | null;
+}
+
+/** Atendimento registrado à mão (F7.4): `origin='record'`, já `completed`,
+ *  ao meio-dia da data. Não passa pela trava de horário (o banco ignora
+ *  `record`), então nunca dá conflito. */
+export async function createRecord(input: CreateRecordInput): Promise<{ ok: true; id: string } | { ok: false }> {
+  const startsAt = localDateTimeToUTC(input.date, RECORD_TIME);
+  const endsAt = new Date(startsAt.getTime() + Math.max(5, totalDurationMinutes(input.items)) * 60000);
+  const total = totalPrice(input.items);
+
+  const { data: appointment, error } = await supabaseAdmin
+    .from('appointments')
+    .insert({
+      studio_id: input.studioId,
+      client_id: input.clientId,
+      starts_at: startsAt.toISOString(),
+      ends_at: endsAt.toISOString(),
+      status: 'completed',
+      origin: 'record',
+      total_price: total,
+      amount_received: input.amountReceived ?? total,
+      notes: input.notes?.trim().slice(0, MAX_RECORD_NOTES) || null,
+    })
+    .select('id')
+    .single();
+  if (error || !appointment) {
+    console.error('[booking-service] Erro ao registrar atendimento:', error);
+    return { ok: false };
+  }
+
+  const { error: itemsError } = await supabaseAdmin.from('appointment_items').insert(
+    input.items.map((item, position) => ({
+      appointment_id: appointment.id,
+      position,
+      service_id: item.serviceId,
+      variation_id: item.variationId,
+      title: item.title,
+      duration_minutes: item.durationMinutes,
+      price: item.price,
+    }))
+  );
+  if (itemsError) {
+    console.error('[booking-service] Erro ao inserir itens do registro:', itemsError);
+    await supabaseAdmin.from('appointments').delete().eq('id', appointment.id);
+    return { ok: false };
+  }
+  return { ok: true, id: appointment.id as string };
+}
+
+/** Apaga um atendimento registrado à mão (F7.4) — só `record`; agendamentos
+ *  de verdade se cancelam pela agenda, nunca somem. */
+export async function deleteRecord(studioId: string, clientId: string, recordId: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from('appointments')
+    .delete()
+    .eq('studio_id', studioId)
+    .eq('client_id', clientId)
+    .eq('id', recordId)
+    .eq('origin', 'record')
+    .select('id');
+  if (error) console.error('[booking-service] deleteRecord:', error);
+  return Boolean(data && data.length > 0);
 }

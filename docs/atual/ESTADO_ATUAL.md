@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-25 — F7.3 concluída (histórico da cliente).**
+> Última atualização: **2026-11-25 — F7.4 concluída (registrar atendimento).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F7 — Clientes** |
-| **Próxima etapa** | **F7.4 — Registrar atendimento manual** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F7.5 — Atalhos** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6 (F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -90,6 +90,12 @@
   item levando ao dia na agenda (registro `origin='record'` não leva). `lib/clients/client-history.ts`
   (puro: `splitHistory`, `summarizeHistory`, `historyStatusLabel`), `getClientHistory` (até 500),
   `components/clients/ClientHistory.tsx`.
+- Atendimento registrado (F7.4): "Registrar atendimento" no perfil (`RecordVisitSheet`) →
+  POST `/api/professional/clients/[id]/records` → `booking-service.createRecord`
+  (`origin='record'`, `completed`, ao meio-dia da data, recebido = total se vazio). Data só hoje
+  ou antes, desde 2000 (`lib/clients/client-record.ts`). Não ocupa horário (a trava do banco
+  ignora `record`). "Apagar registro" no histórico: DELETE `.../records/[recordId]`, só `record`.
+  O histórico mostra a anotação da profissional (`notes`).
 - Páginas do app sem sessão: Agenda e Clientes conferem a sessão na própria página e não leem
   nada (o layout só esconde; sem isso os dados iam no HTML). Corrigido na F7.1.
 - Trancar pela agenda (F6.6): tocar num horário livre pergunta Agendar/Trancar (trancar já vem

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Mail, MessageCircle, Pencil, Trash2, Cake, StickyNote } from 'lucide-react';
+import { ChevronLeft, Mail, MessageCircle, Pencil, Trash2, Cake, StickyNote, ClipboardPlus } from 'lucide-react';
 import { formatPhoneBR, normalizeWhatsappBR } from '@/lib/format';
 import {
   birthDateLabel,
@@ -13,6 +13,8 @@ import {
   MAX_PROFILE_NAME,
 } from '@/lib/clients/client-profile';
 import type { ClientProfile } from '@/lib/clients/client-service';
+import type { ManualBookingService } from '@/lib/scheduling/agenda-service';
+import { RecordVisitSheet } from './RecordVisitSheet';
 
 interface ClientProfileClientProps {
   slug: string;
@@ -21,6 +23,8 @@ interface ClientProfileClientProps {
   appointments: number;
   /** "AAAA-MM-DD" no fuso do estúdio (idade e limite da data de nascimento). */
   today: string;
+  /** Serviços ativos, para registrar atendimento (F7.4). */
+  services: ManualBookingService[];
   /** Resumo do histórico (F7.3), logo abaixo do nome. */
   summary?: React.ReactNode;
   /** Próximos e passados (F7.3), antes do excluir. */
@@ -30,10 +34,11 @@ interface ClientProfileClientProps {
 const inputClass =
   'h-12 rounded-xl border border-linen bg-cream px-4 text-[16px] text-ink placeholder:text-ink-faint focus:outline-none focus:border-rose-400';
 
-export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, client, appointments, today, summary, history }) => {
+export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, client, appointments, today, services, summary, history }) => {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState<string | null>(null);
+  const [recordOpen, setRecordOpen] = useState(false);
   const listHref = `/app/${slug}/clientes`;
 
   return (
@@ -58,7 +63,7 @@ export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, 
       {!editing && summary}
 
       {saved && !editing && (
-        <p className="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[15px] px-4 py-3">Dados salvos.</p>
+        <p className="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[15px] px-4 py-3">{saved}</p>
       )}
 
       {editing ? (
@@ -69,7 +74,7 @@ export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, 
           onCancel={() => setEditing(false)}
           onSaved={() => {
             setEditing(false);
-            setSaved(true);
+            setSaved('Dados salvos.');
             router.refresh();
           }}
         />
@@ -96,7 +101,7 @@ export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, 
           <button
             type="button"
             onClick={() => {
-              setSaved(false);
+              setSaved(null);
               setEditing(true);
             }}
             className="h-12 rounded-xl border border-linen bg-surface text-ink text-[15px] font-bold flex items-center justify-center gap-2"
@@ -104,10 +109,37 @@ export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, 
             <Pencil className="w-4 h-4" /> Editar dados
           </button>
 
+          <button
+            type="button"
+            onClick={() => {
+              setSaved(null);
+              setRecordOpen(true);
+            }}
+            className="h-12 rounded-xl border border-linen bg-surface text-ink text-[15px] font-bold flex items-center justify-center gap-2"
+          >
+            <ClipboardPlus className="w-4 h-4" /> Registrar atendimento
+          </button>
+
           {history}
 
           <DeleteClientBlock slug={slug} client={client} appointments={appointments} onDeleted={() => router.replace(listHref)} />
         </>
+      )}
+
+      {recordOpen && (
+        <RecordVisitSheet
+          slug={slug}
+          clientId={client.id}
+          clientName={client.name}
+          services={services}
+          today={today}
+          onClose={() => setRecordOpen(false)}
+          onSaved={() => {
+            setRecordOpen(false);
+            setSaved('Atendimento registrado. Já está no histórico.');
+            router.refresh();
+          }}
+        />
       )}
     </>
   );
