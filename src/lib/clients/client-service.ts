@@ -91,3 +91,134 @@ export async function createManualClient(studioId: string, name: string, whatsap
   console.error('[client-service] createManualClient:', error);
   return { ok: false };
 }
+
+export interface ClientProfile {
+  id: string;
+  name: string;
+  /** Só dígitos, sem o 55; vazio se não tem. */
+  whatsapp: string;
+  email: string | null;
+  birth_date: string | null;
+  notes: string | null;
+  source: 'booking' | 'manual';
+  created_at: string;
+}
+
+const PROFILE_SELECT = 'id, name, whatsapp_digits, email, birth_date, notes, source, created_at';
+
+function toProfile(row: Record<string, unknown>): ClientProfile {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    whatsapp: (row.whatsapp_digits as string) || '',
+    email: (row.email as string) || null,
+    birth_date: (row.birth_date as string) || null,
+    notes: (row.notes as string) || null,
+    source: row.source as 'booking' | 'manual',
+    created_at: row.created_at as string,
+  };
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Perfil de uma cliente do estúdio (F7.2); null se não é dela. */
+export async function getClientProfile(studioId: string, clientId: string): Promise<ClientProfile | null> {
+  if (!UUID_RE.test(clientId)) return null;
+  const { data, error } = await supabaseAdmin
+    .from('clients')
+    .select(PROFILE_SELECT)
+    .eq('studio_id', studioId)
+    .eq('id', clientId)
+    .maybeSingle();
+  if (error) console.error('[client-service] getClientProfile:', error);
+  return data ? toProfile(data) : null;
+}
+
+/** Quantos agendamentos (de qualquer status) a cliente tem. */
+export async function countClientAppointments(studioId: string, clientId: string): Promise<number> {
+  const { count, error } = await supabaseAdmin
+    .from('appointments')
+    .select('id', { count: 'exact', head: true })
+    .eq('studio_id', studioId)
+    .eq('client_id', clientId);
+  if (error) {
+    console.error('[client-service] countClientAppointments:', error);
+    return -1;
+  }
+  return count || 0;
+}
+
+export type UpdateClientResult =
+  | { ok: true; client: ClientProfile }
+  | { ok: false; reason: 'not_found' | 'error' }
+  | { ok: false; reason: 'duplicate'; duplicate: { id: string; name: string } };
+
+/** Salva o perfil editado. `whatsapp` já vem normalizado e validado (ou vazio).
+ *  Número que já é de OUTRA cliente → `duplicate`. */
+export async function updateClientProfile(
+  studioId: string,
+  clientId: string,
+  data: { name: string; whatsapp: string; email: string | null; birth_date: string | null; notes: string | null }
+): Promise<UpdateClientResult> {
+  if (!UUID_RE.test(clientId)) return { ok: false, reason: 'not_found' };
+
+  const findOther = async () => {
+    if (!data.whatsapp) return null;
+    const candidates = [data.whatsapp, ...legacyWhatsappVariants(data.whatsapp)];
+    const { data: rows } = await supabaseAdmin
+      .from('clients')
+      .select('id, name, whatsapp_digits')
+      .eq('studio_id', studioId)
+      .neq('id', clientId)
+      .in('whatsapp_digits', candidates);
+    const list = (rows || []) as { id: string; name: string; whatsapp_digits: string }[];
+    const best = candidates.map((c) => list.find((r) => r.whatsapp_digits === c)).find(Boolean);
+    return best ? { id: best.id, name: best.name } : null;
+  };
+
+  const other = await findOther();
+  if (other) return { ok: false, reason: 'duplicate', duplicate: other };
+
+  const { data: row, error } = await supabaseAdmin
+    .from('clients')
+    .update({ ...data, whatsapp: data.whatsapp || null })
+    .eq('studio_id', studioId)
+    .eq('id', clientId)
+    .select(PROFILE_SELECT)
+    .maybeSingle();
+  if (!error && row) return { ok: true, client: toProfile(row) };
+  if (!error) return { ok: false, reason: 'not_found' };
+  if (error.code === '23505') {
+    const raced = await findOther();
+    if (raced) return { ok: false, reason: 'duplicate', duplicate: raced };
+  }
+  console.error('[client-service] updateClientProfile:', error);
+  return { ok: false, reason: 'error' };
+}
+
+export type DeleteClientResult = { ok: true } | { ok: false; reason: 'not_found' | 'error' } | { ok: false; reason: 'has_history'; appointments: number };
+
+/** Exclui a cliente — só se ela não tem nenhum agendamento (F7.2). O banco
+ *  também trava (`ON DELETE RESTRICT`): se um agendamento entrar no meio, cai
+ *  no 23503 e vira `has_history`. A ficha (`client_records`) sai junto. */
+export async function deleteClient(studioId: string, clientId: string): Promise<DeleteClientResult> {
+  if (!UUID_RE.test(clientId)) return { ok: false, reason: 'not_found' };
+  const appointments = await countClientAppointments(studioId, clientId);
+  if (appointments < 0) return { ok: false, reason: 'error' };
+  if (appointments > 0) return { ok: false, reason: 'has_history', appointments };
+
+  const { data, error } = await supabaseAdmin
+    .from('clients')
+    .delete()
+    .eq('studio_id', studioId)
+    .eq('id', clientId)
+    .select('id');
+  if (error?.code === '23503') {
+    return { ok: false, reason: 'has_history', appointments: Math.max(1, await countClientAppointments(studioId, clientId)) };
+  }
+  if (error) {
+    console.error('[client-service] deleteClient:', error);
+    return { ok: false, reason: 'error' };
+  }
+  return data && data.length > 0 ? { ok: true } : { ok: false, reason: 'not_found' };
+}

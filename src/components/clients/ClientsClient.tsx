@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { MessageCircle, Search, UserPlus, X } from 'lucide-react';
 import { formatPhoneBR, normalizeWhatsappBR } from '@/lib/format';
@@ -86,14 +87,16 @@ export const ClientsClient: React.FC<ClientsClientProps> = ({ slug, clients }) =
       ) : (
         <ul className="rounded-2xl bg-surface border border-linen divide-y divide-linen overflow-hidden">
           {shown.map((c) => (
-            <li key={c.id} className="flex items-center gap-3 px-4 py-3">
-              <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-700 font-bold flex items-center justify-center shrink-0">
-                {c.name.trim().charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-bold text-ink truncate">{c.name}</p>
-                <p className="text-sm text-ink-soft truncate">{visitsLabel(c.visits, c.lastVisit)}</p>
-              </div>
+            <li key={c.id} className="flex items-center gap-3 pr-4">
+              <Link href={`/app/${slug}/clientes/${c.id}`} className="flex items-center gap-3 min-w-0 flex-1 pl-4 py-3 active:bg-cream">
+                <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-700 font-bold flex items-center justify-center shrink-0">
+                  {c.name.trim().charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-ink truncate">{c.name}</p>
+                  <p className="text-sm text-ink-soft truncate">{visitsLabel(c.visits, c.lastVisit)}</p>
+                </div>
+              </Link>
               {c.whatsapp ? (
                 <a
                   href={`https://wa.me/${normalizeWhatsappBR(c.whatsapp)}`}
@@ -129,11 +132,7 @@ export const ClientsClient: React.FC<ClientsClientProps> = ({ slug, clients }) =
             setNotice(`${name} foi cadastrada.`);
             router.refresh();
           }}
-          onDuplicate={(name) => {
-            setNewOpen(false);
-            setQuery(name);
-            setNotice(null);
-          }}
+          onDuplicate={(id) => router.push(`/app/${slug}/clientes/${id}`)}
         />
       )}
     </>
@@ -145,8 +144,8 @@ interface NewClientSheetProps {
   defaultName: string;
   onClose: () => void;
   onCreated: (name: string) => void;
-  /** WhatsApp já é de outra cliente: fecha e mostra ela na busca. */
-  onDuplicate: (name: string) => void;
+  /** WhatsApp já é de outra cliente: abre o perfil dela. */
+  onDuplicate: (id: string) => void;
 }
 
 const NewClientSheet: React.FC<NewClientSheetProps> = ({ slug, defaultName, onClose, onCreated, onDuplicate }) => {
@@ -227,8 +226,8 @@ const NewClientSheet: React.FC<NewClientSheetProps> = ({ slug, defaultName, onCl
 
         {error && <p className="text-sm text-rose-600">{error}</p>}
         {duplicate && (
-          <button type="button" onClick={() => onDuplicate(duplicate.name)} className="text-[15px] font-bold text-rose-600 text-left">
-            Ver {duplicate.name} na lista
+          <button type="button" onClick={() => onDuplicate(duplicate.id)} className="text-[15px] font-bold text-rose-600 text-left">
+            Ver {duplicate.name}
           </button>
         )}
 

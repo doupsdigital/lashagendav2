@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-25 — F7.1 concluída (lista de clientes).**
+> Última atualização: **2026-11-25 — F7.2 concluída (perfil da cliente).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F7 — Clientes** |
-| **Próxima etapa** | **F7.2 — Perfil da cliente** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F7.3 — Histórico** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6 (F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -80,6 +80,11 @@
   acento por nome ou pedaço do WhatsApp, rótulos) e `lib/clients/client-service.ts` (lista
   paginada de 1000 em 1000; cadastro manual que avisa WhatsApp repetido em vez de reaproveitar).
   POST `/api/professional/clients` cria cliente (`source='manual'`, 409 `duplicate`).
+- Perfil da cliente (F7.2): `app/[slug]/clientes/[id]` (dados, editar, excluir; id que não
+  existe volta para a lista). `lib/clients/client-profile.ts` (puro: validação de nome, e-mail,
+  nascimento e observações; idade). PATCH/DELETE `/api/professional/clients/[id]` (sessão do
+  `slug`, cliente sempre filtrada pelo estúdio). Excluir só sem nenhum agendamento — com
+  histórico devolve 409 `has_history` e a tela avisa (não há arquivar; o banco tem `RESTRICT`).
 - Páginas do app sem sessão: Agenda e Clientes conferem a sessão na própria página e não leem
   nada (o layout só esconde; sem isso os dados iam no HTML). Corrigido na F7.1.
 - Trancar pela agenda (F6.6): tocar num horário livre pergunta Agendar/Trancar (trancar já vem
