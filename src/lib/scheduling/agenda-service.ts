@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '../supabase-admin';
 import { normalizeWhatsappBR } from '../format';
-import { priceToLabel } from '../service-format';
+import { bookingTotalLabel, priceToLabel, toNumberOrNull } from '../service-format';
 import { localDateTimeToUTC } from './availability';
 import {
   ACTIVITY_LIMIT,
@@ -10,15 +10,25 @@ import {
   type ActivitySourceRow,
 } from './client-activity';
 
-/** Formato que as telas da Agenda (herdadas do StudioMenu) usam. Montado a
- *  partir de `appointments` + `clients` + `appointment_items` (F2.2); a F6
- *  refaz a Agenda e pode passar a usar os itens diretamente. */
+/** Um serviço do agendamento, com nome/duração/preço do momento em que foi
+ *  marcado (`appointment_items`). */
+export interface AgendaAppointmentItem {
+  title: string;
+  duration_minutes: number;
+  /** `null` = sob consulta. */
+  price: number | null;
+}
+
+/** Formato que as telas da Agenda usam. Montado a partir de `appointments` +
+ *  `clients` + `appointment_items` (F2.2; itens e cancelamento na F6.1). */
 export interface AgendaAppointment {
   id: string;
   /** Serviços do agendamento, juntos ("Volume russo + Design"). */
   service_title: string;
+  /** Cada serviço, na ordem em que são feitos. */
+  items: AgendaAppointmentItem[];
   duration_minutes: number;
-  /** Total formatado ("R$ 180") ou null ("sob consulta"). */
+  /** Total formatado ("R$ 180", "R$ 180 + sob consulta") ou null (só sob consulta). */
   price_snapshot: string | null;
   client_name: string;
   /** Com o 55 do país, pronto para `wa.me`. */
@@ -28,6 +38,10 @@ export interface AgendaAppointment {
   ends_at: string;
   status: 'pending' | 'confirmed' | 'canceled' | 'completed' | 'no_show';
   origin: 'catalog' | 'professional';
+  /** Só nos cancelados: quem cancelou, quando e o motivo (se houver). */
+  canceled_by: 'client' | 'professional' | null;
+  canceled_at: string | null;
+  cancel_reason: string | null;
 }
 
 export interface ManualBookingService {
@@ -38,7 +52,8 @@ export interface ManualBookingService {
 }
 
 const AGENDA_SELECT =
-  'id, starts_at, ends_at, status, origin, total_price, client_notes, clients(name, whatsapp), appointment_items(title, position)';
+  'id, starts_at, ends_at, status, origin, total_price, client_notes, canceled_by, canceled_at, cancel_reason, ' +
+  'clients(name, whatsapp), appointment_items(title, duration_minutes, price, position)';
 
 interface AgendaRow {
   id: string;
@@ -48,18 +63,29 @@ interface AgendaRow {
   origin: AgendaAppointment['origin'];
   total_price: number | string | null;
   client_notes: string | null;
+  canceled_by: AgendaAppointment['canceled_by'];
+  canceled_at: string | null;
+  cancel_reason: string | null;
   clients: { name: string; whatsapp: string | null } | null;
-  appointment_items: { title: string; position: number }[] | null;
+  appointment_items: { title: string; duration_minutes: number; price: number | string | null; position: number }[] | null;
 }
 
 function toAgendaAppointment(row: AgendaRow): AgendaAppointment {
-  const items = [...(row.appointment_items || [])].sort((a, b) => a.position - b.position);
+  const items: AgendaAppointmentItem[] = [...(row.appointment_items || [])]
+    .sort((a, b) => a.position - b.position)
+    .map((i) => ({ title: i.title, duration_minutes: i.duration_minutes, price: toNumberOrNull(i.price) }));
   const durationMinutes = Math.round((new Date(row.ends_at).getTime() - new Date(row.starts_at).getTime()) / 60000);
+  const hasPrice = items.length > 0 ? items.some((i) => i.price !== null) : row.total_price !== null;
   return {
     id: row.id,
     service_title: items.map((i) => i.title).join(' + ') || 'Atendimento',
+    items,
     duration_minutes: durationMinutes,
-    price_snapshot: row.total_price === null ? null : priceToLabel(row.total_price),
+    price_snapshot: !hasPrice
+      ? null
+      : items.length > 0
+        ? bookingTotalLabel(items)
+        : bookingTotalLabel([{ price: toNumberOrNull(row.total_price) }]),
     client_name: row.clients?.name || 'Cliente',
     client_whatsapp: normalizeWhatsappBR(row.clients?.whatsapp),
     client_notes: row.client_notes,
@@ -67,27 +93,32 @@ function toAgendaAppointment(row: AgendaRow): AgendaAppointment {
     ends_at: row.ends_at,
     status: row.status,
     origin: row.origin,
+    canceled_by: row.canceled_by,
+    canceled_at: row.canceled_at,
+    cancel_reason: row.cancel_reason,
   };
 }
 
 /** Agendamentos entre `startDateStr` (inclusive) e `endDateStrExclusive`
  *  (exclusive), fuso America/Sao_Paulo, ordenados por horário. Nunca inclui
- *  cancelados (somem da agenda) nem registros de histórico (`record`, que não
- *  ocupam horário). Usada pela grade do dia e pela visão mensal. */
+ *  registros de histórico (`record`, que não ocupam horário). Cancelados só
+ *  com `includeCanceled` (a visão do dia lista à parte, F6.1). */
 export async function getAppointmentsForRange(
   studioId: string,
   startDateStr: string,
-  endDateStrExclusive: string
+  endDateStrExclusive: string,
+  options: { includeCanceled?: boolean } = {}
 ): Promise<AgendaAppointment[]> {
   const rangeStart = localDateTimeToUTC(startDateStr, '00:00:00');
   const rangeEnd = localDateTimeToUTC(endDateStrExclusive, '00:00:00');
 
-  const { data, error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from('appointments')
     .select(AGENDA_SELECT)
     .eq('studio_id', studioId)
-    .neq('status', 'canceled')
-    .neq('origin', 'record')
+    .neq('origin', 'record');
+  if (!options.includeCanceled) query = query.neq('status', 'canceled');
+  const { data, error } = await query
     .gte('starts_at', rangeStart.toISOString())
     .lt('starts_at', rangeEnd.toISOString())
     .order('starts_at', { ascending: true });
@@ -97,10 +128,14 @@ export async function getAppointmentsForRange(
 }
 
 /** Agendamentos de um único dia — atalho sobre `getAppointmentsForRange`. */
-export async function getAppointmentsForDay(studioId: string, dateStr: string): Promise<AgendaAppointment[]> {
+export async function getAppointmentsForDay(
+  studioId: string,
+  dateStr: string,
+  options: { includeCanceled?: boolean } = {}
+): Promise<AgendaAppointment[]> {
   const dayStart = localDateTimeToUTC(dateStr, '00:00:00');
   const nextDay = new Date(dayStart.getTime() + 24 * 60 * 60000).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-  return getAppointmentsForRange(studioId, dateStr, nextDay);
+  return getAppointmentsForRange(studioId, dateStr, nextDay, options);
 }
 
 /** Fila de agendamentos aguardando confirmação — sem filtro de data. */

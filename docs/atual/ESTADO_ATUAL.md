@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F6 — Agenda da profissional (marco M1)** |
-| **Próxima etapa** | **F6.1 — Visão dia e mês sobre o modelo novo** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fase atual** | **F6 — Agenda da profissional (marco M1)** (F6.1 ✅) |
+| **Próxima etapa** | **F6.2 — Visão semana (confirmar com a usuária se vale)** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5 (F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -72,6 +72,9 @@
   `lib/scheduling/client-activity.ts`, testes em `scripts/test-client-activity.mjs`) com o que
   as clientes agendaram ou cancelaram pelo link nos últimos 3 dias. O push sai ao agendar e ao
   cancelar, mas só funciona com as chaves VAPID (ainda não configuradas — F12).
+- Agenda (F6.1): `AgendaAppointment` traz os itens (serviço, duração, preço), origem e dados do
+  cancelamento. A visão do dia lista "Cancelados neste dia" à parte (sem ocupar horário); o
+  detalhe mostra cada serviço + total e o WhatsApp clicável. O mês continua sem cancelados.
 - Catálogo (F5.5): com agendamento online ligado, `whatsapp_button_enabled` mostra também
   "ou agende pelo WhatsApp" no detalhe do serviço; com `agenda_paused` (Configurações →
   Desligar Agenda), só o WhatsApp.

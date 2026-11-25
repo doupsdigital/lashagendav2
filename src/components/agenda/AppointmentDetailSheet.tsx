@@ -3,6 +3,8 @@
 import React from 'react';
 import { X, Check, MessageCircle, CheckCircle2, XCircle } from 'lucide-react';
 import type { AgendaAppointment } from '@/lib/scheduling/agenda-service';
+import { durationToLabel, formatBRL, PRICE_ON_REQUEST_LABEL } from '@/lib/service-format';
+import { formatPhoneBR } from '@/lib/format';
 
 interface AppointmentDetailSheetProps {
   appointment: AgendaAppointment;
@@ -58,11 +60,26 @@ export const AppointmentDetailSheet: React.FC<AppointmentDetailSheetProps> = ({
     month: 'long',
     timeZone: 'America/Sao_Paulo',
   });
+  const endTime = new Date(appointment.ends_at).toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'America/Sao_Paulo',
+  });
+  const canceledAtLabel = appointment.canceled_at
+    ? new Date(appointment.canceled_at).toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'America/Sao_Paulo',
+      }).replace(',', ' às')
+    : '';
+  const whatsappHref = appointment.client_whatsapp ? `https://wa.me/${appointment.client_whatsapp}` : '';
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-surface rounded-t-3xl p-6 pb-8 shadow-2xl">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-surface rounded-t-3xl p-6 pb-8 shadow-2xl">
         <button
           type="button"
           onClick={onClose}
@@ -76,18 +93,58 @@ export const AppointmentDetailSheet: React.FC<AppointmentDetailSheetProps> = ({
           {STATUS_LABEL[appointment.status]}
         </span>
 
-        <h3 className="font-serif-pro text-xl font-bold text-ink mb-1">{appointment.service_title}</h3>
-        <p className="text-[15px] text-ink-soft mb-4 capitalize">
-          {dateLabel} às {time} · {appointment.duration_minutes}min
+        <h3 className="font-serif-pro text-xl font-bold text-ink mb-1">{appointment.client_name}</h3>
+        <p className="text-[15px] text-ink-soft">
+          <span className="capitalize">{dateLabel}</span> · {time} às {endTime}
+        </p>
+        <p className="text-[13px] text-ink-faint mb-4">
+          {appointment.origin === 'catalog' ? 'Agendado pela cliente no catálogo' : 'Agendado por você'}
         </p>
 
-        <div className="rounded-xl bg-cream p-4 mb-5 flex flex-col gap-1">
-          <p className="text-base text-ink font-bold">{appointment.client_name}</p>
-          <p className="text-sm text-ink-soft flex items-center gap-1.5">
-            <MessageCircle className="w-3.5 h-3.5" /> {appointment.client_whatsapp}
-          </p>
-          {appointment.client_notes && <p className="text-sm text-ink-faint italic mt-1">{appointment.client_notes}</p>}
-          {appointment.price_snapshot && <p className="text-sm text-ink-soft mt-1">Investimento: {appointment.price_snapshot}</p>}
+        {/* Serviços (F6.1): cada um com duração e preço do momento em que foi marcado. */}
+        <div className="rounded-xl bg-cream px-4 py-2 mb-3">
+          {(appointment.items.length > 0 ? appointment.items : [{ title: appointment.service_title, duration_minutes: appointment.duration_minutes, price: null }]).map(
+            (item, idx) => (
+              <div key={idx} className="flex items-baseline justify-between gap-3 py-2 border-b border-linen last:border-b-0">
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold text-ink">{item.title}</p>
+                  <p className="text-[13px] text-ink-faint">{durationToLabel(item.duration_minutes)}</p>
+                </div>
+                <p className="text-[15px] text-ink-soft shrink-0">{item.price === null ? PRICE_ON_REQUEST_LABEL : formatBRL(item.price)}</p>
+              </div>
+            )
+          )}
+          {appointment.items.length > 1 && (
+            <div className="flex items-baseline justify-between gap-3 py-2 border-t border-linen">
+              <p className="text-[13px] font-bold uppercase tracking-wider text-ink-soft">Total · {durationToLabel(appointment.duration_minutes)}</p>
+              <p className="text-[15px] font-bold text-ink shrink-0">{appointment.price_snapshot || PRICE_ON_REQUEST_LABEL}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2 mb-5">
+          {appointment.client_notes && (
+            <p className="text-sm text-ink-soft rounded-xl border border-linen px-3.5 py-2.5">
+              <span className="font-semibold text-ink">Recado da cliente:</span> {appointment.client_notes}
+            </p>
+          )}
+          {appointment.status === 'canceled' && (
+            <p className="text-sm text-ink-soft rounded-xl bg-linen/50 px-3.5 py-2.5">
+              {appointment.canceled_by === 'client' ? 'Cancelado pela cliente' : 'Cancelado por você'}
+              {canceledAtLabel ? ` em ${canceledAtLabel}` : ''}.
+              {appointment.cancel_reason ? ` Motivo: ${appointment.cancel_reason}` : ''}
+            </p>
+          )}
+          {whatsappHref && (
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-11 rounded-xl border border-linen bg-surface text-ink text-[15px] font-bold flex items-center justify-center gap-2"
+            >
+              <MessageCircle className="w-4 h-4 text-emerald-600" /> WhatsApp · {formatPhoneBR(appointment.client_whatsapp.replace(/^55/, ''))}
+            </a>
+          )}
         </div>
 
         {appointment.status === 'pending' && (

@@ -10,7 +10,8 @@ import { STATUS_LABEL } from './status-styles';
 interface DayTimelineProps {
   dateStr: string;
   todayStr: string;
-  /** Agendamentos do dia — `getAppointmentsForDay` nunca inclui cancelados. */
+  /** Agendamentos do dia, incluindo os cancelados (listados à parte no fim,
+   *  sem ocupar horário — F6.1). */
   appointments: AgendaAppointment[];
   businessHours: BusinessHoursConfigRow[];
   scheduleBlocks: ScheduleBlockConfigRow[];
@@ -74,6 +75,11 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
   onApprove,
 }) => {
   const isToday = dateStr === todayStr;
+  const activeAppointments = useMemo(() => appointments.filter((a) => a.status !== 'canceled'), [appointments]);
+  const canceledAppointments = useMemo(
+    () => appointments.filter((a) => a.status === 'canceled').sort((a, b) => a.starts_at.localeCompare(b.starts_at)),
+    [appointments]
+  );
 
   // "Agora" só depois de montar: calcular no render faria o HTML do servidor
   // divergir do cliente (minuto diferente) na visão de hoje.
@@ -98,7 +104,7 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
     const dayBlocks = scheduleBlocks.filter((b) => dateStr >= b.start_date && dateStr <= b.end_date);
     const allDayBlock = dayBlocks.find((b) => b.all_day);
 
-    const apptItems = appointments.map((appt) => {
+    const apptItems = activeAppointments.map((appt) => {
       const start = saoPauloMinutes(new Date(appt.starts_at));
       return { kind: 'appt' as const, start, end: start + appt.duration_minutes, appt };
     });
@@ -154,7 +160,7 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
       return [{ kind: 'note', title: 'Nada mais por hoje', hint: 'Não há horários livres nem agendamentos pra o resto do dia.' }];
     }
     return result;
-  }, [dateStr, appointments, businessHours, scheduleBlocks, nowMin]);
+  }, [dateStr, activeAppointments, businessHours, scheduleBlocks, nowMin]);
 
   // Horário em negrito: o próximo agendamento (hoje) ou o primeiro do dia.
   const highlightId = useMemo(() => {
@@ -301,6 +307,35 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
           </div>
         );
       })}
+
+      {canceledAppointments.length > 0 && (
+        <div className="mt-3">
+          <p className="text-[13px] font-bold uppercase tracking-wider text-ink-faint mb-1.5">
+            {canceledAppointments.length === 1 ? 'Cancelado neste dia' : `Cancelados neste dia (${canceledAppointments.length})`}
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {canceledAppointments.map((appt) => {
+              const start = saoPauloMinutes(new Date(appt.starts_at));
+              return (
+                <button
+                  key={appt.id}
+                  type="button"
+                  onClick={() => onAppointmentClick(appt)}
+                  className="flex items-center gap-2.5 rounded-xl bg-linen/40 px-3.5 py-2.5 text-left"
+                >
+                  <span className="w-[42px] shrink-0 text-sm tabular-nums text-ink-faint line-through">{fmt(start)}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] text-ink-soft truncate">{appt.client_name}</span>
+                    <span className="block text-[13px] text-ink-faint truncate">
+                      {appt.service_title} · {appt.canceled_by === 'client' ? 'cancelado pela cliente' : 'cancelado por você'}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

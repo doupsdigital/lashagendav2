@@ -118,7 +118,8 @@ export default async function AgendaPage({ params, searchParams }: AgendaPagePro
       getManualBookingServices(order.id),
       getBusinessHours(order.id),
       getScheduleBlocks(order.id),
-      view === 'dia' ? getAppointmentsForDay(order.id, selectedDate) : Promise.resolve([]),
+      // Com os cancelados: a visão do dia lista à parte quem cancelou (F6.1).
+      view === 'dia' ? getAppointmentsForDay(order.id, selectedDate, { includeCanceled: true }) : Promise.resolve([]),
       view === 'mes' ? getAppointmentsForRange(order.id, monthDays[0], shiftDate(monthDays[41], 1)) : Promise.resolve([]),
     ]);
 
