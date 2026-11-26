@@ -57,7 +57,7 @@ cobre, **pare e pergunte**. Depois de decidida, registre em `DECISOES_DE_PRODUTO
 | F6 | Agenda da profissional | Dia/mês (semana pulada), confirmar/recusar, agendamento manual, concluir com valor, falta, trancar | ✅ |
 | F7 | Clientes | Lista, busca, perfil com histórico, atendimento manual | ✅ |
 | F8 | Ficha da cliente | Ficha técnica + saúde e cuidados, só dentro do app, com consentimento | ✅ |
-| F9 | Início (painel) + relatórios | Números do dia/mês, pendências, relatórios por período | ⬜ |
+| F9 | Início (painel) + relatórios | Números do dia/mês, pendências, relatórios por período | ✅ |
 | F10 | Configurações | Negócio, regras de agendamento, WhatsApp, conta, ajuda, link + QR | ⬜ |
 | F11 | Venda e acesso (prévia + Cakto + e-mail) | Ciclo completo: prévia → compra → ativação → e-mail → primeiros passos | ⬜ |
 | F12 | Admin + PWA + notificações | Painel admin, app instalável, push de novo agendamento | ⬜ |
@@ -455,7 +455,7 @@ abrir o agendamento seguinte dela e ver o resumo.
 
 ---
 
-### F9 — Início (painel) + relatórios
+### F9 — Início (painel) + relatórios ✅
 
 **Etapas:**
 

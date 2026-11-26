@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-26 — F9.1 concluída (Início / painel).**
+> Última atualização: **2026-11-26 — F9.2 concluída — F9 fechada.**
 
 ---
 
@@ -11,9 +11,9 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F9 — Início (painel) + relatórios** |
-| **Próxima etapa** | **F9.2 — Relatórios** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
-| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8 (F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
+| **Fase atual** | **F10 — Configurações (marco M2)** |
+| **Próxima etapa** | **F10.1 — Meu negócio** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9 (F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
 ## 2. O que existe no repositório
@@ -129,7 +129,12 @@
   (inclui registros do histórico, pela data); clientes novas = `created_at` no mês. As ações abrem
   a Agenda com `?abrir=novo|trancar` (o parâmetro sai da URL depois de abrir). O Início confere a
   sessão na própria página.
-- Páginas do app sem sessão: Início, Agenda e Clientes conferem a sessão na própria página e não leem
+- Relatórios (F9.2): `app/[slug]/relatorios` (link no Início, fora da barra de abas) +
+  `components/reports/ReportView.tsx`. Período na URL (`?periodo=`, `de`/`ate` no personalizado,
+  máx. 2 anos); contas puras em `lib/dashboard/report.ts`, leitura em `report-service.ts`. Mesma
+  regra do Início: registros do histórico contam como concluídos; receita e serviços mais feitos
+  só dos concluídos. Gráfico só com CSS (por dia até 62 dias, senão por mês), sem lib nova.
+- Páginas do app sem sessão: Início, Agenda, Clientes e Relatórios conferem a sessão na própria página e não leem
   nada (o layout só esconde; sem isso os dados iam no HTML). Corrigido na F7.1.
 - Trancar pela agenda (F6.6): tocar num horário livre pergunta Agendar/Trancar (trancar já vem
   com o trecho); tocar num trancado mostra período/motivo e Destrancar (bloqueio de vários dias

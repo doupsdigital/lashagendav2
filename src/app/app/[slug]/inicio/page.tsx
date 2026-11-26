@@ -19,7 +19,7 @@ import { InicioTour } from '@/components/tour/InicioTour';
 import { countSelfServeStepsDone, SELF_SERVE_STEP_ORDER } from '@/lib/self-serve-onboarding';
 import Link from 'next/link';
 import { CaktoPlanCard } from '@/components/billing/CaktoPlanCard';
-import { CalendarDays, Share2, Home, ListChecks, ChevronRight, Wallet, TrendingUp, UserPlus } from 'lucide-react';
+import { CalendarDays, Share2, Home, ListChecks, ChevronRight, Wallet, TrendingUp, UserPlus, BarChart3 } from 'lucide-react';
 
 interface InicioPageProps {
   params: Promise<{ slug: string }>;
@@ -142,6 +142,16 @@ export default async function InicioPage({ params }: InicioPageProps) {
               <StatCard icon={UserPlus} label="Clientes novas no mês" value={numbers.newClientsMonth} href={`/app/${slug}/clientes`} />
             </div>
           )}
+
+          {/* Relatórios por período (F9.2). */}
+          <Link
+            href={`/app/${slug}/relatorios`}
+            className="flex items-center gap-3 rounded-2xl p-4 bg-surface border border-linen shadow-sm active:scale-[0.98] transition-transform -mt-1"
+          >
+            <BarChart3 className="w-5 h-5 text-rose-600 shrink-0" />
+            <span className="flex-1 font-bold text-[15px] text-ink">Ver relatórios</span>
+            <ChevronRight className="w-5 h-5 text-ink-faint shrink-0" />
+          </Link>
 
           <TodayAgendaCard slug={slug} appointments={todayAppointments} />
 
