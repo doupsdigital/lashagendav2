@@ -56,7 +56,7 @@ cobre, **pare e pergunte**. Depois de decidida, registre em `DECISOES_DE_PRODUTO
 | F5 | Agendamento pela cliente | Cliente agenda pelo catálogo (automático ou com aprovação) e recebe link do agendamento | ✅ |
 | F6 | Agenda da profissional | Dia/mês (semana pulada), confirmar/recusar, agendamento manual, concluir com valor, falta, trancar | ✅ |
 | F7 | Clientes | Lista, busca, perfil com histórico, atendimento manual | ✅ |
-| F8 | Ficha da cliente | Ficha técnica + saúde e cuidados, só dentro do app, com consentimento | ⬜ |
+| F8 | Ficha da cliente | Ficha técnica + saúde e cuidados, só dentro do app, com consentimento | ✅ |
 | F9 | Início (painel) + relatórios | Números do dia/mês, pendências, relatórios por período | ⬜ |
 | F10 | Configurações | Negócio, regras de agendamento, WhatsApp, conta, ajuda, link + QR | ⬜ |
 | F11 | Venda e acesso (prévia + Cakto + e-mail) | Ciclo completo: prévia → compra → ativação → e-mail → primeiros passos | ⬜ |
@@ -428,7 +428,7 @@ conferir que aparece nos números.
 
 ---
 
-### F8 — Ficha da cliente
+### F8 — Ficha da cliente ✅
 
 **Objetivo:** o diferencial "só lash", com todo cuidado de privacidade.
 

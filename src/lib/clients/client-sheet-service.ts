@@ -1,7 +1,7 @@
 import 'server-only';
 import { supabaseAdmin } from '../supabase-admin';
-import { readTechnical, technicalSummary, type TechnicalSheet } from './client-technical';
-import { countHealthAlerts, readHealth, type HealthSheet } from './client-health';
+import { countTechnicalFilled, readTechnical, technicalSummary, type TechnicalSheet } from './client-technical';
+import { countHealthAlerts, countHealthFilled, readHealth, type HealthSheet } from './client-health';
 
 // Ficha da cliente (F8) — `client_records`, 1:1 com `clients`. Dado pessoal
 // (e sensível, na aba de saúde): só o servidor lê e grava, e sempre
@@ -130,6 +130,33 @@ export async function getSheetHighlights(studioId: string, clientIds: string[]):
       const healthAlerts = row.consent_at ? countHealthAlerts(readHealth(row.health)) : 0;
       if (summary || healthAlerts > 0) out[row.client_id as string] = { summary, healthAlerts };
     }
+  }
+  return out;
+}
+
+/** Situação da ficha de TODAS as clientes do estúdio, para os filtros da
+ *  lista (F8.5): preenchida ou não e quantos pontos de atenção (só o número;
+ *  saúde só com consentimento). Quem não tem ficha fica de fora do mapa. */
+export async function getStudioSheetStatus(studioId: string): Promise<Record<string, { filled: boolean; healthAlerts: number }>> {
+  const out: Record<string, { filled: boolean; healthAlerts: number }> = {};
+  for (let page = 0; page < 20; page++) {
+    const { data, error } = await supabaseAdmin
+      .from('client_records')
+      .select('client_id, technical, health, consent_at, clients!inner(studio_id)')
+      .eq('clients.studio_id', studioId)
+      .order('client_id')
+      .range(page * 1000, page * 1000 + 999);
+    if (error) {
+      console.error('[client-sheet-service] getStudioSheetStatus:', error.message);
+      break;
+    }
+    for (const row of (data || []) as Record<string, unknown>[]) {
+      const health = row.consent_at ? readHealth(row.health) : {};
+      const filled = countTechnicalFilled(readTechnical(row.technical)) > 0 || countHealthFilled(health) > 0;
+      const healthAlerts = countHealthAlerts(health);
+      if (filled) out[row.client_id as string] = { filled, healthAlerts };
+    }
+    if (!data || data.length < 1000) break;
   }
   return out;
 }

@@ -3,25 +3,49 @@
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MessageCircle, Search, UserPlus, X } from 'lucide-react';
+import { AlertTriangle, MessageCircle, Search, UserPlus, X } from 'lucide-react';
 import { formatPhoneBR, normalizeWhatsappBR } from '@/lib/format';
-import { matchesClientQuery, visitsLabel, MAX_CLIENT_NAME, type ClientListItem } from '@/lib/clients/client-list';
+import {
+  matchesClientQuery,
+  matchesSheetFilter,
+  visitsLabel,
+  MAX_CLIENT_NAME,
+  type ClientListItem,
+  type ClientSheetStatus,
+  type SheetFilter,
+} from '@/lib/clients/client-list';
 
 interface ClientsClientProps {
   slug: string;
   clients: ClientListItem[];
+  /** Situação da ficha por cliente (F8.5); sem entrada = sem ficha. */
+  sheetStatus?: Record<string, ClientSheetStatus>;
 }
+
+const SHEET_FILTERS: { id: SheetFilter; label: string }[] = [
+  { id: 'all', label: 'Todas' },
+  { id: 'no_sheet', label: 'Sem ficha' },
+  { id: 'attention', label: 'Com atenção' },
+];
 
 /** Quantas aparecem de uma vez; o resto se acha pela busca. */
 const SHOW_LIMIT = 200;
 
-export const ClientsClient: React.FC<ClientsClientProps> = ({ slug, clients }) => {
+export const ClientsClient: React.FC<ClientsClientProps> = ({ slug, clients, sheetStatus = {} }) => {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [newOpen, setNewOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [sheetFilter, setSheetFilter] = useState<SheetFilter>('all');
 
-  const filtered = useMemo(() => clients.filter((c) => matchesClientQuery(c, query)), [clients, query]);
+  const sheetCounts = useMemo(
+    () => Object.fromEntries(SHEET_FILTERS.map((f) => [f.id, clients.filter((c) => matchesSheetFilter(sheetStatus[c.id], f.id)).length])) as Record<SheetFilter, number>,
+    [clients, sheetStatus]
+  );
+  const filtered = useMemo(
+    () => clients.filter((c) => matchesSheetFilter(sheetStatus[c.id], sheetFilter) && matchesClientQuery(c, query)),
+    [clients, query, sheetFilter, sheetStatus]
+  );
   const shown = filtered.slice(0, SHOW_LIMIT);
   const searching = query.trim() !== '';
   // Busca por nome sem resultado: oferece cadastrar com o nome já preenchido.
@@ -68,6 +92,29 @@ export const ClientsClient: React.FC<ClientsClientProps> = ({ slug, clients }) =
         </label>
       )}
 
+      {/* Filtro pela ficha (F8.5). Fora do analytics: "com atenção" vem da
+          aba de saúde. O filtro não vai para a URL. */}
+      {clients.length > 0 && (
+        <div className="ph-no-capture flex gap-2 overflow-x-auto -mx-1 px-1">
+          {SHEET_FILTERS.map((f) => {
+            const on = sheetFilter === f.id;
+            return (
+              <button
+                key={f.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setSheetFilter(f.id)}
+                className={`shrink-0 h-10 rounded-full border px-4 text-[15px] font-semibold transition active:scale-95 ${
+                  on ? 'bg-rose-600 border-rose-600 text-white' : 'bg-surface border-linen text-ink'
+                }`}
+              >
+                {f.label} · {sheetCounts[f.id]}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {clients.length === 0 ? (
         <div className="rounded-2xl bg-surface border border-linen p-6 text-center flex flex-col gap-2">
           <p className="font-bold text-ink">Suas clientes vão aparecer aqui</p>
@@ -77,8 +124,19 @@ export const ClientsClient: React.FC<ClientsClientProps> = ({ slug, clients }) =
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl bg-surface border border-linen p-6 text-center flex flex-col gap-3">
-          <p className="text-[15px] text-ink-soft">Nenhuma cliente encontrada para “{query.trim()}”.</p>
-          {prefillName && (
+          <p className="text-[15px] text-ink-soft">
+            {searching
+              ? `Nenhuma cliente encontrada para “${query.trim()}”${sheetFilter !== 'all' ? ' neste filtro' : ''}.`
+              : sheetFilter === 'no_sheet'
+                ? 'Todas as clientes já têm ficha.'
+                : 'Nenhuma cliente com pontos de atenção.'}
+          </p>
+          {sheetFilter !== 'all' && (
+            <button type="button" onClick={() => setSheetFilter('all')} className="text-[15px] font-bold text-rose-600">
+              Ver todas
+            </button>
+          )}
+          {prefillName && sheetFilter === 'all' && (
             <button type="button" onClick={openNew} className="text-[15px] font-bold text-rose-600">
               Cadastrar “{prefillName}”
             </button>
@@ -93,7 +151,12 @@ export const ClientsClient: React.FC<ClientsClientProps> = ({ slug, clients }) =
                   {c.name.trim().charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-ink truncate">{c.name}</p>
+                  <p className="font-bold text-ink truncate flex items-center gap-1.5">
+                    <span className="truncate">{c.name}</span>
+                    {(sheetStatus[c.id]?.healthAlerts ?? 0) > 0 && (
+                      <AlertTriangle className="ph-no-capture w-4 h-4 text-amber-600 shrink-0" aria-label="Tem pontos de atenção na ficha" />
+                    )}
+                  </p>
                   <p className="text-sm text-ink-soft truncate">{visitsLabel(c.visits, c.lastVisit)}</p>
                 </div>
               </Link>

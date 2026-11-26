@@ -1,6 +1,7 @@
 // Testes da lista de clientes (F7.1) — `node scripts/test-client-list.mjs`.
 // Resumo de atendimentos, busca e nome da cliente nova, sem banco nem servidor.
 import {
+  matchesSheetFilter,
   cleanClientName,
   matchesClientQuery,
   MAX_CLIENT_NAME,
@@ -62,6 +63,14 @@ check('nome com espaços sobrando', cleanClientName('  Maria   da  Silva '), 'Ma
 check('nome curto demais', cleanClientName(' a '), null);
 check('nome não-texto', cleanClientName(42), null);
 check('nome cortado no limite', cleanClientName('x'.repeat(300)).length, MAX_CLIENT_NAME);
+
+// Filtro pela ficha (F8.5)
+check('todas: sem ficha entra', matchesSheetFilter(undefined, 'all'), true);
+check('sem ficha: sem entrada', matchesSheetFilter(undefined, 'no_sheet'), true);
+check('sem ficha: preenchida não', matchesSheetFilter({ filled: true, healthAlerts: 0 }, 'no_sheet'), false);
+check('atenção: com pontos', matchesSheetFilter({ filled: true, healthAlerts: 2 }, 'attention'), true);
+check('atenção: sem pontos não', matchesSheetFilter({ filled: true, healthAlerts: 0 }, 'attention'), false);
+check('atenção: sem ficha não', matchesSheetFilter(undefined, 'attention'), false);
 
 console.log(failures ? `\n${failures} caso(s) falharam.` : '\nTodos os casos passaram.');
 process.exit(failures ? 1 : 0);

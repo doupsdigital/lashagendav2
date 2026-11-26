@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-26 — F8.4 concluída (ficha no atendimento).**
+> Última atualização: **2026-11-26 — F8.5 concluída — F8 fechada.**
 
 ---
 
@@ -11,9 +11,9 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F8 — Ficha da cliente** |
-| **Próxima etapa** | **F8.5 — Lista "Fichas" (opcional)** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
-| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7 (F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
+| **Fase atual** | **F9 — Início (painel) + relatórios** |
+| **Próxima etapa** | **F9.1 — Início** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8 (F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
 ## 2. O que existe no repositório
@@ -120,6 +120,9 @@
   só a CONTAGEM de pontos de atenção de saúde (com consentimento), das clientes na tela da agenda
   (segunda consulta na página, filtro pelo `studio_id` da cliente). Aparece no topo do
   `AppointmentDetailSheet` (link para a ficha, `ph-no-capture`). Texto de saúde nunca vai para a agenda.
+- Filtro de fichas na lista (F8.5): `getStudioSheetStatus` (client-sheet-service) devolve por cliente
+  só `{filled, healthAlerts}`; `matchesSheetFilter` (client-list) e chips Todas / Sem ficha / Com
+  atenção no `ClientsClient` (`ph-no-capture`, filtro não vai para a URL), ícone âmbar ao lado do nome.
 - Páginas do app sem sessão: Agenda e Clientes conferem a sessão na própria página e não leem
   nada (o layout só esconde; sem isso os dados iam no HTML). Corrigido na F7.1.
 - Trancar pela agenda (F6.6): tocar num horário livre pergunta Agendar/Trancar (trancar já vem

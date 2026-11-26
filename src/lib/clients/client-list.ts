@@ -74,3 +74,20 @@ export function cleanClientName(raw: unknown): string | null {
   const name = raw.replace(/\s+/g, ' ').trim().slice(0, MAX_CLIENT_NAME);
   return name.length >= 2 ? name : null;
 }
+
+/** Situação da ficha de uma cliente na lista (F8.5). Sem entrada = sem ficha. */
+export interface ClientSheetStatus {
+  /** Alguma resposta em qualquer aba (saúde só conta com consentimento). */
+  filled: boolean;
+  /** Pontos de atenção de saúde (só o número). */
+  healthAlerts: number;
+}
+
+export type SheetFilter = 'all' | 'no_sheet' | 'attention';
+
+/** Filtro da lista "Fichas": todas, sem ficha preenchida, com atenção. */
+export function matchesSheetFilter(status: ClientSheetStatus | undefined, filter: SheetFilter): boolean {
+  if (filter === 'no_sheet') return !status?.filled;
+  if (filter === 'attention') return (status?.healthAlerts ?? 0) > 0;
+  return true;
+}
