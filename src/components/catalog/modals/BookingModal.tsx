@@ -37,6 +37,8 @@ interface BookedAppointment {
   /** Link único (ver/cancelar) e arquivo de agenda — F5.4. */
   manageUrl: string | null;
   icsUrl: string | null;
+  /** Prévia (F11.1): demonstração, nada foi gravado. */
+  demo: boolean;
 }
 
 /** Igual ao limite do servidor (`MAX_BOOKING_ITEMS`). */
@@ -209,6 +211,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         confirmed: json.appointment?.status === 'confirmed',
         manageUrl: typeof json.manageUrl === 'string' ? json.manageUrl : null,
         icsUrl: typeof json.icsUrl === 'string' ? json.icsUrl : null,
+        demo: json.demo === true,
       });
       setStep('confirm');
     } catch {
@@ -266,6 +269,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
           )}
 
+          {booked.demo && (
+            <div className="wizard-success__recado">
+              <span className="wizard__resumo-k">Isto é uma demonstração</span>
+              <p>
+                Nada foi gravado. No seu LashAgenda de verdade, este agendamento aparece na sua Agenda na hora — e você
+                recebe um aviso no celular.
+              </p>
+            </div>
+          )}
+
           {booked.manageUrl && (
             <p className="wizard-success__dica">
               Neste link você vê o agendamento e pode cancelar, se precisar. Guarde-o.
@@ -283,7 +296,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <CalendarPlus className="w-4 h-4" /> Adicionar à agenda do celular
               </a>
             )}
-            {whatsappNumber && (
+            {whatsappNumber && !booked.demo && (
               <a
                 href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
                   `Olá! Acabei de agendar ${selected.map((p) => p.title).join(' + ')} para ${booked.dateLabel.toLowerCase()} às ${booked.time}. Meu nome é ${clientName.trim()}.`

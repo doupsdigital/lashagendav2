@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-26 — F10.4 concluída — F10 fechada (marco M2).**
+> Última atualização: **2026-11-26 — F11.1 concluída (prévia + agendamento de demonstração).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F11 — Venda e acesso (marco M3)** |
-| **Próxima etapa** | **F11.1 — Prévia pelo nome** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F11.2 — Cakto (ambiente de teste)** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10 (F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -157,6 +157,14 @@
   sair sem acesso criado pede confirmação. Suporte: botão "Ver de novo as dicas do app" (apaga as
   chaves de tour/boas-vindas do slug). Número do suporte num lugar só: `lib/support.ts`.
   Notificações intactas (ligam na F12).
+- Prévia (F11.1): criação, cookie, limite por IP, tema/modelo e limpeza diária já vinham do
+  StudioMenu e foram conferidos. Novo: agendamento em modo demonstração — para estúdio em prévia
+  não vencida, `api/scheduling/availability` e `api/scheduling/book` usam uma agenda de exemplo
+  (`lib/scheduling/demo-booking.ts`: seg–sáb 9–12 e 13–19, 2 horários ocupados por dia, regras de
+  estúdio novo) e a reserva responde `demo: true` sem gravar cliente/agendamento nem mandar push.
+  `/c/[slug]` liga `booking_enabled` na prévia; o `BookingModal` mostra o recado de demonstração e
+  esconde o WhatsApp (número de exemplo). Cron de limpeza não testado de verdade (sem `CRON_SECRET`
+  local).
 - Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
   `rate_limits` do banco dev antes de rodar os de agendamento.
 - Páginas do app sem sessão: Início, Agenda, Clientes, Relatórios e Config conferem a sessão na própria página e não leem

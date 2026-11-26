@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { getStudioBySlug } from '@/lib/studio-service';
-import { isBookingLive } from '@/lib/studio-access';
+import { isBookingLive, isPreviewExpired, isPreviewStudio } from '@/lib/studio-access';
+import { computeAvailableSlots } from '@/lib/scheduling/availability';
+import { DEMO_RULES, demoDayContext } from '@/lib/scheduling/demo-booking';
 import { getAvailableSlotsForDate } from '@/lib/scheduling/slot-lookup';
 import { loadBookingItems, parseItemsParam, totalDurationMinutes } from '@/lib/scheduling/booking-service';
 
@@ -42,7 +44,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
     }
 
-    if (!isBookingLive(studio)) {
+    // Prévia (F11.1): agenda de demonstração, sem ler horários do banco.
+    const demo = isPreviewStudio(studio) && !isPreviewExpired(studio);
+    if (!demo && !isBookingLive(studio)) {
       return NextResponse.json({ success: false, message: 'A agenda online está fechada no momento. Fale com a profissional pelo WhatsApp.' }, { status: 400 });
     }
 
@@ -51,6 +55,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, message: 'Serviço não encontrado.' }, { status: 404 });
     }
     const durationMinutes = totalDurationMinutes(items);
+
+    if (demo) {
+      const slots = computeAvailableSlots({
+        dateStr,
+        durationMinutes,
+        ...demoDayContext(dateStr),
+        minNoticeMinutes: DEMO_RULES.min_notice_minutes,
+        bookingWindowDays: DEMO_RULES.booking_window_days,
+      });
+      return NextResponse.json({ success: true, slots, durationMinutes, bookingWindowDays: DEMO_RULES.booking_window_days, demo: true });
+    }
 
     // Nenhum horário de atendimento cadastrado ainda: avisa "ainda não
     // configurado" em vez de parecer que todos os dias estão lotados.

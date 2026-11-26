@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { getStudioBySlug } from '@/lib/studio-service';
-import { isBookingLive } from '@/lib/studio-access';
+import { isBookingLive, isPreviewExpired, isPreviewStudio } from '@/lib/studio-access';
+import { computeAvailableSlots } from '@/lib/scheduling/availability';
+import { DEMO_RULES, demoDayContext } from '@/lib/scheduling/demo-booking';
 import { getAvailableSlotsForDate } from '@/lib/scheduling/slot-lookup';
 import {
   createAppointment,
@@ -65,13 +67,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
     }
 
-    if (!isBookingLive(studio)) {
+    // Prévia (F11.1): demonstração — confere tudo como de verdade, mas não
+    // grava cliente nem agendamento, nem manda aviso.
+    const demo = isPreviewStudio(studio) && !isPreviewExpired(studio);
+    if (!demo && !isBookingLive(studio)) {
       return NextResponse.json({ success: false, message: 'A agenda online está fechada no momento. Fale com a profissional pelo WhatsApp.' }, { status: 400 });
     }
 
     const items = await loadBookingItems(studio.id, refs, { requireBookable: true });
     if (!items) {
       return NextResponse.json({ success: false, message: 'Serviço indisponível pra agendamento automático.' }, { status: 400 });
+    }
+
+    if (demo) {
+      const demoDate = startsAtDate.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+      const demoSlots = computeAvailableSlots({
+        dateStr: demoDate,
+        durationMinutes: totalDurationMinutes(items),
+        ...demoDayContext(demoDate),
+        minNoticeMinutes: DEMO_RULES.min_notice_minutes,
+        bookingWindowDays: DEMO_RULES.booking_window_days,
+      });
+      const slot = demoSlots.find((s) => s.startsAt === startsAtDate.toISOString());
+      if (!slot) {
+        return NextResponse.json({ success: false, message: 'Esse horário não está mais disponível. Escolha outro, por favor.' }, { status: 409 });
+      }
+      return NextResponse.json({
+        success: true,
+        demo: true,
+        appointment: { id: 'demo', starts_at: slot.startsAt, ends_at: slot.endsAt, status: studio.booking_mode === 'auto' ? 'confirmed' : 'pending' },
+        manageUrl: null,
+        icsUrl: null,
+        service: { title: items.map((i) => i.title).join(' + '), price: priceToLabel(totalPrice(items)) },
+      });
     }
 
     // Revalida o horário antes de gravar (a lista do navegador pode estar

@@ -172,7 +172,9 @@ export default async function CatalogPage({ params, searchParams }: CatalogPageP
   if (isPreview && catalog.preview_expires_at) {
     return (
       <PreviewCatalogClient
-        data={publicCatalog}
+        // Agendamento em modo demonstração (F11.1): a rota de horários e a de
+        // reserva respondem sem gravar nada para estúdio em prévia.
+        data={{ ...publicCatalog, booking_enabled: true, agenda_paused: false }}
         previewMode={{ expiresAt: catalog.preview_expires_at, activateUrl: `${funnelUrl}#oferta`, showBanner: embed !== '1' }}
       />
     );
