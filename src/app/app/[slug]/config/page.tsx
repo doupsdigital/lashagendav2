@@ -1,6 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
 import { Settings } from 'lucide-react';
 import { getStudioForProfessionalApp } from '@/lib/studio-service';
+import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
+import { getBusinessProfile } from '@/lib/studio/business-service';
 import { getBusinessHours, getScheduleBlocks } from '@/lib/scheduling/config-service';
 import { ConfigAccordion } from '@/components/config/ConfigAccordion';
 import { PageTitleBar } from '@/components/app-shell/PageTitleBar';
@@ -11,16 +13,20 @@ interface ConfigPageProps {
 
 export default async function ConfigPage({ params }: ConfigPageProps) {
   const { slug } = await params;
+  // "Meu negócio" traz WhatsApp e endereço: sem sessão não lê nada.
+  if (!(await isProfessionalRequestAuthorized(slug))) return null;
   const order = await getStudioForProfessionalApp(slug);
 
   if (!order) notFound();
   // Prévia não tem Config (sem navegação entre abas, ver layout.tsx).
   if (order.plan_status === 'preview') redirect(`/app/${slug}/inicio`);
 
-  const [businessHours, scheduleBlocks] = await Promise.all([
+  const [businessHours, scheduleBlocks, business] = await Promise.all([
     getBusinessHours(order.id),
     getScheduleBlocks(order.id),
+    getBusinessProfile(order.id),
   ]);
+  if (!business) notFound();
 
   return (
     <>
@@ -33,6 +39,7 @@ export default async function ConfigPage({ params }: ConfigPageProps) {
           bookingEnabled={order.has_paid_access}
           agendaPaused={order.agenda_paused}
           authUserId={order.auth_user_id}
+          business={business}
         />
       </main>
     </>

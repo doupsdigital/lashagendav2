@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Clock, CalendarX, PauseCircle, UserCircle, Bell, LifeBuoy } from 'lucide-react';
+import { Clock, CalendarX, PauseCircle, UserCircle, Bell, LifeBuoy, Store } from 'lucide-react';
 import type { Step } from 'react-joyride';
 import { SectionCard } from '@/components/app-shell/SectionCard';
 import { ProductTour } from '@/components/tour/ProductTour';
@@ -11,6 +11,8 @@ import { AgendaPauseSection } from './AgendaPauseSection';
 import { AccountSection } from './AccountSection';
 import { NotificationsSection } from './NotificationsSection';
 import { SupportSection } from './SupportSection';
+import { BusinessSection } from './BusinessSection';
+import type { BusinessProfile } from '@/lib/studio/business-service';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import type { BusinessHoursConfigRow, ScheduleBlockConfigRow } from '@/lib/scheduling/config-service';
 
@@ -27,9 +29,11 @@ interface ConfigAccordionProps {
   /** Conta do Supabase Auth já vinculada pro login real (Fase 17) — null
    *  enquanto a profissional só entra pelo link mágico. */
   authUserId: string | null;
+  /** Dados de "Meu negócio" (F10.1). */
+  business: BusinessProfile;
 }
 
-type SectionKey = 'horarios' | 'bloqueios' | 'pausar' | 'conta' | 'notificacoes' | 'suporte';
+type SectionKey = 'negocio' | 'horarios' | 'bloqueios' | 'pausar' | 'conta' | 'notificacoes' | 'suporte';
 
 /** Acordeão da aba Config — 3 seções que já existiam (`BusinessHoursEditor`,
  *  `ScheduleBlocksManager`, `SubscriptionSection`), agora dentro de
@@ -45,8 +49,10 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
   bookingEnabled,
   agendaPaused,
   authUserId,
+  business,
 }) => {
   const [open, setOpen] = useState<Record<SectionKey, boolean>>({
+    negocio: false,
     horarios: false,
     bloqueios: true,
     pausar: false,
@@ -73,6 +79,7 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
   useEffect(() => {
     const hash = window.location.hash.slice(1);
     const sectionForHash: Partial<Record<string, SectionKey>> = {
+      negocio: 'negocio',
       conta: 'conta',
       horarios: 'horarios',
       bloqueios: 'bloqueios',
@@ -157,6 +164,15 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
        *  depois) — começar antes disso usava uma chave de "já vi" diferente da
        *  que fica gravada no fim, e o tour reaparecia a cada visita (bug). */}
       <ProductTour tourId="config" slug={slug} steps={tourSteps} enabled={pushReady} initialStepId={tourStartHash} />
+      {/* Meu negócio (F10.1): fora do tour de propósito — um passo novo
+       *  mudaria a chave de "já visto" e reabriria o tour inteiro para quem
+       *  já viu. */}
+      <div id="negocio">
+        <SectionCard icon={Store} title="Meu negócio" isOpen={open.negocio} onToggle={() => toggle('negocio')}>
+          <BusinessSection slug={slug} initial={business} />
+        </SectionCard>
+      </div>
+
       <div id="horarios">
         <SectionCard
           icon={Clock}
