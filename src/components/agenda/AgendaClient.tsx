@@ -15,7 +15,7 @@ import { AppointmentDetailSheet, type RescheduleResult } from './AppointmentDeta
 import { ApproveModal } from './ApproveModal';
 import { RejectModal } from './RejectModal';
 import { SuccessModal, type SuccessModalRow } from './SuccessModal';
-import type { AgendaAppointment, ManualBookingService } from '@/lib/scheduling/agenda-service';
+import type { AgendaAppointment, ManualBookingService, StudioClientOption } from '@/lib/scheduling/agenda-service';
 import type { BusinessHoursConfigRow, ScheduleBlockConfigRow } from '@/lib/scheduling/config-service';
 import { buildConfirmMessage, buildRejectMessage, buildRescheduleMessage, cleanCancelReason } from '@/lib/scheduling/appointment-actions';
 import { localDateTimeToUTC } from '@/lib/scheduling/availability';
@@ -95,6 +95,9 @@ interface AgendaClientProps {
    *  rodar nesse estado (não tem nada clicável mesmo, e ninguém deveria ver
    *  um balão apontando pra um card bloqueado embaixo do blur). */
   bookingEnabled: boolean;
+  /** Veio do perfil da cliente ("Agendar", F7.5): abre o agendamento
+   *  manual com ela já escolhida. */
+  prefillClient?: StudioClientOption | null;
 }
 
 export const AgendaClient: React.FC<AgendaClientProps> = ({
@@ -110,11 +113,14 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
   businessHours,
   scheduleBlocks,
   bookingEnabled,
+  prefillClient = null,
 }) => {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [showManualForm, setShowManualForm] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(Boolean(prefillClient && bookingEnabled));
+  // Cliente do atalho só vale na primeira abertura; o botão "Novo" abre limpo.
+  const [manualClient, setManualClient] = useState<StudioClientOption | null>(prefillClient);
   const [manualPrefillTime, setManualPrefillTime] = useState<string | undefined>(undefined);
   const [showBlockForm, setShowBlockForm] = useState(false);
   // F6.6: trecho livre tocado (agendar ou trancar), trecho a trancar já
@@ -343,6 +349,7 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
           data-tour="agenda-new"
           onClick={() => {
             setManualPrefillTime(undefined);
+            setManualClient(null);
             setShowManualForm((v) => !v);
             setShowBlockForm(false);
           }}
@@ -445,14 +452,19 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
 
       {showManualForm && (
         <ManualBookingForm
-          key={manualPrefillTime || 'novo'}
+          key={`${manualPrefillTime || 'novo'}-${manualClient?.id || ''}`}
           slug={slug}
           services={services}
+          defaultClient={manualClient}
           defaultDate={formDefaultDate}
           defaultTime={manualPrefillTime}
-          onClose={() => setShowManualForm(false)}
+          onClose={() => {
+            setShowManualForm(false);
+            setManualClient(null);
+          }}
           onCreated={(summary) => {
             setShowManualForm(false);
+            setManualClient(null);
             setSuccessInfo(summary);
             router.refresh();
           }}
@@ -529,6 +541,7 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
       {detailAppointment && (
         <AppointmentDetailSheet
           appointment={detailAppointment}
+          clientHref={`/app/${slug}/clientes/${detailAppointment.client_id}`}
           busy={busy}
           onClose={() => setDetailAppointment(null)}
           onApprove={setApproveAppointment}

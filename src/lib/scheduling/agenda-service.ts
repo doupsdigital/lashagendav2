@@ -33,6 +33,8 @@ export interface AgendaAppointment {
   /** Total em número (soma dos itens com preço) e valor recebido ao concluir (F6.5). */
   total_price: number | null;
   amount_received: number | null;
+  /** Para o atalho "Ver cliente" (F7.5). */
+  client_id: string;
   client_name: string;
   /** Com o 55 do país, pronto para `wa.me`. */
   client_whatsapp: string;
@@ -72,11 +74,12 @@ export interface StudioClientOption {
 }
 
 const AGENDA_SELECT =
-  'id, starts_at, ends_at, status, origin, total_price, amount_received, client_notes, notes, canceled_by, canceled_at, cancel_reason, manage_token, ' +
+  'id, client_id, starts_at, ends_at, status, origin, total_price, amount_received, client_notes, notes, canceled_by, canceled_at, cancel_reason, manage_token, ' +
   'clients(name, whatsapp), appointment_items(title, duration_minutes, price, position)';
 
 interface AgendaRow {
   id: string;
+  client_id: string;
   starts_at: string;
   ends_at: string;
   status: AgendaAppointment['status'];
@@ -111,6 +114,7 @@ function toAgendaAppointment(row: AgendaRow): AgendaAppointment {
         : bookingTotalLabel([{ price: toNumberOrNull(row.total_price) }]),
     total_price: toNumberOrNull(row.total_price),
     amount_received: toNumberOrNull(row.amount_received),
+    client_id: row.client_id,
     client_name: row.clients?.name || 'Cliente',
     client_whatsapp: normalizeWhatsappBR(row.clients?.whatsapp),
     client_notes: row.client_notes,

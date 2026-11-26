@@ -15,6 +15,8 @@ interface ManualBookingFormProps {
   /** Horário pré-preenchido quando o formulário é aberto a partir de um
    *  clique num horário livre da agenda. */
   defaultTime?: string;
+  /** Cliente já escolhida (atalho "Agendar" do perfil, F7.5). */
+  defaultClient?: StudioClientOption | null;
   onClose: () => void;
   onCreated: (summary: { title: string; rows: SuccessModalRow[] }) => void;
 }
@@ -38,14 +40,15 @@ export const ManualBookingForm: React.FC<ManualBookingFormProps> = ({
   services,
   defaultDate,
   defaultTime,
+  defaultClient = null,
   onClose,
   onCreated,
 }) => {
-  const [clientMode, setClientMode] = useState<'search' | 'selected' | 'new'>('search');
+  const [clientMode, setClientMode] = useState<'search' | 'selected' | 'new'>(defaultClient ? 'selected' : 'search');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<StudioClientOption[]>([]);
   const [searching, setSearching] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<StudioClientOption | null>(null);
+  const [selectedClient, setSelectedClient] = useState<StudioClientOption | null>(defaultClient);
   const [newName, setNewName] = useState('');
   const [newWhatsapp, setNewWhatsapp] = useState('');
 

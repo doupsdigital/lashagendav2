@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { getStudioForProfessionalApp } from '@/lib/studio-service';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
-import { getAppointmentsForDay, getAppointmentsForRange, getPendingAppointments, getManualBookingServices } from '@/lib/scheduling/agenda-service';
+import { getAppointmentsForDay, getAppointmentsForRange, getPendingAppointments, getManualBookingServices, getStudioClient } from '@/lib/scheduling/agenda-service';
 import { getBusinessHours, getScheduleBlocks } from '@/lib/scheduling/config-service';
 import { getWeekdayForDate } from '@/lib/scheduling/availability';
 import { GradientHeader } from '@/components/app-shell/GradientHeader';
@@ -13,7 +13,7 @@ import { AgendaClient } from '@/components/agenda/AgendaClient';
 
 interface AgendaPageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ date?: string; view?: string }>;
+  searchParams: Promise<{ date?: string; view?: string; cliente?: string }>;
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -85,7 +85,7 @@ function formatMonthLabel(dateStr: string): string {
 
 export default async function AgendaPage({ params, searchParams }: AgendaPageProps) {
   const { slug } = await params;
-  const { date, view: viewParam } = await searchParams;
+  const { date, view: viewParam, cliente } = await searchParams;
   // O layout mostra "link inválido" sem sessão, mas a página roda mesmo
   // assim e os agendamentos iam no HTML — sem sessão não lê nada.
   if (!(await isProfessionalRequestAuthorized(slug))) return null;
@@ -116,7 +116,7 @@ export default async function AgendaPage({ params, searchParams }: AgendaPagePro
   // outra, só `order.id`/`selectedDate`/`view`, já conhecidos aqui). Cada
   // rodada a mais custa uma ida-e-volta inteira ao banco — sensível com
   // Vercel (Virgínia) e Supabase (São Paulo) em regiões diferentes.
-  const [pendingAppointments, services, businessHours, scheduleBlocks, dayAppointments, monthAppointments] =
+  const [pendingAppointments, services, businessHours, scheduleBlocks, dayAppointments, monthAppointments, prefillClient] =
     await Promise.all([
       getPendingAppointments(order.id),
       getManualBookingServices(order.id),
@@ -125,6 +125,9 @@ export default async function AgendaPage({ params, searchParams }: AgendaPagePro
       // Com os cancelados: a visão do dia lista à parte quem cancelou (F6.1).
       view === 'dia' ? getAppointmentsForDay(order.id, selectedDate, { includeCanceled: true }) : Promise.resolve([]),
       view === 'mes' ? getAppointmentsForRange(order.id, monthDays[0], shiftDate(monthDays[41], 1)) : Promise.resolve([]),
+      // Atalho "Agendar" do perfil da cliente (F7.5): `?cliente=<id>` abre o
+      // agendamento manual com ela escolhida (só cliente desse estúdio).
+      cliente ? getStudioClient(order.id, cliente) : Promise.resolve(null),
     ]);
 
   const prevHref =
@@ -205,6 +208,7 @@ export default async function AgendaPage({ params, searchParams }: AgendaPagePro
           businessHours={businessHours}
           scheduleBlocks={scheduleBlocks}
           bookingEnabled={bookingEnabled}
+          prefillClient={prefillClient}
         />
       </div>
       </main>

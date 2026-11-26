@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-25 — F7.4 concluída (registrar atendimento).**
+> Última atualização: **2026-11-26 — F7.5 concluída — F7 fechada.**
 
 ---
 
@@ -11,9 +11,9 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F7 — Clientes** |
-| **Próxima etapa** | **F7.5 — Atalhos** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
-| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6 (F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
+| **Fase atual** | **F8 — Ficha da cliente** |
+| **Próxima etapa** | **F8.1 — Ficha técnica** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7 (F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
 ## 2. O que existe no repositório
@@ -96,6 +96,9 @@
   ou antes, desde 2000 (`lib/clients/client-record.ts`). Não ocupa horário (a trava do banco
   ignora `record`). "Apagar registro" no histórico: DELETE `.../records/[recordId]`, só `record`.
   O histórico mostra a anotação da profissional (`notes`).
+- Atalhos (F7.5): no detalhe do agendamento, "Ver cliente" → perfil (`AgendaAppointment.client_id`).
+  No perfil, "Agendar" → `/agenda?cliente=<id>` abre o agendamento manual com ela escolhida
+  (`getStudioClient`, só cliente do estúdio; id inválido abre a agenda normal).
 - Páginas do app sem sessão: Agenda e Clientes conferem a sessão na própria página e não leem
   nada (o layout só esconde; sem isso os dados iam no HTML). Corrigido na F7.1.
 - Trancar pela agenda (F6.6): tocar num horário livre pergunta Agendar/Trancar (trancar já vem

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Check, MessageCircle, CheckCircle2, XCircle, CalendarClock, Undo2, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import { UserRound, X, Check, MessageCircle, CheckCircle2, XCircle, CalendarClock, Undo2, AlertTriangle } from 'lucide-react';
 import type { AgendaAppointment } from '@/lib/scheduling/agenda-service';
 import { durationToLabel, formatBRL, PRICE_ON_REQUEST_LABEL } from '@/lib/service-format';
 import { formatPhoneBR } from '@/lib/format';
@@ -12,6 +13,8 @@ export type RescheduleResult = { ok: true } | { ok: false; needsConfirm?: string
 
 interface AppointmentDetailSheetProps {
   appointment: AgendaAppointment;
+  /** Perfil da cliente (F7.5). */
+  clientHref: string;
   busy: boolean;
   onClose: () => void;
   /** Pendente → abre o modal de aprovar/recusar (não age direto). */
@@ -53,6 +56,7 @@ const STATUS_BADGE: Record<AgendaAppointment['status'], string> = {
  *  grade de horário da Agenda. */
 export const AppointmentDetailSheet: React.FC<AppointmentDetailSheetProps> = ({
   appointment,
+  clientHref,
   busy,
   onClose,
   onApprove,
@@ -201,6 +205,12 @@ export const AppointmentDetailSheet: React.FC<AppointmentDetailSheetProps> = ({
               <MessageCircle className="w-4 h-4 text-emerald-600" /> WhatsApp · {formatPhoneBR(appointment.client_whatsapp.replace(/^55/, ''))}
             </a>
           )}
+          <Link
+            href={clientHref}
+            className="h-11 rounded-xl border border-linen bg-surface text-ink text-[15px] font-bold flex items-center justify-center gap-2"
+          >
+            <UserRound className="w-4 h-4 text-ink-soft" /> Ver cliente
+          </Link>
         </div>
 
         {appointment.status === 'pending' && panel === 'none' && (

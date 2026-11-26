@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Mail, MessageCircle, Pencil, Trash2, Cake, StickyNote, ClipboardPlus } from 'lucide-react';
+import { ChevronLeft, Mail, MessageCircle, Pencil, Trash2, Cake, StickyNote, ClipboardPlus, CalendarPlus } from 'lucide-react';
 import { formatPhoneBR, normalizeWhatsappBR } from '@/lib/format';
 import {
   birthDateLabel,
@@ -80,14 +80,20 @@ export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, 
         />
       ) : (
         <>
+          <Link
+            href={`/app/${slug}/agenda?cliente=${client.id}`}
+            className="h-12 rounded-xl bg-rose-600 text-white text-[15px] font-bold flex items-center justify-center gap-2 active:scale-95 transition"
+          >
+            <CalendarPlus className="w-5 h-5" /> Agendar
+          </Link>
           {client.whatsapp && (
             <a
               href={`https://wa.me/${normalizeWhatsappBR(client.whatsapp)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="h-12 rounded-xl bg-emerald-600 text-white text-[15px] font-bold flex items-center justify-center gap-2 active:scale-95 transition"
+              className="h-12 rounded-xl border border-linen bg-surface text-ink text-[15px] font-bold flex items-center justify-center gap-2 active:scale-95 transition"
             >
-              <MessageCircle className="w-5 h-5" /> WhatsApp · {formatPhoneBR(client.whatsapp)}
+              <MessageCircle className="w-5 h-5 text-emerald-600" /> WhatsApp · {formatPhoneBR(client.whatsapp)}
             </a>
           )}
 

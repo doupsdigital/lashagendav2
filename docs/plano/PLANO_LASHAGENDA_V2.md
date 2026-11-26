@@ -55,7 +55,7 @@ cobre, **pare e pergunte**. Depois de decidida, registre em `DECISOES_DE_PRODUTO
 | F4 | Horários e bloqueios | Grade semanal com pausa de almoço, folgas e bloqueios parciais | ✅ |
 | F5 | Agendamento pela cliente | Cliente agenda pelo catálogo (automático ou com aprovação) e recebe link do agendamento | ✅ |
 | F6 | Agenda da profissional | Dia/mês (semana pulada), confirmar/recusar, agendamento manual, concluir com valor, falta, trancar | ✅ |
-| F7 | Clientes | Lista, busca, perfil com histórico, atendimento manual | ⬜ |
+| F7 | Clientes | Lista, busca, perfil com histórico, atendimento manual | ✅ |
 | F8 | Ficha da cliente | Ficha técnica + saúde e cuidados, só dentro do app, com consentimento | ⬜ |
 | F9 | Início (painel) + relatórios | Números do dia/mês, pendências, relatórios por período | ⬜ |
 | F10 | Configurações | Negócio, regras de agendamento, WhatsApp, conta, ajuda, link + QR | ⬜ |
@@ -409,7 +409,7 @@ marcar uma falta, trancar um horário.
 
 ---
 
-### F7 — Clientes
+### F7 — Clientes ✅
 
 **Etapas:**
 
