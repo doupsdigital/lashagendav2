@@ -61,7 +61,7 @@ StudioMenu e com o modelo de dados do LashAgenda.
 |---|---|
 | Planos no lançamento | **Um plano só**, com tudo dentro. A progressão de valor no lançamento é StudioMenu → LashAgenda. Uma divisão Básico/Pro pode vir depois, com dados de uso; a estrutura para restringir por plano fica pronta, mas desligada. |
 | Mensal | **R$ 22,90/mês** (Cakto, assinatura, cartão) |
-| Anual | **R$ 197/ano** (Cakto; forma de pagamento a definir na Fase 11 — no StudioMenu o anual é Pix, pagamento único) |
+| Anual | **R$ 197/ano** (Cakto, **Pix, pagamento único**, acesso de 1 ano — decidido em 2026-11-26, F11.2) |
 | Gateway | **Cakto** (substitui o Asaas; não há clientes antigos a migrar) |
 | Venda | Autosserviço, **sem X1**: anúncio → página → prévia pelo nome → Cakto → ativação automática → e-mail de acesso (Resend) |
 | Teste grátis | O **trial de 7 dias do v1 morre**; a **prévia de 24h** pelo nome substitui |

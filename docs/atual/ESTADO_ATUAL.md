@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-26 — F11.1 concluída (prévia + agendamento de demonstração).**
+> Última atualização: **2026-11-26 — F11.2 concluída (Cakto, ambiente de teste).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F11 — Venda e acesso (marco M3)** |
-| **Próxima etapa** | **F11.2 — Cakto (ambiente de teste)** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F11.3 — `/ativando`** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10 (F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -165,6 +165,16 @@
   `/c/[slug]` liga `booking_enabled` na prévia; o `BookingModal` mostra o recado de demonstração e
   esconde o WhatsApp (número de exemplo). Cron de limpeza não testado de verdade (sem `CRON_SECRET`
   local).
+- Cakto (F11.2): webhook do StudioMenu já gravava certo em `studios`/`cakto_events`; testado por
+  script com avisos simulados (aprovação com/sem `sck`, repetido, renovação, recusa, cancelamento,
+  reembolso, aprovação atrasada pós-reembolso, produto fora do mapa, segredo errado). Anual R$ 197
+  no Pix (pagamento único). Links do checkout vêm de `NEXT_PUBLIC_CAKTO_CHECKOUT_MENSAL`/`_ANUAL`
+  (sem eles, os botões de assinar não levam a lugar nenhum). Local: `.env.development.local` tem
+  `CAKTO_WEBHOOK_SECRET` inventado e `CAKTO_PRODUCT_MAP=teste-mensal:mensal,teste-anual:anual`.
+  **Pendente (usuária, um passo por vez):** criar os 2 produtos de teste na Cakto, webhook
+  apontando para a Vercel da `desenv`, variáveis na Vercel (`CAKTO_WEBHOOK_SECRET`,
+  `CAKTO_PRODUCT_MAP`, os dois `NEXT_PUBLIC_CAKTO_CHECKOUT_*`). Compra de teste real = teste do M3.
+  `singleAnnualPlanTest` (R$ 127) em `data/landing-niche-content.tsx` não é usado — ver na landing.
 - Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
   `rate_limits` do banco dev antes de rodar os de agendamento.
 - Páginas do app sem sessão: Início, Agenda, Clientes, Relatórios e Config conferem a sessão na própria página e não leem
@@ -241,7 +251,7 @@ Web Push.
       Corrigir junto com o Início novo (F9.1) ou antes, se atrapalhar os testes.
 - [ ] Herdado do StudioMenu, a resolver nas fases indicadas (anotado na F2.2):
   - ~~**F10:** `min_notice_minutes` e `booking_window_days` sem tela~~ — resolvido na F10.2.
-  - **F11:** preço anual exibido ainda é R$ 127 (`lib/pricing.ts`); o v2 vende a R$ 197.
+  - ~~**F11:** preço anual exibido ainda é R$ 127~~ — resolvido na F11.2 (R$ 197, Pix).
   - **F12:** `/admin/catalogos` virou uma lista enxuta (status, links, +1 mês/ano, liberar à
     mão, desativar, excluir). Saíram o "Cadastrar serviços com IA" (`extract-catalog`,
     `replace-services` — ferramenta do X1, que o v2 não usa) e os controles de preço/plano

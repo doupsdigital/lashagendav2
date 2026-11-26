@@ -6,6 +6,7 @@ import { normalizeWhatsappBR } from '@/lib/format';
 import { createSelfServeLashCatalog } from '@/lib/self-serve-catalog';
 import { buildAccessEmail, sendEmail } from '@/lib/email';
 import { PRODUCTION_DOMAIN } from '@/lib/public-url';
+import { CAKTO_ANUAL_PRICE, CAKTO_MENSAL_PRICE, priceLabel } from '@/lib/pricing';
 import {
   CAKTO_APPROVED_EVENTS,
   CAKTO_GRACE_MS,
@@ -242,7 +243,7 @@ export async function POST(request: Request) {
 
     if (isFirstActivation) {
       await sendTelegramMessage(
-        `💳 Nova venda Cakto (${plan === 'anual' ? 'Anual R$127 Pix' : 'Mensal R$22,90'})!${createdWithoutPreview ? '\n⚠️ Sem prévia — catálogo criado pelo nome da compra, conferir.' : ''}\n\n👤 ${buyerName}\n🔗 https://${PRODUCTION_DOMAIN}/c/${order.slug}\n🕒 ${nowBR()}\n📧${emailNote.replace(' · ', ' ')}`
+        `💳 Nova venda Cakto (${plan === 'anual' ? `Anual ${priceLabel(CAKTO_ANUAL_PRICE)}` : `Mensal ${priceLabel(CAKTO_MENSAL_PRICE)}`})!${createdWithoutPreview ? '\n⚠️ Sem prévia — catálogo criado pelo nome da compra, conferir.' : ''}\n\n👤 ${buyerName}\n🔗 https://${PRODUCTION_DOMAIN}/c/${order.slug}\n🕒 ${nowBR()}\n📧${emailNote.replace(' · ', ' ')}`
       );
     }
 
