@@ -34,6 +34,7 @@ export default async function FichaPage({ params }: FichaPageProps) {
           clientName={client.name}
           technical={record.technical}
           health={record.health}
+          consentAt={record.consent_at}
           updatedAt={record.updated_at}
         />
       </main>

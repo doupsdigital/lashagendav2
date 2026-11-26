@@ -3,7 +3,8 @@
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Eye, Sparkles, Clock, Check, ShieldAlert, HeartPulse, Moon } from 'lucide-react';
+import { ChevronLeft, Eye, Sparkles, Clock, Check, ShieldAlert, HeartPulse, Moon, ShieldCheck } from 'lucide-react';
+import { CONSENT_TEXT, consentLabel } from '@/lib/clients/client-consent';
 import { MAX_TECH_DAYS, TECH_SECTIONS, type TechnicalSheet } from '@/lib/clients/client-technical';
 import { HEALTH_SECTIONS, type HealthSheet } from '@/lib/clients/client-health';
 
@@ -13,6 +14,8 @@ interface ClientSheetFormProps {
   clientName: string;
   technical: TechnicalSheet;
   health: HealthSheet;
+  /** Autorização da cliente para a aba de saúde (F8.3); null se não há. */
+  consentAt: string | null;
   /** Última vez que a ficha foi salva (ISO), se já foi. */
   updatedAt: string | null;
 }
@@ -64,8 +67,12 @@ const chipOff = 'bg-surface border-linen text-ink';
 /** Ficha da cliente: abas "Ficha técnica" (F8.1) e "Saúde e cuidados"
  *  (F8.2). Cada aba salva sozinha; trocar de aba não perde o que foi
  *  preenchido na outra. Nada daqui vai para a URL (a aba é só estado). */
-export function ClientSheetForm({ slug, clientId, clientName, technical, health, updatedAt }: ClientSheetFormProps) {
+export function ClientSheetForm({ slug, clientId, clientName, technical, health, consentAt, updatedAt }: ClientSheetFormProps) {
   const [tab, setTab] = useState<Tab>('technical');
+  const [consent, setConsent] = useState<string | null>(consentAt);
+  // Depois de retirar a autorização as respostas foram apagadas no banco:
+  // não reaproveita as antigas se ela autorizar de novo.
+  const [healthInitial, setHealthInitial] = useState<HealthSheet>(health);
 
   return (
     <>
@@ -110,10 +117,107 @@ export function ClientSheetForm({ slug, clientId, clientName, technical, health,
           <SheetTab slug={slug} clientId={clientId} tab="technical" sections={TECH_SECTIONS} icons={TECH_ICONS} initial={technical} />
         </div>
         <div className={tab === 'health' ? 'flex flex-col gap-4' : 'hidden'}>
-          <SheetTab slug={slug} clientId={clientId} tab="health" sections={HEALTH_SECTIONS} icons={HEALTH_ICONS} initial={health} />
+          <ConsentBlock
+            slug={slug}
+            clientId={clientId}
+            consentAt={consent}
+            onChange={(next) => {
+              setConsent(next);
+              if (!next) setHealthInitial({});
+            }}
+          />
+          {consent && (
+            <SheetTab key={consent} slug={slug} clientId={clientId} tab="health" sections={HEALTH_SECTIONS} icons={HEALTH_ICONS} initial={healthInitial} />
+          )}
         </div>
       </div>
     </>
+  );
+}
+
+/** Autorização da cliente para guardar os dados de saúde (F8.3). Sem ela a
+ *  aba fica travada (o servidor também recusa gravar). Retirar apaga as
+ *  respostas de saúde — confirmação na própria tela. */
+function ConsentBlock({ slug, clientId, consentAt, onChange }: { slug: string; clientId: string; consentAt: string | null; onChange: (v: string | null) => void }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const send = async (give: boolean) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = give
+        ? await fetch(`/api/professional/clients/${clientId}/ficha/consent`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug }),
+          })
+        : await fetch(`/api/professional/clients/${clientId}/ficha/consent?slug=${encodeURIComponent(slug)}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setConfirming(false);
+        onChange(json.consent_at || null);
+        router.refresh();
+        return;
+      }
+      setError(json.message || 'Não foi possível salvar.');
+    } catch {
+      setError('Falha na conexão.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!consentAt) {
+    return (
+      <section className="rounded-2xl bg-surface border border-linen p-4 flex flex-col gap-3">
+        <h2 className="font-serif-pro font-bold text-lg text-ink flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-rose-600" /> Autorização da cliente
+        </h2>
+        <p className="text-[15px] text-ink-soft">
+          Estas informações são sensíveis. Antes de preencher, pergunte à cliente se ela autoriza guardar. Ao registrar, o app anota a data e a
+          hora.
+        </p>
+        <p className="rounded-xl bg-cream px-4 py-3 text-[15px] text-ink">{CONSENT_TEXT}</p>
+        {error && <p className="text-sm text-rose-600">{error}</p>}
+        <button
+          type="button"
+          onClick={() => send(true)}
+          disabled={busy}
+          className="h-12 rounded-xl bg-rose-600 text-white text-[15px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 active:scale-95 transition"
+        >
+          <ShieldCheck className="w-5 h-5" /> {busy ? 'Registrando...' : 'Ela autorizou — registrar'}
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3 flex flex-col gap-2">
+      <p className="text-[15px] text-emerald-900 flex items-center gap-2 font-semibold">
+        <ShieldCheck className="w-5 h-5 shrink-0" /> {consentLabel(consentAt)}
+      </p>
+      {confirming ? (
+        <>
+          <p className="text-[15px] text-ink">Retirar a autorização apaga todas as respostas desta aba. A ficha técnica continua. Não dá para desfazer.</p>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setConfirming(false)} disabled={busy} className="flex-1 h-11 rounded-xl bg-surface border border-linen text-ink-soft text-[15px] font-bold">
+              Voltar
+            </button>
+            <button type="button" onClick={() => send(false)} disabled={busy} className="flex-1 h-11 rounded-xl bg-rose-600 text-white text-[15px] font-bold disabled:opacity-60">
+              {busy ? 'Apagando...' : 'Retirar e apagar'}
+            </button>
+          </div>
+        </>
+      ) : (
+        <button type="button" onClick={() => setConfirming(true)} className="self-start text-sm font-semibold text-ink-soft underline">
+          Retirar autorização
+        </button>
+      )}
+      {error && <p className="text-sm text-rose-600">{error}</p>}
+    </div>
   );
 }
 

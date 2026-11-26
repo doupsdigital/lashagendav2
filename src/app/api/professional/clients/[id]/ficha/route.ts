@@ -38,6 +38,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const result = await saveClientSheetTab(studio.id, id, hasTechnical ? { technical: clean.data } : { health: clean.data as Record<string, string | boolean> });
     if (result.ok) return NextResponse.json({ success: true });
     if (result.reason === 'not_found') return NextResponse.json({ success: false, message: 'Cliente não encontrada.' }, { status: 404 });
+    if (result.reason === 'no_consent') {
+      return NextResponse.json({ success: false, reason: 'no_consent', message: 'Registre antes a autorização da cliente.' }, { status: 409 });
+    }
     return NextResponse.json({ success: false, message: 'Não foi possível salvar. Tente de novo.' }, { status: 500 });
   } catch (error) {
     // Sem o corpo no log: a ficha é dado pessoal da cliente.

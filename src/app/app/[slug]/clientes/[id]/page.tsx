@@ -55,6 +55,7 @@ export default async function ClientePage({ params }: ClientePageProps) {
             filled: countTechnicalFilled(technical),
             healthFilled: countHealthFilled(health),
             healthAlerts: countHealthAlerts(health),
+            consent: Boolean(sheetRecord?.consent_at),
           }}
           summary={<ClientHistorySummaryCard summary={summarizeHistory(history, now)} />}
           history={<ClientHistoryList slug={slug} clientId={client.id} upcoming={upcoming} past={past} nowIso={now.toISOString()} />}

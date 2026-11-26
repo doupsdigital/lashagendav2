@@ -26,7 +26,7 @@ interface ClientProfileClientProps {
   /** Serviços ativos, para registrar atendimento (F7.4). */
   services: ManualBookingService[];
   /** Ficha (F8): resumo da técnica e quantas respostas cada aba tem. */
-  sheet: { summary: string | null; filled: number; healthFilled: number; healthAlerts: number };
+  sheet: { summary: string | null; filled: number; healthFilled: number; healthAlerts: number; consent: boolean };
   /** Resumo do histórico (F7.3), logo abaixo do nome. */
   summary?: React.ReactNode;
   /** Próximos e passados (F7.3), antes do excluir. */
@@ -112,7 +112,9 @@ export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, 
                 {sheet.summary || (sheet.filled > 0 ? `Técnica: ${sheet.filled} ${sheet.filled === 1 ? 'item' : 'itens'}` : 'Técnica: não preenchida')}
               </span>
               <span className={`block text-sm truncate ${sheet.healthAlerts > 0 ? 'text-amber-700 font-semibold' : 'text-ink-soft'}`}>
-                {sheet.healthAlerts > 0
+                {!sheet.consent
+                  ? 'Saúde: falta a autorização da cliente'
+                  : sheet.healthAlerts > 0
                   ? `Saúde: ${sheet.healthAlerts} ${sheet.healthAlerts === 1 ? 'ponto de atenção' : 'pontos de atenção'}`
                   : sheet.healthFilled > 0
                     ? 'Saúde: nada que peça atenção'
