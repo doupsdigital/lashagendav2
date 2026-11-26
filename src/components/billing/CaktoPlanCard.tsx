@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ChevronDown, CreditCard, QrCode, AlertTriangle, Crown } from 'lucide-react';
 import { CAKTO_CHECKOUT_URLS } from '@/lib/cakto-checkout';
 import { CAKTO_ANUAL_PRICE, CAKTO_MENSAL_PRICE } from '@/lib/pricing';
+import { SUPPORT_WHATSAPP } from '@/lib/support';
 import type { PlanStatus } from '@/types/studio';
 
 interface CaktoPlanCardProps {
@@ -17,7 +18,6 @@ interface CaktoPlanCardProps {
  *  server-only, por isso repetido aqui). Só decide o texto do card. */
 const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
 const RENEW_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
-const SUPPORT_WHATSAPP = '5562991083435';
 /** Portal da Cakto onde a assinante vê, altera ou cancela a assinatura
  *  sozinha, entrando com o e-mail da compra (central de ajuda da Cakto,
  *  conferido em 2026-11-18). O WhatsApp do suporte fica como reserva. */

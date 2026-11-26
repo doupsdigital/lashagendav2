@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { CAKTO_ANUAL_PRICE, CAKTO_MENSAL_PRICE } from '@/lib/pricing';
+import { SUPPORT_WHATSAPP as WHATSAPP_NUMBER } from '@/lib/support';
 import type { LandingNicheContent } from '@/data/landing-niche-content';
 import { PreviewGenerator } from './PreviewGenerator';
 import { CreatingOverlay } from './CreatingOverlay';
@@ -21,7 +22,6 @@ import {
   type FunnelPreview,
 } from './funnel';
 
-const WHATSAPP_NUMBER = '5562991083435';
 const AVATARS = ['/landing/avatar-lash-1.webp', '/landing/avatar-lash-2.webp', '/landing/avatar-lash-3.webp'];
 /** Se o menu demorar demais pra carregar no iframe, a animação não fica
  *  presa esperando — revela mesmo assim (ele termina de carregar visível). */

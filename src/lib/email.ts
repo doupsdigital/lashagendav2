@@ -1,5 +1,6 @@
 import 'server-only';
 import { PRODUCTION_DOMAIN } from './public-url';
+import { SUPPORT_WHATSAPP } from './support';
 
 /** E-mails transacionais via Resend (2026-11-18), por `fetch`, sem
  *  dependência nova (mesmo jeito do manual-lash). O domínio `studiomenu.art`
@@ -8,7 +9,6 @@ import { PRODUCTION_DOMAIN } from './public-url';
  *  evento. */
 
 const FROM = 'LashAgenda <acesso@lashagenda.com>';
-const SUPPORT_WHATSAPP = '5562991083435';
 
 export async function sendEmail(input: { to: string; subject: string; html: string; text: string }): Promise<{ ok: boolean; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;

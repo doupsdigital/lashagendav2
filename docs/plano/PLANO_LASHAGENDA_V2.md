@@ -58,7 +58,7 @@ cobre, **pare e pergunte**. Depois de decidida, registre em `DECISOES_DE_PRODUTO
 | F7 | Clientes | Lista, busca, perfil com histórico, atendimento manual | ✅ |
 | F8 | Ficha da cliente | Ficha técnica + saúde e cuidados, só dentro do app, com consentimento | ✅ |
 | F9 | Início (painel) + relatórios | Números do dia/mês, pendências, relatórios por período | ✅ |
-| F10 | Configurações | Negócio, regras de agendamento, WhatsApp, conta, ajuda, link + QR | ⬜ |
+| F10 | Configurações | Negócio, regras de agendamento, WhatsApp, conta, ajuda, link + QR | ✅ |
 | F11 | Venda e acesso (prévia + Cakto + e-mail) | Ciclo completo: prévia → compra → ativação → e-mail → primeiros passos | ⬜ |
 | F12 | Admin + PWA + notificações | Painel admin, app instalável, push de novo agendamento | ⬜ |
 | F13 | Produção e domínio | `lashagenda.com` + subdomínios no ar, banco prod, Cakto real | ⬜ |
@@ -472,7 +472,7 @@ novas clientes, serviços mais feitos. Gráfico simples de receita.
 
 ---
 
-### F10 — Configurações — **marco M2**
+### F10 — Configurações — **marco M2** ✅
 
 **Etapas:**
 

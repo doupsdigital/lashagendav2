@@ -38,6 +38,8 @@ interface ConfigAccordionProps {
   bookingRules: BookingRules;
   /** QR code do link (F10.3), PNG em data URL. */
   linkQr: string;
+  /** E-mail do login vinculado (F10.4). */
+  accountEmail: string | null;
 }
 
 type SectionKey = 'negocio' | 'link' | 'regras' | 'horarios' | 'bloqueios' | 'pausar' | 'conta' | 'notificacoes' | 'suporte';
@@ -59,6 +61,7 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
   business,
   bookingRules,
   linkQr,
+  accountEmail,
 }) => {
   const [open, setOpen] = useState<Record<SectionKey, boolean>>({
     negocio: false,
@@ -273,12 +276,12 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
           onToggle={() => toggle('conta')}
           dataTour="conta-header"
         >
-          <AccountSection slug={slug} hasAccount={hasAccount} />
+          <AccountSection slug={slug} hasAccount={hasAccount} accountEmail={accountEmail} />
         </SectionCard>
       </div>
 
       {/* Última seção de propósito (pedido, 2026-09-23) — suporte direto por
-       *  WhatsApp com a StudioMenu, não com a cliente dela. Colapsado por
+       *  WhatsApp com o LashAgenda, não com a cliente dela. Colapsado por
        *  padrão, mesmo padrão de todas as outras: nada fixo/flutuante
        *  poluindo o dia a dia do app. */}
       <div id="suporte">
@@ -289,7 +292,7 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
           onToggle={() => toggle('suporte')}
           dataTour="suporte-header"
         >
-          <SupportSection />
+          <SupportSection slug={slug} />
         </SectionCard>
       </div>
     </div>

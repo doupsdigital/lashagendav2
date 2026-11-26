@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-26 — F10.3 concluída (Meu link).**
+> Última atualização: **2026-11-26 — F10.4 concluída — F10 fechada (marco M2).**
 
 ---
 
@@ -11,9 +11,9 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F10 — Configurações (marco M2)** |
-| **Próxima etapa** | **F10.4 — Conta e ajuda** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
-| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9 (F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
+| **Fase atual** | **F11 — Venda e acesso (marco M3)** |
+| **Próxima etapa** | **F11.1 — Prévia pelo nome** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10 (F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
 ## 2. O que existe no repositório
@@ -152,6 +152,11 @@
   cookie de sessão do slug novo; o layout de `/app/[slug]` leva o endereço antigo (estúdio que
   não existe mais) ao slug da sessão válida; o aparelho migra as chaves `sm_*` do localStorage.
   Catálogo inexistente responde 200 com "Catálogo Não Encontrado" (herdado, não é 404).
+- Conta e ajuda (F10.4): "Minha conta" mostra o e-mail do login vinculado
+  (`lib/studio/account-service.ts`); e-mail já cadastrado entra com a senha digitada e vincula;
+  sair sem acesso criado pede confirmação. Suporte: botão "Ver de novo as dicas do app" (apaga as
+  chaves de tour/boas-vindas do slug). Número do suporte num lugar só: `lib/support.ts`.
+  Notificações intactas (ligam na F12).
 - Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
   `rate_limits` do banco dev antes de rodar os de agendamento.
 - Páginas do app sem sessão: Início, Agenda, Clientes, Relatórios e Config conferem a sessão na própria página e não leem

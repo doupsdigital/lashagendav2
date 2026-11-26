@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ConfettiBurst } from '@/components/app-shell/ConfettiBurst';
 import { clearPreview, firstName, trackFunnel } from './funnel';
+import { SUPPORT_WHATSAPP } from '@/lib/support';
 
 type Phase = 'checking' | 'active' | 'slow' | 'no_session';
 
@@ -12,7 +13,6 @@ const POLL_INTERVAL_MS = 2500;
  *  de deixar ela olhando um carregando infinito. */
 const POLL_LIMIT_MS = 2 * 60 * 1000;
 const REDIRECT_DELAY_MS = 2600;
-const SUPPORT_WHATSAPP = '5562991083435';
 
 const CHECKING_MESSAGES = [
   'Confirmando seu pagamento…',

@@ -1,19 +1,38 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { RotateCcw, Check } from 'lucide-react';
+import { supportWhatsappUrl } from '@/lib/support';
+import { welcomeStorageKey } from '@/lib/welcome-gate';
 
-/** Número de suporte da própria StudioMenu (fixo, não é por catálogo —
- *  diferente do WhatsApp da profissional, que é dela pras clientes dela). */
-const SUPPORT_WHATSAPP = '5562991083435';
+interface SupportSectionProps {
+  slug: string;
+}
+
+/** Apaga as marcas de "já visto" deste estúdio neste aparelho: as boas-vindas
+ *  e os balões de ajuda de cada tela aparecem de novo (F10.4). */
+function resetTips(slug: string): boolean {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const k = window.localStorage.key(i);
+      if (k && (k === welcomeStorageKey(slug) || (k.startsWith('sm_tour_seen_') && k.includes(`_${slug}_`)))) keys.push(k);
+    }
+    keys.forEach((k) => window.localStorage.removeItem(k));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /** Seção "Suporte e dúvidas" da Config — leva direto pro WhatsApp da
  *  StudioMenu com uma mensagem pronta. De propósito só aqui dentro do
  *  acordeão (colapsado por padrão, mesmo padrão das outras seções), não um
  *  botão fixo/flutuante — pedido explícito da usuária pra não poluir o
  *  dia a dia do app com algo verde sempre visível. */
-export const SupportSection: React.FC = () => {
-  const text = encodeURIComponent('Olá! Estou com uma dúvida sobre o LashAgenda.');
-  const whatsappUrl = `https://wa.me/${SUPPORT_WHATSAPP}?text=${text}`;
+export const SupportSection: React.FC<SupportSectionProps> = ({ slug }) => {
+  const whatsappUrl = supportWhatsappUrl('Olá! Estou com uma dúvida sobre o LashAgenda.');
+  const [tipsReset, setTipsReset] = useState(false);
 
   return (
     <div className="flex flex-col gap-3">
@@ -32,6 +51,15 @@ export const SupportSection: React.FC = () => {
         </svg>
         Falar no WhatsApp
       </a>
+
+      <button
+        type="button"
+        onClick={() => setTipsReset(resetTips(slug))}
+        className="flex items-center justify-center gap-2 h-11 rounded-xl border border-linen bg-surface text-ink text-[15px] font-bold"
+      >
+        {tipsReset ? <Check className="w-4 h-4" /> : <RotateCcw className="w-4 h-4" />}
+        {tipsReset ? 'Pronto! As dicas voltam ao abrir cada tela' : 'Ver de novo as dicas do app'}
+      </button>
     </div>
   );
 };
