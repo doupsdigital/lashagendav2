@@ -1,7 +1,7 @@
 import 'server-only';
 import { supabaseAdmin } from '../supabase-admin';
-import { readTechnical, type TechnicalSheet } from './client-technical';
-import { readHealth, type HealthSheet } from './client-health';
+import { readTechnical, technicalSummary, type TechnicalSheet } from './client-technical';
+import { countHealthAlerts, readHealth, type HealthSheet } from './client-health';
 
 // Ficha da cliente (F8) — `client_records`, 1:1 com `clients`. Dado pessoal
 // (e sensível, na aba de saúde): só o servidor lê e grava, e sempre
@@ -99,4 +99,37 @@ export async function revokeClientConsent(studioId: string, clientId: string): P
     return { ok: false, reason: 'error' };
   }
   return { ok: true, consent_at: null };
+}
+
+/** O que a agenda mostra da ficha no detalhe do agendamento (F8.4): o resumo
+ *  da técnica e QUANTOS pontos de atenção de saúde — nunca o texto. */
+export interface SheetHighlight {
+  summary: string | null;
+  healthAlerts: number;
+}
+
+/** Destaques da ficha das clientes de uma lista (as da agenda na tela). Só
+ *  cliente do estúdio (filtro pelo `studio_id` da cliente); quem não tem nada
+ *  a mostrar fica de fora do mapa. Saúde só conta com consentimento. */
+export async function getSheetHighlights(studioId: string, clientIds: string[]): Promise<Record<string, SheetHighlight>> {
+  const ids = [...new Set(clientIds.filter((id) => UUID_RE.test(id)))];
+  const out: Record<string, SheetHighlight> = {};
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100);
+    const { data, error } = await supabaseAdmin
+      .from('client_records')
+      .select('client_id, technical, health, consent_at, clients!inner(studio_id)')
+      .eq('clients.studio_id', studioId)
+      .in('client_id', chunk);
+    if (error) {
+      console.error('[client-sheet-service] getSheetHighlights:', error.message);
+      continue;
+    }
+    for (const row of (data || []) as Record<string, unknown>[]) {
+      const summary = technicalSummary(readTechnical(row.technical));
+      const healthAlerts = row.consent_at ? countHealthAlerts(readHealth(row.health)) : 0;
+      if (summary || healthAlerts > 0) out[row.client_id as string] = { summary, healthAlerts };
+    }
+  }
+  return out;
 }

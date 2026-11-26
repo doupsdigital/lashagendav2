@@ -5,6 +5,7 @@ import { getStudioForProfessionalApp } from '@/lib/studio-service';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
 import { getAppointmentsForDay, getAppointmentsForRange, getPendingAppointments, getManualBookingServices, getStudioClient } from '@/lib/scheduling/agenda-service';
 import { getBusinessHours, getScheduleBlocks } from '@/lib/scheduling/config-service';
+import { getSheetHighlights } from '@/lib/clients/client-sheet-service';
 import { getWeekdayForDate } from '@/lib/scheduling/availability';
 import { GradientHeader } from '@/components/app-shell/GradientHeader';
 import { PageTitleBar } from '@/components/app-shell/PageTitleBar';
@@ -130,6 +131,13 @@ export default async function AgendaPage({ params, searchParams }: AgendaPagePro
       cliente ? getStudioClient(order.id, cliente) : Promise.resolve(null),
     ]);
 
+  // Resumo da ficha de quem aparece na tela (F8.4) — depende dos
+  // agendamentos acima, por isso numa segunda rodada (uma consulta só).
+  const sheetHighlights = await getSheetHighlights(
+    order.id,
+    [...pendingAppointments, ...dayAppointments, ...monthAppointments].map((a) => a.client_id)
+  );
+
   const prevHref =
     view === 'mes'
       ? `/app/${slug}/agenda?view=mes&date=${shiftMonth(selectedDate, -1)}`
@@ -209,6 +217,7 @@ export default async function AgendaPage({ params, searchParams }: AgendaPagePro
           scheduleBlocks={scheduleBlocks}
           bookingEnabled={bookingEnabled}
           prefillClient={prefillClient}
+          sheetHighlights={sheetHighlights}
         />
       </div>
       </main>

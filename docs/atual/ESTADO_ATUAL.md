@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-26 — F8.3 concluída (consentimento).**
+> Última atualização: **2026-11-26 — F8.4 concluída (ficha no atendimento).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F8 — Ficha da cliente** |
-| **Próxima etapa** | **F8.4 — Ficha no atendimento** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F8.5 — Lista "Fichas" (opcional)** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7 (F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -116,6 +116,10 @@
   `getClientSheet` nem devolve `health`. POST/DELETE `/api/professional/clients/[id]/ficha/consent`;
   registrar de novo mantém a data; retirar apaga `health` (a técnica fica) — decisão a confirmar
   pela usuária. Ficha técnica não depende de consentimento.
+- Ficha no atendimento (F8.4): `getSheetHighlights` (client-sheet-service) — resumo da técnica e
+  só a CONTAGEM de pontos de atenção de saúde (com consentimento), das clientes na tela da agenda
+  (segunda consulta na página, filtro pelo `studio_id` da cliente). Aparece no topo do
+  `AppointmentDetailSheet` (link para a ficha, `ph-no-capture`). Texto de saúde nunca vai para a agenda.
 - Páginas do app sem sessão: Agenda e Clientes conferem a sessão na própria página e não leem
   nada (o layout só esconde; sem isso os dados iam no HTML). Corrigido na F7.1.
 - Trancar pela agenda (F6.6): tocar num horário livre pergunta Agendar/Trancar (trancar já vem

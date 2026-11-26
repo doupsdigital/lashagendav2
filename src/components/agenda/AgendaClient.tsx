@@ -12,6 +12,7 @@ import { BlockDetailSheet, SlotChoiceSheet } from './SlotSheets';
 import { DayTimeline } from './DayTimeline';
 import { MonthCalendar } from './MonthCalendar';
 import { AppointmentDetailSheet, type RescheduleResult } from './AppointmentDetailSheet';
+import type { SheetHighlight } from '@/lib/clients/client-sheet-service';
 import { ApproveModal } from './ApproveModal';
 import { RejectModal } from './RejectModal';
 import { SuccessModal, type SuccessModalRow } from './SuccessModal';
@@ -98,6 +99,8 @@ interface AgendaClientProps {
   /** Veio do perfil da cliente ("Agendar", F7.5): abre o agendamento
    *  manual com ela já escolhida. */
   prefillClient?: StudioClientOption | null;
+  /** Resumo da ficha por cliente (F8.4); quem não tem nada fica de fora. */
+  sheetHighlights?: Record<string, SheetHighlight>;
 }
 
 export const AgendaClient: React.FC<AgendaClientProps> = ({
@@ -114,6 +117,7 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
   scheduleBlocks,
   bookingEnabled,
   prefillClient = null,
+  sheetHighlights = {},
 }) => {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -542,6 +546,8 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
         <AppointmentDetailSheet
           appointment={detailAppointment}
           clientHref={`/app/${slug}/clientes/${detailAppointment.client_id}`}
+          sheetHref={`/app/${slug}/clientes/${detailAppointment.client_id}/ficha`}
+          sheet={sheetHighlights[detailAppointment.client_id] || null}
           busy={busy}
           onClose={() => setDetailAppointment(null)}
           onApprove={setApproveAppointment}

@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { UserRound, X, Check, MessageCircle, CheckCircle2, XCircle, CalendarClock, Undo2, AlertTriangle } from 'lucide-react';
+import { UserRound, X, Check, MessageCircle, CheckCircle2, XCircle, CalendarClock, Undo2, AlertTriangle, ClipboardList, ChevronRight } from 'lucide-react';
+import type { SheetHighlight } from '@/lib/clients/client-sheet-service';
 import type { AgendaAppointment } from '@/lib/scheduling/agenda-service';
 import { durationToLabel, formatBRL, PRICE_ON_REQUEST_LABEL } from '@/lib/service-format';
 import { formatPhoneBR } from '@/lib/format';
@@ -15,6 +16,9 @@ interface AppointmentDetailSheetProps {
   appointment: AgendaAppointment;
   /** Perfil da cliente (F7.5). */
   clientHref: string;
+  /** Ficha da cliente (F8.4): resumo e pontos de atenção; null se vazia. */
+  sheetHref: string;
+  sheet: SheetHighlight | null;
   busy: boolean;
   onClose: () => void;
   /** Pendente → abre o modal de aprovar/recusar (não age direto). */
@@ -57,6 +61,8 @@ const STATUS_BADGE: Record<AgendaAppointment['status'], string> = {
 export const AppointmentDetailSheet: React.FC<AppointmentDetailSheetProps> = ({
   appointment,
   clientHref,
+  sheetHref,
+  sheet,
   busy,
   onClose,
   onApprove,
@@ -178,6 +184,24 @@ export const AppointmentDetailSheet: React.FC<AppointmentDetailSheetProps> = ({
         </div>
 
         <div className="flex flex-col gap-2 mb-5">
+          {/* Fora das gravações do analytics: é dado da ficha. Só o número de
+              pontos de atenção de saúde, nunca o texto. */}
+          <Link
+            href={sheetHref}
+            className="ph-no-capture rounded-xl border border-linen bg-surface px-3.5 py-2.5 flex items-center gap-3 active:bg-cream"
+          >
+            <ClipboardList className="w-5 h-5 text-rose-600 shrink-0" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-ink">{sheet?.summary || 'Ficha técnica ainda não preenchida'}</span>
+              {sheet && sheet.healthAlerts > 0 && (
+                <span className="flex items-center gap-1 text-sm font-semibold text-amber-700">
+                  <AlertTriangle className="w-4 h-4 shrink-0" /> Saúde: {sheet.healthAlerts}{' '}
+                  {sheet.healthAlerts === 1 ? 'ponto de atenção' : 'pontos de atenção'} — ver ficha
+                </span>
+              )}
+            </span>
+            <ChevronRight className="w-4 h-4 text-ink-faint shrink-0" />
+          </Link>
           {appointment.client_notes && (
             <p className="text-sm text-ink-soft rounded-xl border border-linen px-3.5 py-2.5">
               <span className="font-semibold text-ink">Recado da cliente:</span> {appointment.client_notes}
