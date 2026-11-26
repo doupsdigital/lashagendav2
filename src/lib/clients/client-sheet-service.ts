@@ -1,6 +1,7 @@
 import 'server-only';
 import { supabaseAdmin } from '../supabase-admin';
 import { readTechnical, type TechnicalSheet } from './client-technical';
+import { readHealth, type HealthSheet } from './client-health';
 
 // Ficha da cliente (F8) — `client_records`, 1:1 com `clients`. Dado pessoal
 // (e, na F8.2, sensível): só o servidor lê e grava, e sempre conferindo antes
@@ -15,31 +16,37 @@ async function clientBelongsToStudio(studioId: string, clientId: string): Promis
   return Boolean(data);
 }
 
-export interface ClientTechnicalRecord {
+export interface ClientSheet {
   technical: TechnicalSheet;
+  health: HealthSheet;
   /** Última vez que a ficha (qualquer aba) foi salva; null se nunca. */
   updated_at: string | null;
 }
 
-/** Ficha técnica da cliente; null se ela não é do estúdio. Sem ficha salva
- *  ainda, volta vazia. */
-export async function getClientTechnical(studioId: string, clientId: string): Promise<ClientTechnicalRecord | null> {
+/** Ficha da cliente (as duas abas); null se ela não é do estúdio. Sem ficha
+ *  salva ainda, volta vazia. */
+export async function getClientSheet(studioId: string, clientId: string): Promise<ClientSheet | null> {
   if (!(await clientBelongsToStudio(studioId, clientId))) return null;
-  const { data, error } = await supabaseAdmin.from('client_records').select('technical, updated_at').eq('client_id', clientId).maybeSingle();
-  if (error) console.error('[client-sheet-service] getClientTechnical:', error);
-  return { technical: readTechnical(data?.technical), updated_at: (data?.updated_at as string) || null };
+  const { data, error } = await supabaseAdmin.from('client_records').select('technical, health, updated_at').eq('client_id', clientId).maybeSingle();
+  if (error) console.error('[client-sheet-service] getClientSheet:', error.message);
+  return { technical: readTechnical(data?.technical), health: readHealth(data?.health), updated_at: (data?.updated_at as string) || null };
 }
 
-export type SaveTechnicalResult = { ok: true } | { ok: false; reason: 'not_found' | 'error' };
+export type SaveSheetResult = { ok: true } | { ok: false; reason: 'not_found' | 'error' };
 
-/** Grava a ficha técnica inteira (já validada por `cleanTechnical`). Cria a
- *  linha na primeira vez; nas outras só troca `technical` — a aba de saúde
- *  (`health`) e o consentimento ficam como estão. */
-export async function saveClientTechnical(studioId: string, clientId: string, technical: TechnicalSheet): Promise<SaveTechnicalResult> {
+/** Grava UMA aba inteira (já validada por `cleanTechnical`/`cleanHealth`).
+ *  Cria a linha na primeira vez; nas outras só troca a coluna daquela aba —
+ *  a outra aba e o consentimento ficam como estão. */
+export async function saveClientSheetTab(
+  studioId: string,
+  clientId: string,
+  tab: { technical: TechnicalSheet } | { health: HealthSheet }
+): Promise<SaveSheetResult> {
   if (!(await clientBelongsToStudio(studioId, clientId))) return { ok: false, reason: 'not_found' };
-  const { error } = await supabaseAdmin.from('client_records').upsert({ client_id: clientId, technical }, { onConflict: 'client_id' });
+  const { error } = await supabaseAdmin.from('client_records').upsert({ client_id: clientId, ...tab }, { onConflict: 'client_id' });
   if (error) {
-    console.error('[client-sheet-service] saveClientTechnical:', error);
+    // Só a mensagem: o objeto do erro pode trazer os dados da ficha.
+    console.error('[client-sheet-service] saveClientSheetTab:', error.message);
     return { ok: false, reason: 'error' };
   }
   return { ok: true };

@@ -25,8 +25,8 @@ interface ClientProfileClientProps {
   today: string;
   /** Serviços ativos, para registrar atendimento (F7.4). */
   services: ManualBookingService[];
-  /** Ficha técnica (F8.1): resumo e quantos campos têm resposta. */
-  sheet: { summary: string | null; filled: number };
+  /** Ficha (F8): resumo da técnica e quantas respostas cada aba tem. */
+  sheet: { summary: string | null; filled: number; healthFilled: number; healthAlerts: number };
   /** Resumo do histórico (F7.3), logo abaixo do nome. */
   summary?: React.ReactNode;
   /** Próximos e passados (F7.3), antes do excluir. */
@@ -107,9 +107,16 @@ export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, 
               <ClipboardList className="w-5 h-5" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-bold text-ink">Ficha técnica</span>
+              <span className="block text-[15px] font-bold text-ink">Ficha da cliente</span>
               <span className="block text-sm text-ink-soft truncate">
-                {sheet.summary || (sheet.filled > 0 ? `${sheet.filled} ${sheet.filled === 1 ? 'item preenchido' : 'itens preenchidos'}` : 'Ainda não preenchida')}
+                {sheet.summary || (sheet.filled > 0 ? `Técnica: ${sheet.filled} ${sheet.filled === 1 ? 'item' : 'itens'}` : 'Técnica: não preenchida')}
+              </span>
+              <span className={`block text-sm truncate ${sheet.healthAlerts > 0 ? 'text-amber-700 font-semibold' : 'text-ink-soft'}`}>
+                {sheet.healthAlerts > 0
+                  ? `Saúde: ${sheet.healthAlerts} ${sheet.healthAlerts === 1 ? 'ponto de atenção' : 'pontos de atenção'}`
+                  : sheet.healthFilled > 0
+                    ? 'Saúde: nada que peça atenção'
+                    : 'Saúde: não preenchida'}
               </span>
             </span>
             <ChevronRight className="w-5 h-5 text-ink-faint shrink-0" />

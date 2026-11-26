@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:availability": "node scripts/test-availability.mjs",
-    "test": "node scripts/test-availability.mjs && node scripts/test-client-phone.mjs && node scripts/test-client-appointment.mjs && node scripts/test-client-activity.mjs && node scripts/test-appointment-actions.mjs && node scripts/test-client-list.mjs && node scripts/test-client-profile.mjs && node scripts/test-client-history.mjs && node scripts/test-client-record.mjs && node scripts/test-client-technical.mjs",
+    "test": "node scripts/test-availability.mjs && node scripts/test-client-phone.mjs && node scripts/test-client-appointment.mjs && node scripts/test-client-activity.mjs && node scripts/test-appointment-actions.mjs && node scripts/test-client-list.mjs && node scripts/test-client-profile.mjs && node scripts/test-client-history.mjs && node scripts/test-client-record.mjs && node scripts/test-client-technical.mjs && node scripts/test-client-health.mjs",
     "test:phone": "node scripts/test-client-phone.mjs"
   },
   "dependencies": {
