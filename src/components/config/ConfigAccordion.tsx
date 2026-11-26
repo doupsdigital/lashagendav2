@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Clock, CalendarX, PauseCircle, UserCircle, Bell, LifeBuoy, Store } from 'lucide-react';
+import { Clock, CalendarX, PauseCircle, UserCircle, Bell, LifeBuoy, Store, SlidersHorizontal } from 'lucide-react';
 import type { Step } from 'react-joyride';
 import { SectionCard } from '@/components/app-shell/SectionCard';
 import { ProductTour } from '@/components/tour/ProductTour';
@@ -12,6 +12,8 @@ import { AccountSection } from './AccountSection';
 import { NotificationsSection } from './NotificationsSection';
 import { SupportSection } from './SupportSection';
 import { BusinessSection } from './BusinessSection';
+import { BookingRulesSection } from './BookingRulesSection';
+import type { BookingRules } from '@/lib/studio/booking-rules';
 import type { BusinessProfile } from '@/lib/studio/business-service';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import type { BusinessHoursConfigRow, ScheduleBlockConfigRow } from '@/lib/scheduling/config-service';
@@ -31,9 +33,11 @@ interface ConfigAccordionProps {
   authUserId: string | null;
   /** Dados de "Meu negócio" (F10.1). */
   business: BusinessProfile;
+  /** Regras de agendamento (F10.2). */
+  bookingRules: BookingRules;
 }
 
-type SectionKey = 'negocio' | 'horarios' | 'bloqueios' | 'pausar' | 'conta' | 'notificacoes' | 'suporte';
+type SectionKey = 'negocio' | 'regras' | 'horarios' | 'bloqueios' | 'pausar' | 'conta' | 'notificacoes' | 'suporte';
 
 /** Acordeão da aba Config — 3 seções que já existiam (`BusinessHoursEditor`,
  *  `ScheduleBlocksManager`, `SubscriptionSection`), agora dentro de
@@ -50,9 +54,11 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
   agendaPaused,
   authUserId,
   business,
+  bookingRules,
 }) => {
   const [open, setOpen] = useState<Record<SectionKey, boolean>>({
     negocio: false,
+    regras: false,
     horarios: false,
     bloqueios: true,
     pausar: false,
@@ -80,6 +86,7 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
     const hash = window.location.hash.slice(1);
     const sectionForHash: Partial<Record<string, SectionKey>> = {
       negocio: 'negocio',
+      regras: 'regras',
       conta: 'conta',
       horarios: 'horarios',
       bloqueios: 'bloqueios',
@@ -170,6 +177,20 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
       <div id="negocio">
         <SectionCard icon={Store} title="Meu negócio" isOpen={open.negocio} onToggle={() => toggle('negocio')}>
           <BusinessSection slug={slug} initial={business} />
+        </SectionCard>
+      </div>
+
+      {/* Regras de agendamento (F10.2) — também fora do tour, mesmo motivo. */}
+      <div id="regras">
+        <SectionCard
+          icon={SlidersHorizontal}
+          title="Regras de agendamento"
+          isOpen={open.regras}
+          onToggle={() => toggle('regras')}
+          locked={!bookingEnabled}
+          lockedHint="Disponível quando o agendamento automático (Plano Agenda) estiver ativo."
+        >
+          <BookingRulesSection slug={slug} initial={bookingRules} />
         </SectionCard>
       </div>
 

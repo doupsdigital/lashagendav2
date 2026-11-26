@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-26 — F10.1 concluída (Meu negócio).**
+> Última atualização: **2026-11-26 — F10.2 concluída (Regras de agendamento).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F10 — Configurações (marco M2)** |
-| **Próxima etapa** | **F10.2 — Regras de agendamento** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F10.3 — Meu link** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9 (F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -139,6 +139,14 @@
   colunas de `studios` que o editor do catálogo (owner_name, studio_name, whatsapp com 55,
   instagram sem @, address, maps_url). Foto continua só no editor do catálogo. Fora do tour da
   Config de propósito (passo novo reabriria o tour para quem já viu).
+- Regras de agendamento (F10.2): seção da Config (`BookingRulesSection`, travada sem acesso pago),
+  `PUT /api/professional/booking-rules` (`lib/studio/booking-rules-service.ts`; opções e validação
+  puras em `booking-rules.ts`). Modo auto/aprovação, botão de WhatsApp, antecedência mínima,
+  janela, prazo para cancelar e mensagem pós-agendamento. Aceita qualquer inteiro nos limites do
+  banco (valor antigo fora das opções aparece como opção extra). "Desligar Agenda" segue como
+  seção própria. Fora do tour da Config.
+- Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
+  `rate_limits` do banco dev antes de rodar os de agendamento.
 - Páginas do app sem sessão: Início, Agenda, Clientes, Relatórios e Config conferem a sessão na própria página e não leem
   nada (o layout só esconde; sem isso os dados iam no HTML). Corrigido na F7.1.
 - Trancar pela agenda (F6.6): tocar num horário livre pergunta Agendar/Trancar (trancar já vem
@@ -212,8 +220,7 @@ Web Push.
       para coisas escondidas atrás dela. O tour deveria esperar as boas-vindas terminarem.
       Corrigir junto com o Início novo (F9.1) ou antes, se atrapalhar os testes.
 - [ ] Herdado do StudioMenu, a resolver nas fases indicadas (anotado na F2.2):
-  - **F10:** `min_notice_minutes` e `booking_window_days` já valem no agendamento (F4.3), mas
-    ainda não têm tela para a profissional mudar (hoje ficam no padrão: 2h e 60 dias).
+  - ~~**F10:** `min_notice_minutes` e `booking_window_days` sem tela~~ — resolvido na F10.2.
   - **F11:** preço anual exibido ainda é R$ 127 (`lib/pricing.ts`); o v2 vende a R$ 197.
   - **F12:** `/admin/catalogos` virou uma lista enxuta (status, links, +1 mês/ano, liberar à
     mão, desativar, excluir). Saíram o "Cadastrar serviços com IA" (`extract-catalog`,
