@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Mail, MessageCircle, Pencil, Trash2, Cake, StickyNote, ClipboardPlus, CalendarPlus } from 'lucide-react';
+import { ChevronLeft, Mail, MessageCircle, Pencil, Trash2, Cake, StickyNote, ClipboardPlus, CalendarPlus, ChevronRight, ClipboardList } from 'lucide-react';
 import { formatPhoneBR, normalizeWhatsappBR } from '@/lib/format';
 import {
   birthDateLabel,
@@ -25,6 +25,8 @@ interface ClientProfileClientProps {
   today: string;
   /** Serviços ativos, para registrar atendimento (F7.4). */
   services: ManualBookingService[];
+  /** Ficha técnica (F8.1): resumo e quantos campos têm resposta. */
+  sheet: { summary: string | null; filled: number };
   /** Resumo do histórico (F7.3), logo abaixo do nome. */
   summary?: React.ReactNode;
   /** Próximos e passados (F7.3), antes do excluir. */
@@ -34,7 +36,7 @@ interface ClientProfileClientProps {
 const inputClass =
   'h-12 rounded-xl border border-linen bg-cream px-4 text-[16px] text-ink placeholder:text-ink-faint focus:outline-none focus:border-rose-400';
 
-export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, client, appointments, today, services, summary, history }) => {
+export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, client, appointments, today, services, sheet, summary, history }) => {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
@@ -96,6 +98,22 @@ export const ClientProfileClient: React.FC<ClientProfileClientProps> = ({ slug, 
               <MessageCircle className="w-5 h-5 text-emerald-600" /> WhatsApp · {formatPhoneBR(client.whatsapp)}
             </a>
           )}
+
+          <Link
+            href={`/app/${slug}/clientes/${client.id}/ficha`}
+            className="ph-no-capture rounded-2xl bg-surface border border-linen px-4 py-3 flex items-center gap-3 active:bg-cream"
+          >
+            <span className="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <ClipboardList className="w-5 h-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-bold text-ink">Ficha técnica</span>
+              <span className="block text-sm text-ink-soft truncate">
+                {sheet.summary || (sheet.filled > 0 ? `${sheet.filled} ${sheet.filled === 1 ? 'item preenchido' : 'itens preenchidos'}` : 'Ainda não preenchida')}
+              </span>
+            </span>
+            <ChevronRight className="w-5 h-5 text-ink-faint shrink-0" />
+          </Link>
 
           <div className="rounded-2xl bg-surface border border-linen divide-y divide-linen">
             <InfoRow icon={<MessageCircle className="w-4 h-4" />} label="WhatsApp" value={client.whatsapp ? formatPhoneBR(client.whatsapp) : null} />

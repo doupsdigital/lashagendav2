@@ -5,6 +5,8 @@ import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
 import { getClientHistory, getClientProfile } from '@/lib/clients/client-service';
 import { splitHistory, summarizeHistory } from '@/lib/clients/client-history';
 import { getManualBookingServices } from '@/lib/scheduling/agenda-service';
+import { getClientTechnical } from '@/lib/clients/client-sheet-service';
+import { countTechnicalFilled, technicalSummary } from '@/lib/clients/client-technical';
 import { ClientHistoryList, ClientHistorySummaryCard } from '@/components/clients/ClientHistory';
 import { PageTitleBar } from '@/components/app-shell/PageTitleBar';
 import { ClientProfileClient } from '@/components/clients/ClientProfileClient';
@@ -26,7 +28,12 @@ export default async function ClientePage({ params }: ClientePageProps) {
   const client = await getClientProfile(studio.id, id);
   // Link antigo de cliente excluída (ou de outro estúdio): volta para a lista.
   if (!client) redirect(`/app/${slug}/clientes`);
-  const [history, services] = await Promise.all([getClientHistory(studio.id, client.id), getManualBookingServices(studio.id)]);
+  const [history, services, technical] = await Promise.all([
+    getClientHistory(studio.id, client.id),
+    getManualBookingServices(studio.id),
+    getClientTechnical(studio.id, client.id),
+  ]);
+  const sheet = technical?.technical || {};
   const now = new Date();
   const { upcoming, past } = splitHistory(history, now);
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
@@ -41,6 +48,7 @@ export default async function ClientePage({ params }: ClientePageProps) {
           appointments={history.length}
           today={today}
           services={services}
+          sheet={{ summary: technicalSummary(sheet), filled: countTechnicalFilled(sheet) }}
           summary={<ClientHistorySummaryCard summary={summarizeHistory(history, now)} />}
           history={<ClientHistoryList slug={slug} clientId={client.id} upcoming={upcoming} past={past} nowIso={now.toISOString()} />}
         />
