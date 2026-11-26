@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-26 — F11.2 concluída (Cakto, ambiente de teste).**
+> Última atualização: **2026-11-26 — F11.3 concluída (`/ativando`).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F11 — Venda e acesso (marco M3)** |
-| **Próxima etapa** | **F11.3 — `/ativando`** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F11.4 — E-mail de acesso (Resend)** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10 (F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -175,6 +175,11 @@
   apontando para a Vercel da `desenv`, variáveis na Vercel (`CAKTO_WEBHOOK_SECRET`,
   `CAKTO_PRODUCT_MAP`, os dois `NEXT_PUBLIC_CAKTO_CHECKOUT_*`). Compra de teste real = teste do M3.
   `singleAnnualPlanTest` (R$ 127) em `data/landing-niche-content.tsx` não é usado — ver na landing.
+- `/ativando` (F11.3): `ActivationScreen` + `api/preview/activation-status` já vinham do StudioMenu;
+  testado o caminho prévia → aviso de pagamento simulado → sessão gravada → `/primeiros-passos`.
+  Ajustados textos ("LashAgenda" em vez de "catálogo") e a fonte dos títulos (`font-serif-pro`).
+  Sem pixel na página. Compra sem `sck` cria estúdio novo e a prévia fica "confirmando" — acesso
+  pelo e-mail (F11.4); confirmar na compra de teste real se a Cakto manda o `sck`.
 - Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
   `rate_limits` do banco dev antes de rodar os de agendamento.
 - Páginas do app sem sessão: Início, Agenda, Clientes, Relatórios e Config conferem a sessão na própria página e não leem

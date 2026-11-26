@@ -16,7 +16,7 @@ const REDIRECT_DELAY_MS = 2600;
 
 const CHECKING_MESSAGES = [
   'Confirmando seu pagamento…',
-  'Ativando o seu catálogo…',
+  'Ativando o seu LashAgenda…',
   'Se foi no Pix, pode levar alguns segundinhos…',
 ];
 
@@ -103,7 +103,7 @@ export const ActivationScreen: React.FC = () => {
         {phase === 'checking' && (
           <>
             <div className="mx-auto mb-5 w-14 h-14 rounded-full border-4 border-rose-100 border-t-rose-600 animate-spin" aria-hidden="true" />
-            <h1 className="font-serif text-2xl font-bold mb-2">Quase lá{greeting}!</h1>
+            <h1 className="font-serif-pro text-2xl font-bold mb-2">Quase lá{greeting}!</h1>
             <p className="text-[15px] text-ink-soft leading-relaxed" aria-live="polite">
               {CHECKING_MESSAGES[messageIndex]}
             </p>
@@ -116,7 +116,7 @@ export const ActivationScreen: React.FC = () => {
             <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-rose-600 text-white flex items-center justify-center text-2xl" aria-hidden="true">
               ✓
             </div>
-            <h1 className="font-serif text-2xl font-bold mb-2">Seu catálogo está no ar{greeting}! 🎉</h1>
+            <h1 className="font-serif-pro text-2xl font-bold mb-2">Seu LashAgenda está ativo{greeting}! 🎉</h1>
             <p className="text-[15px] text-ink-soft leading-relaxed">Entrando no seu app…</p>
             {redirectTo && (
               <a
@@ -132,7 +132,7 @@ export const ActivationScreen: React.FC = () => {
         {phase === 'slow' && (
           <>
             <div className="mx-auto mb-4 text-4xl" aria-hidden="true">⏳</div>
-            <h1 className="font-serif text-2xl font-bold mb-2">Seu pagamento ainda está sendo confirmado</h1>
+            <h1 className="font-serif-pro text-2xl font-bold mb-2">Seu pagamento ainda está sendo confirmado</h1>
             <p className="text-[15px] text-ink-soft leading-relaxed">
               Às vezes o banco demora um pouquinho. Assim que confirmar, o link de acesso ao seu app chega no e-mail
               que você usou na compra.
@@ -158,7 +158,7 @@ export const ActivationScreen: React.FC = () => {
         {phase === 'no_session' && (
           <>
             <div className="mx-auto mb-4 text-4xl" aria-hidden="true">💌</div>
-            <h1 className="font-serif text-2xl font-bold mb-2">Obrigada pela compra!</h1>
+            <h1 className="font-serif-pro text-2xl font-bold mb-2">Obrigada pela compra!</h1>
             <p className="text-[15px] text-ink-soft leading-relaxed">
               Assim que o pagamento for confirmado, o link de acesso ao seu app chega no e-mail que você usou na compra.
               Confira também a caixa de spam.
