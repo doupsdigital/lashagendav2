@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Home, BookOpen, CalendarClock, type LucideIcon } from 'lucide-react';
+import { WELCOME_CLOSED_EVENT, welcomeStorageKey as storageKey } from '@/lib/welcome-gate';
 
 interface WelcomeOnboardingProps {
   slug: string;
@@ -12,8 +13,6 @@ interface Slide {
   title: string;
   subtitle: string;
 }
-
-const storageKey = (slug: string) => `sm_welcome_seen_v1_${slug}`;
 
 /** Onboarding de boas-vindas do app da profissional — 3 telas bem enxutas
  *  (clima/contexto, não mecânica) na primeira vez que ela abre o app,
@@ -77,6 +76,8 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({ slug }) =>
       // (mesmo comportamento de fallback do ProductTour).
     }
     setVisible(false);
+    // Libera o tour da tela, que esperava as boas-vindas fecharem (F9.1).
+    window.dispatchEvent(new Event(WELCOME_CLOSED_EVENT));
   };
 
   const isLast = step === slides.length - 1;
@@ -84,6 +85,7 @@ export const WelcomeOnboarding: React.FC<WelcomeOnboardingProps> = ({ slug }) =>
 
   return (
     <div
+      data-welcome-onboarding
       className="fixed inset-0 z-[10050] flex flex-col bg-rose-200"
       role="dialog"
       aria-modal="true"

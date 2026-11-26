@@ -99,6 +99,8 @@ interface AgendaClientProps {
   /** Veio do perfil da cliente ("Agendar", F7.5): abre o agendamento
    *  manual com ela já escolhida. */
   prefillClient?: StudioClientOption | null;
+  /** Ação rápida do Início (F9.1): já abre o novo agendamento ou o trancar. */
+  openForm?: 'novo' | 'trancar';
   /** Resumo da ficha por cliente (F8.4); quem não tem nada fica de fora. */
   sheetHighlights?: Record<string, SheetHighlight>;
 }
@@ -117,16 +119,25 @@ export const AgendaClient: React.FC<AgendaClientProps> = ({
   scheduleBlocks,
   bookingEnabled,
   prefillClient = null,
+  openForm,
   sheetHighlights = {},
 }) => {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [showManualForm, setShowManualForm] = useState(Boolean(prefillClient && bookingEnabled));
+  const [showManualForm, setShowManualForm] = useState(Boolean((prefillClient || openForm === 'novo') && bookingEnabled));
   // Cliente do atalho só vale na primeira abertura; o botão "Novo" abre limpo.
   const [manualClient, setManualClient] = useState<StudioClientOption | null>(prefillClient);
   const [manualPrefillTime, setManualPrefillTime] = useState<string | undefined>(undefined);
-  const [showBlockForm, setShowBlockForm] = useState(false);
+  const [showBlockForm, setShowBlockForm] = useState(openForm === 'trancar' && bookingEnabled);
+  // Tira o `?abrir=` da URL depois de abrir: sem isso, atualizar a página
+  // (ou o router.refresh depois de salvar) reabriria o formulário.
+  useEffect(() => {
+    if (!openForm) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('abrir');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  }, [openForm]);
   // F6.6: trecho livre tocado (agendar ou trancar), trecho a trancar já
   // preenchido e trancado tocado (destrancar).
   const [slotChoice, setSlotChoice] = useState<{ start: string; end: string } | null>(null);

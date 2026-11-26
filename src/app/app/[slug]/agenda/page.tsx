@@ -14,7 +14,7 @@ import { AgendaClient } from '@/components/agenda/AgendaClient';
 
 interface AgendaPageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ date?: string; view?: string; cliente?: string }>;
+  searchParams: Promise<{ date?: string; view?: string; cliente?: string; abrir?: string }>;
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -86,7 +86,7 @@ function formatMonthLabel(dateStr: string): string {
 
 export default async function AgendaPage({ params, searchParams }: AgendaPageProps) {
   const { slug } = await params;
-  const { date, view: viewParam, cliente } = await searchParams;
+  const { date, view: viewParam, cliente, abrir } = await searchParams;
   // O layout mostra "link inválido" sem sessão, mas a página roda mesmo
   // assim e os agendamentos iam no HTML — sem sessão não lê nada.
   if (!(await isProfessionalRequestAuthorized(slug))) return null;
@@ -217,6 +217,8 @@ export default async function AgendaPage({ params, searchParams }: AgendaPagePro
           scheduleBlocks={scheduleBlocks}
           bookingEnabled={bookingEnabled}
           prefillClient={prefillClient}
+          // Ações rápidas do Início (F9.1): `?abrir=novo` ou `?abrir=trancar`.
+          openForm={abrir === 'novo' || abrir === 'trancar' ? abrir : undefined}
           sheetHighlights={sheetHighlights}
         />
       </div>

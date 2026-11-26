@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-26 — F8.5 concluída — F8 fechada.**
+> Última atualização: **2026-11-26 — F9.1 concluída (Início / painel).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F9 — Início (painel) + relatórios** |
-| **Próxima etapa** | **F9.1 — Início** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F9.2 — Relatórios** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8 (F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -123,7 +123,13 @@
 - Filtro de fichas na lista (F8.5): `getStudioSheetStatus` (client-sheet-service) devolve por cliente
   só `{filled, healthAlerts}`; `matchesSheetFilter` (client-list) e chips Todas / Sem ficha / Com
   atenção no `ClientsClient` (`ph-no-capture`, filtro não vai para a URL), ícone âmbar ao lado do nome.
-- Páginas do app sem sessão: Agenda e Clientes conferem a sessão na própria página e não leem
+- Início / painel (F9.1): `inicio/page.tsx` + `components/inicio/InicioCards.tsx` — pendentes no
+  topo, 4 números (`getInicioNumbers` em `lib/dashboard/inicio-service.ts`; contas puras em
+  `inicio-numbers.ts`), agenda de hoje e ações rápidas. Faturado = `amount_received` dos concluídos
+  (inclui registros do histórico, pela data); clientes novas = `created_at` no mês. As ações abrem
+  a Agenda com `?abrir=novo|trancar` (o parâmetro sai da URL depois de abrir). O Início confere a
+  sessão na própria página.
+- Páginas do app sem sessão: Início, Agenda e Clientes conferem a sessão na própria página e não leem
   nada (o layout só esconde; sem isso os dados iam no HTML). Corrigido na F7.1.
 - Trancar pela agenda (F6.6): tocar num horário livre pergunta Agendar/Trancar (trancar já vem
   com o trecho); tocar num trancado mostra período/motivo e Destrancar (bloqueio de vários dias
@@ -189,7 +195,8 @@ Web Push.
 - [x] Decidir na F1.4: paleta do app → **v1** (2026-11-24; ver `DECISOES_DE_PRODUTO.md`, seção 7).
 - [x] Decidir na F5.1: vários serviços no mesmo agendamento → **sim, até 5** (2026-11-24).
 - [x] Decidir na F6.2: visão "semana" → **não entra** (2026-11-25; Dia + Mês bastam).
-- [ ] Bug herdado do StudioMenu (visto no preview em 2026-11-24): no primeiro acesso ao app, os
+- [x] (Corrigido na F9.1: o `ProductTour` espera as boas-vindas fecharem, `lib/welcome-gate.ts`.)
+      Bug herdado do StudioMenu (visto no preview em 2026-11-24): no primeiro acesso ao app, os
       tooltips do `InicioTour` ("Agendamentos de hoje", "Aguardando confirmação", "Seus próximos
       passos") aparecem **por cima da tela de boas-vindas** (`WelcomeOnboarding`), apontando
       para coisas escondidas atrás dela. O tour deveria esperar as boas-vindas terminarem.

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Joyride, STATUS, type Step, type EventData } from 'react-joyride';
+import { WELCOME_CLOSED_EVENT, welcomePending } from '@/lib/welcome-gate';
 
 interface ProductTourProps {
   /** Identifica o tour pra guardar "já viu" separado por tela (inicio/agenda/config). */
@@ -79,11 +80,31 @@ export const ProductTour: React.FC<ProductTourProps> = ({ tourId, slug, steps, e
 
   useEffect(() => {
     if (!enabled || steps.length === 0) return;
-    try {
-      if (!isTourSeen(tourId, slug, steps)) setRun(true);
-    } catch {
-      setRun(true);
+    const start = () => {
+      try {
+        if (!isTourSeen(tourId, slug, steps)) setRun(true);
+      } catch {
+        setRun(true);
+      }
+    };
+    if (!welcomePending(slug)) {
+      start();
+      return;
     }
+    // Boas-vindas ainda não vistas: espera elas fecharem (F9.1; antes os
+    // balões apareciam por cima delas). Se depois de um instante elas não
+    // estiverem na tela (ex: plano sem as boas-vindas), segue normal.
+    window.addEventListener(WELCOME_CLOSED_EVENT, start, { once: true });
+    const timer = window.setTimeout(() => {
+      if (!document.querySelector('[data-welcome-onboarding]')) {
+        window.removeEventListener(WELCOME_CLOSED_EVENT, start);
+        start();
+      }
+    }, 800);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener(WELCOME_CLOSED_EVENT, start);
+    };
   }, [enabled, key]);
 
   const handleEvent = (data: EventData) => {

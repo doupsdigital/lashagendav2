@@ -10,7 +10,8 @@ interface InicioTourProps {
   hasPaidAccess: boolean;
   hasAccount: boolean;
   hoursDone: boolean;
-  schedulingLive: boolean;
+  /** Card de pendentes na tela (F9.1: só aparece quando há algum). */
+  hasPending: boolean;
 }
 
 /** Tour guiado da tela Início (Fase 20) — primeiro os 2 cards de estatística
@@ -24,20 +25,23 @@ interface InicioTourProps {
  *  qualquer motivo, aqui ou numa mudança futura) recria os objetos e o
  *  Joyride mostra o balão duplicado (achado de verdade na Config, corrigido
  *  lá — aplicado aqui também de forma preventiva). */
-export const InicioTour: React.FC<InicioTourProps> = ({ slug, hasPaidAccess, hasAccount, hoursDone, schedulingLive }) => {
+export const InicioTour: React.FC<InicioTourProps> = ({ slug, hasPaidAccess, hasAccount, hoursDone, hasPending }) => {
   const steps = useMemo<Step[]>(() => {
     const list: Step[] = [];
 
-    if (schedulingLive) {
-      list.push({
-        target: '[data-tour="stat-today"]',
-        title: 'Agendamentos de hoje',
-        content: 'Aqui você vê quantos agendamentos tem hoje.',
-      });
+    // Painel (F9.1): só com o app completo, como os cards.
+    if (hasPaidAccess && hasPending) {
       list.push({
         target: '[data-tour="stat-pending"]',
-        title: 'Aguardando confirmação',
-        content: 'E aqui os que ainda esperam sua aprovação.',
+        title: 'Aguardando você',
+        content: 'Agendamentos que esperam sua confirmação aparecem primeiro, aqui no topo.',
+      });
+    }
+    if (hasPaidAccess) {
+      list.push({
+        target: '[data-tour="stat-today"]',
+        title: 'Seus números',
+        content: 'Agendamentos e faturado de hoje, e como está o mês.',
       });
     }
 
@@ -55,7 +59,7 @@ export const InicioTour: React.FC<InicioTourProps> = ({ slug, hasPaidAccess, has
     }
 
     return list;
-  }, [slug, hasPaidAccess, hasAccount, hoursDone, schedulingLive]);
+  }, [slug, hasPaidAccess, hasAccount, hoursDone, hasPending]);
 
   return <ProductTour tourId="inicio" slug={slug} steps={steps} enabled={hasPaidAccess} />;
 };

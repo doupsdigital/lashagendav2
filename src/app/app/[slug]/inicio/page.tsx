@@ -1,6 +1,10 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { getStudioForProfessionalApp } from '@/lib/studio-service';
+import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
+import { getInicioNumbers } from '@/lib/dashboard/inicio-service';
+import { formatBRL } from '@/lib/service-format';
+import { PendingAttentionCard, QuickActions, TodayAgendaCard } from '@/components/inicio/InicioCards';
 import { getAppointmentsForDay, getPendingAppointments, getRecentClientActivity } from '@/lib/scheduling/agenda-service';
 import { ClientActivityCard } from '@/components/app-shell/ClientActivityCard';
 import { getBusinessHours } from '@/lib/scheduling/config-service';
@@ -15,7 +19,7 @@ import { InicioTour } from '@/components/tour/InicioTour';
 import { countSelfServeStepsDone, SELF_SERVE_STEP_ORDER } from '@/lib/self-serve-onboarding';
 import Link from 'next/link';
 import { CaktoPlanCard } from '@/components/billing/CaktoPlanCard';
-import { CalendarDays, Clock, Share2, Home, ListChecks, ChevronRight } from 'lucide-react';
+import { CalendarDays, Share2, Home, ListChecks, ChevronRight, Wallet, TrendingUp, UserPlus } from 'lucide-react';
 
 interface InicioPageProps {
   params: Promise<{ slug: string }>;
@@ -40,6 +44,9 @@ function todayInSaoPaulo(): string {
 
 export default async function InicioPage({ params }: InicioPageProps) {
   const { slug } = await params;
+  // A tela agora lista nomes de clientes (agenda de hoje, pendentes): sem
+  // sessão não lê nada (mesma regra da Agenda e de Clientes).
+  if (!(await isProfessionalRequestAuthorized(slug))) return null;
   const order = await getStudioForProfessionalApp(slug);
 
   if (!order) notFound();
@@ -47,14 +54,17 @@ export default async function InicioPage({ params }: InicioPageProps) {
   const hasPaidAccess = order.has_paid_access;
   // Agendamento de fato funcionando para a cliente final (`isBookingLive`).
   const schedulingLive = order.booking_live;
-  const [todayAppointments, pendingAppointments, businessHours, clientActivity] = await Promise.all([
-    getAppointmentsForDay(order.id, todayInSaoPaulo()),
+  const todayStr = todayInSaoPaulo();
+  const [todayAppointments, pendingAppointments, businessHours, clientActivity, numbers] = await Promise.all([
+    getAppointmentsForDay(order.id, todayStr),
     getPendingAppointments(order.id),
     // Só o checklist de "próximos passos" usa isso (item de horários).
     hasPaidAccess ? getBusinessHours(order.id) : Promise.resolve([]),
     // Novidades das clientes (F5.6) — também com a agenda pausada, para ela
     // ver o que entrou antes de pausar.
     hasPaidAccess ? getRecentClientActivity(order.id) : Promise.resolve([]),
+    // Números do painel (F9.1): faturado hoje/mês e clientes novas no mês.
+    hasPaidAccess ? getInicioNumbers(order.id, todayStr) : Promise.resolve(null),
   ]);
   const hoursDone = businessHours.length > 0;
 
@@ -118,20 +128,25 @@ export default async function InicioPage({ params }: InicioPageProps) {
         </Link>
       )}
 
-      {/* Só fazem sentido com o agendamento de fato funcionando — senão
-       *  ficam sempre zerados, sem nenhuma ação possível por trás. */}
-      {schedulingLive && (
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard icon={CalendarDays} label="Agendamentos hoje" value={todayAppointments.length} href={`/app/${slug}/agenda`} dataTour="stat-today" />
-          <StatCard
-            icon={Clock}
-            label="Aguardando confirmação"
-            value={pendingAppointments.length}
-            tone="amber"
-            href={`/app/${slug}/agenda#pendentes`}
-            dataTour="stat-pending"
-          />
-        </div>
+      {/* Painel (F9.1): atenção primeiro, números, agenda de hoje e ações
+       *  rápidas. Só com o app completo (a Agenda fica travada sem ele). */}
+      {hasPaidAccess && (
+        <>
+          <PendingAttentionCard slug={slug} pending={pendingAppointments} todayStr={todayStr} />
+
+          {numbers && (
+            <div className="grid grid-cols-2 gap-3" data-tour="stat-today">
+              <StatCard icon={CalendarDays} label="Agendamentos hoje" value={todayAppointments.length} href={`/app/${slug}/agenda`} />
+              <StatCard icon={Wallet} label="Faturado hoje" value={formatBRL(numbers.revenueToday)} />
+              <StatCard icon={TrendingUp} label="Faturado no mês" value={formatBRL(numbers.revenueMonth)} />
+              <StatCard icon={UserPlus} label="Clientes novas no mês" value={numbers.newClientsMonth} href={`/app/${slug}/clientes`} />
+            </div>
+          )}
+
+          <TodayAgendaCard slug={slug} appointments={todayAppointments} />
+
+          <QuickActions slug={slug} />
+        </>
       )}
 
       <ClientActivityCard slug={slug} activity={clientActivity} />
@@ -162,7 +177,7 @@ export default async function InicioPage({ params }: InicioPageProps) {
         hasPaidAccess={hasPaidAccess}
         hasAccount={Boolean(order.auth_user_id)}
         hoursDone={hoursDone}
-        schedulingLive={schedulingLive}
+        hasPending={pendingAppointments.length > 0}
       />
       </main>
     </>
