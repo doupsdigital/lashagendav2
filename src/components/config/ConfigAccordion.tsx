@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Clock, CalendarX, PauseCircle, UserCircle, Bell, LifeBuoy, Store, SlidersHorizontal } from 'lucide-react';
+import { Clock, CalendarX, PauseCircle, UserCircle, Bell, LifeBuoy, Store, SlidersHorizontal, Link2 } from 'lucide-react';
 import type { Step } from 'react-joyride';
 import { SectionCard } from '@/components/app-shell/SectionCard';
 import { ProductTour } from '@/components/tour/ProductTour';
@@ -13,6 +13,7 @@ import { NotificationsSection } from './NotificationsSection';
 import { SupportSection } from './SupportSection';
 import { BusinessSection } from './BusinessSection';
 import { BookingRulesSection } from './BookingRulesSection';
+import { LinkSection } from './LinkSection';
 import type { BookingRules } from '@/lib/studio/booking-rules';
 import type { BusinessProfile } from '@/lib/studio/business-service';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -35,9 +36,11 @@ interface ConfigAccordionProps {
   business: BusinessProfile;
   /** Regras de agendamento (F10.2). */
   bookingRules: BookingRules;
+  /** QR code do link (F10.3), PNG em data URL. */
+  linkQr: string;
 }
 
-type SectionKey = 'negocio' | 'regras' | 'horarios' | 'bloqueios' | 'pausar' | 'conta' | 'notificacoes' | 'suporte';
+type SectionKey = 'negocio' | 'link' | 'regras' | 'horarios' | 'bloqueios' | 'pausar' | 'conta' | 'notificacoes' | 'suporte';
 
 /** Acordeão da aba Config — 3 seções que já existiam (`BusinessHoursEditor`,
  *  `ScheduleBlocksManager`, `SubscriptionSection`), agora dentro de
@@ -55,9 +58,11 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
   authUserId,
   business,
   bookingRules,
+  linkQr,
 }) => {
   const [open, setOpen] = useState<Record<SectionKey, boolean>>({
     negocio: false,
+    link: false,
     regras: false,
     horarios: false,
     bloqueios: true,
@@ -86,6 +91,7 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
     const hash = window.location.hash.slice(1);
     const sectionForHash: Partial<Record<string, SectionKey>> = {
       negocio: 'negocio',
+      link: 'link',
       regras: 'regras',
       conta: 'conta',
       horarios: 'horarios',
@@ -177,6 +183,13 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
       <div id="negocio">
         <SectionCard icon={Store} title="Meu negócio" isOpen={open.negocio} onToggle={() => toggle('negocio')}>
           <BusinessSection slug={slug} initial={business} />
+        </SectionCard>
+      </div>
+
+      {/* Meu link (F10.3) — fora do tour, mesmo motivo. */}
+      <div id="link">
+        <SectionCard icon={Link2} title="Meu link" isOpen={open.link} onToggle={() => toggle('link')}>
+          <LinkSection slug={slug} qrDataUrl={linkQr} />
         </SectionCard>
       </div>
 

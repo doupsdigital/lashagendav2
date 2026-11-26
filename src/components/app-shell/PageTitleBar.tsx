@@ -41,7 +41,7 @@ export const PageTitleBar: React.FC<PageTitleBarProps> = ({ title, icon, slug })
 
   return (
     <>
-      <header className="sticky top-0 z-20 h-[60px] bg-surface border-b border-linen flex items-center justify-center relative shrink-0 px-4">
+      <header className="print:hidden sticky top-0 z-20 h-[60px] bg-surface border-b border-linen flex items-center justify-center relative shrink-0 px-4">
         <h1 className="font-serif-pro font-semibold text-2xl text-ink leading-tight">{title}</h1>
 
         <div className="absolute right-4 flex items-center gap-3">

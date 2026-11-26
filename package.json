@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:availability": "node scripts/test-availability.mjs",
-    "test": "node scripts/test-availability.mjs && node scripts/test-client-phone.mjs && node scripts/test-client-appointment.mjs && node scripts/test-client-activity.mjs && node scripts/test-appointment-actions.mjs && node scripts/test-client-list.mjs && node scripts/test-client-profile.mjs && node scripts/test-client-history.mjs && node scripts/test-client-record.mjs && node scripts/test-client-technical.mjs && node scripts/test-client-health.mjs && node scripts/test-client-consent.mjs && node scripts/test-inicio-numbers.mjs && node scripts/test-report.mjs && node scripts/test-business-profile.mjs && node scripts/test-booking-rules.mjs",
+    "test": "node scripts/test-availability.mjs && node scripts/test-client-phone.mjs && node scripts/test-client-appointment.mjs && node scripts/test-client-activity.mjs && node scripts/test-appointment-actions.mjs && node scripts/test-client-list.mjs && node scripts/test-client-profile.mjs && node scripts/test-client-history.mjs && node scripts/test-client-record.mjs && node scripts/test-client-technical.mjs && node scripts/test-client-health.mjs && node scripts/test-client-consent.mjs && node scripts/test-inicio-numbers.mjs && node scripts/test-report.mjs && node scripts/test-business-profile.mjs && node scripts/test-booking-rules.mjs && node scripts/test-slug-rules.mjs",
     "test:phone": "node scripts/test-client-phone.mjs"
   },
   "dependencies": {
@@ -19,6 +19,7 @@
     "lucide-react": "^0.475.0",
     "next": "^16.3.4",
     "posthog-js": "^1.438.9",
+    "qrcode": "1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-joyride": "^3.2.0",
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.17.19",
+    "@types/qrcode": "1.5.5",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@types/web-push": "^3.6.4",

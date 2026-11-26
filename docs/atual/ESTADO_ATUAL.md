@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-26 — F10.2 concluída (Regras de agendamento).**
+> Última atualização: **2026-11-26 — F10.3 concluída (Meu link).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F10 — Configurações (marco M2)** |
-| **Próxima etapa** | **F10.3 — Meu link** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F10.4 — Conta e ajuda** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9 (F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -145,6 +145,13 @@
   janela, prazo para cancelar e mensagem pós-agendamento. Aceita qualquer inteiro nos limites do
   banco (valor antigo fora das opções aparece como opção extra). "Desligar Agenda" segue como
   seção própria. Fora do tour da Config.
+- Meu link (F10.3): seção da Config (`LinkSection`) — link, copiar, compartilhar, QR (`qrcode`
+  1.5.4, gerado no servidor em `lib/studio/link-qr.ts`, sempre do link de produção), página de
+  impressão `config/qr` e troca do slug (`POST /api/professional/slug`, `slug-service.ts`; regras
+  puras em `slug-rules.ts`). Sem tabela de slugs antigos: o link antigo morre. A troca devolve o
+  cookie de sessão do slug novo; o layout de `/app/[slug]` leva o endereço antigo (estúdio que
+  não existe mais) ao slug da sessão válida; o aparelho migra as chaves `sm_*` do localStorage.
+  Catálogo inexistente responde 200 com "Catálogo Não Encontrado" (herdado, não é 404).
 - Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
   `rate_limits` do banco dev antes de rodar os de agendamento.
 - Páginas do app sem sessão: Início, Agenda, Clientes, Relatórios e Config conferem a sessão na própria página e não leem

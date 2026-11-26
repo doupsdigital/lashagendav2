@@ -53,3 +53,12 @@ export async function isProfessionalRequestAuthorized(slug: string): Promise<boo
   const cookieStore = await cookies();
   return isValidProfessionalSession(cookieStore.get(PROFESSIONAL_SESSION_COOKIE)?.value, slug);
 }
+
+/** Slug da sessão válida deste navegador, ou null. Usado depois da troca do
+ *  endereço (F10.3): quem abre o app pelo endereço antigo é levada ao novo. */
+export async function getProfessionalSessionSlug(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const value = cookieStore.get(PROFESSIONAL_SESSION_COOKIE)?.value;
+  const slug = value?.split('.')[0];
+  return slug && isValidProfessionalSession(value, slug) ? slug : null;
+}

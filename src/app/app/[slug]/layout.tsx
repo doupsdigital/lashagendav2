@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
+import { redirect } from 'next/navigation';
+import { getProfessionalSessionSlug, isProfessionalRequestAuthorized } from '@/lib/professional-session';
 import { getStudioBySlug, getStudioForProfessionalApp } from '@/lib/studio-service';
 import { PRODUCTION_DOMAIN } from '@/lib/public-url';
 import { ServiceWorkerRegister } from '@/components/app-shell/ServiceWorkerRegister';
@@ -67,6 +68,14 @@ export default async function ProfessionalAppLayout({ children, params }: AppLay
   const isAuthenticated = await isProfessionalRequestAuthorized(slug);
 
   if (!isAuthenticated) {
+    // Endereço trocado na Config (F10.3): o app instalado continua abrindo o
+    // endereço antigo. Se esse endereço não existe mais e a sessão deste
+    // aparelho é de um estúdio que existe, leva para lá.
+    const sessionSlug = await getProfessionalSessionSlug();
+    if (sessionSlug && sessionSlug !== slug) {
+      const [requested, current] = await Promise.all([getStudioBySlug(slug), getStudioBySlug(sessionSlug)]);
+      if (!requested && current) redirect(`/app/${sessionSlug}/inicio`);
+    }
     return (
       <main className="pro-app-shell min-h-screen flex items-center justify-center p-6 bg-cream text-ink text-center">
         <div className="max-w-sm w-full p-8 rounded-3xl bg-surface border border-linen shadow-sm">

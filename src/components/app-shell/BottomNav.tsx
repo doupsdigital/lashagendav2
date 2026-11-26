@@ -56,7 +56,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ slug }) => {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-linen pb-[env(safe-area-inset-bottom)]"
+      className="print:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-linen pb-[env(safe-area-inset-bottom)]"
       // Falha conhecida e antiga do WebKit/Safari no iOS: `position: fixed`
       // pode "descolar" da borda da tela e flutuar sobre o conteúdo durante
       // a animação de recolher/mostrar a barra de ferramentas do Safari ao

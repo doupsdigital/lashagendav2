@@ -4,6 +4,7 @@ import { getStudioForProfessionalApp } from '@/lib/studio-service';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
 import { getBusinessProfile } from '@/lib/studio/business-service';
 import { getBookingRules } from '@/lib/studio/booking-rules-service';
+import { linkQrDataUrl } from '@/lib/studio/link-qr';
 import { getBusinessHours, getScheduleBlocks } from '@/lib/scheduling/config-service';
 import { ConfigAccordion } from '@/components/config/ConfigAccordion';
 import { PageTitleBar } from '@/components/app-shell/PageTitleBar';
@@ -22,11 +23,12 @@ export default async function ConfigPage({ params }: ConfigPageProps) {
   // Prévia não tem Config (sem navegação entre abas, ver layout.tsx).
   if (order.plan_status === 'preview') redirect(`/app/${slug}/inicio`);
 
-  const [businessHours, scheduleBlocks, business, bookingRules] = await Promise.all([
+  const [businessHours, scheduleBlocks, business, bookingRules, linkQr] = await Promise.all([
     getBusinessHours(order.id),
     getScheduleBlocks(order.id),
     getBusinessProfile(order.id),
     getBookingRules(order.id),
+    linkQrDataUrl(slug),
   ]);
   if (!business || !bookingRules) notFound();
 
@@ -43,6 +45,7 @@ export default async function ConfigPage({ params }: ConfigPageProps) {
           authUserId={order.auth_user_id}
           business={business}
           bookingRules={bookingRules}
+          linkQr={linkQr}
         />
       </main>
     </>
