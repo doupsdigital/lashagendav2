@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { lapsedResponse } from '@/lib/access-guard';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { CatalogOrderData } from '@/types/catalog';
 import {
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     // 1. Conferir slug + edit_token
     const { data: studio, error: fetchError } = await supabaseAdmin
       .from('studios')
-      .select('id, edit_token, plan_status')
+      .select('id, edit_token, plan_status, paid_until, manual_plan')
       .eq('slug', normalizeSlug(slug))
       .maybeSingle();
 
@@ -48,6 +49,8 @@ export async function POST(request: Request) {
     if (isPreviewStudio(studio)) {
       return NextResponse.json({ success: false, message: 'Ative seu catálogo para poder editar.' }, { status: 403 });
     }
+    const lapsed = lapsedResponse(studio);
+    if (lapsed) return lapsed;
 
     const studioId = studio.id as string;
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { lapsedResponseForSlug } from '@/lib/access-guard';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import {
@@ -30,6 +31,8 @@ export async function POST(request: Request) {
     if (!(await isProfessionalRequestAuthorized(slug))) {
       return NextResponse.json({ success: false, message: 'Sessão inválida ou expirada.' }, { status: 401 });
     }
+    const lapsed = await lapsedResponseForSlug(slug);
+    if (lapsed) return lapsed;
 
     const { data: studio } = await supabaseAdmin.from('studios').select('id, plan_status').eq('slug', slug).maybeSingle();
     if (!studio) return NextResponse.json({ success: false, message: 'Estúdio não encontrado.' }, { status: 404 });

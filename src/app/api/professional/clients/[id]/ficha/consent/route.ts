@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { lapsedResponse } from '@/lib/access-guard';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
 import { getStudioBySlug, normalizeSlug } from '@/lib/studio-service';
@@ -22,6 +23,12 @@ async function handle(request: Request, { params }: RouteParams, slugRaw: unknow
     }
     const studio = await getStudioBySlug(slug);
     if (!studio) return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
+    // Retirar a autorização (e apagar os dados de saúde) fica liberado mesmo
+    // com o acesso vencido — é direito da cliente (LGPD).
+    if (action === 'give') {
+      const lapsed = lapsedResponse(studio);
+      if (lapsed) return lapsed;
+    }
 
     const result = action === 'give' ? await giveClientConsent(studio.id, id) : await revokeClientConsent(studio.id, id);
     if (result.ok) return NextResponse.json({ success: true, consent_at: result.consent_at });

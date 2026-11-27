@@ -84,13 +84,16 @@ export default async function InicioPage({ params }: InicioPageProps) {
   const isCakto = order.plan_status !== 'preview' && !order.manual_plan;
   const caktoNeedsAttention =
     isCakto && (order.plan_status !== 'active' || !order.paid_until || new Date(order.paid_until).getTime() < Date.now());
+  // `#plano`: destino do aviso "acesso vencido" das outras telas (F11.7).
   const caktoPlanCard = isCakto ? (
-    <CaktoPlanCard
-      plan={order.cakto_plan}
-      status={order.plan_status}
-      paidUntil={order.paid_until}
-      checkoutRef={order.cakto_checkout_ref}
-    />
+    <div id="plano" className="scroll-mt-20">
+      <CaktoPlanCard
+        plan={order.cakto_plan}
+        status={order.plan_status}
+        paidUntil={order.paid_until}
+        checkoutRef={order.cakto_checkout_ref}
+      />
+    </div>
   ) : null;
 
   const greeting = getGreeting();

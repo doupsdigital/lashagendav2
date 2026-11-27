@@ -59,7 +59,7 @@ cobre, **pare e pergunte**. Depois de decidida, registre em `DECISOES_DE_PRODUTO
 | F8 | Ficha da cliente | Ficha técnica + saúde e cuidados, só dentro do app, com consentimento | ✅ |
 | F9 | Início (painel) + relatórios | Números do dia/mês, pendências, relatórios por período | ✅ |
 | F10 | Configurações | Negócio, regras de agendamento, WhatsApp, conta, ajuda, link + QR | ✅ |
-| F11 | Venda e acesso (prévia + Cakto + e-mail) | Ciclo completo: prévia → compra → ativação → e-mail → primeiros passos | ⬜ |
+| F11 | Venda e acesso (prévia + Cakto + e-mail) | Ciclo completo: prévia → compra → ativação → e-mail → primeiros passos | ✅ |
 | F12 | Admin + PWA + notificações | Painel admin, app instalável, push de novo agendamento | ⬜ |
 | F13 | Produção e domínio | `lashagenda.com` + subdomínios no ar, banco prod, Cakto real | ⬜ |
 | F14 | Testes finais | Roteiro completo aprovado no celular + compra real com cupom e reembolso | ⬜ |
@@ -184,7 +184,7 @@ upgrades vitalício, login de cliente, portal "Meus agendamentos" com conta, app
 | PostHog | Projeto novo "LashAgenda" | usuária | F1 (chave) |
 | Telegram | Reaproveitar o bot; definir se usa o mesmo chat | usuária | F11 |
 | VAPID (push) | Gerar par de chaves novo | agente (`npx web-push generate-vapid-keys`) | F12 |
-| Google OAuth | Cliente OAuth para o login com Google (Supabase Auth) | usuária, com guia | F11 |
+| Google OAuth | Cliente OAuth para o login com Google (Supabase Auth) | usuária, com guia | F13 (adiado na F11.6, decisão da dona) |
 
 ---
 
@@ -491,7 +491,7 @@ nada fora dele.
 
 ---
 
-### F11 — Venda e acesso — **marco M3**
+### F11 — Venda e acesso — **marco M3** ✅
 
 **Objetivo:** o ciclo de compra sem X1, igual ao do StudioMenu (que está sendo validado agora).
 

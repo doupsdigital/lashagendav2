@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { lapsedResponseForSlug } from '@/lib/access-guard';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
 import { getStudioBySlug, normalizeSlug } from '@/lib/studio-service';
@@ -66,6 +67,8 @@ export async function POST(request: Request) {
     if (!(await isProfessionalRequestAuthorized(normalizedSlug))) {
       return NextResponse.json({ success: false, message: 'Sessão inválida ou expirada.' }, { status: 401 });
     }
+    const lapsed = await lapsedResponseForSlug(normalizedSlug);
+    if (lapsed) return lapsed;
 
     const startsAtDate = new Date(starts_at);
     if (Number.isNaN(startsAtDate.getTime())) {

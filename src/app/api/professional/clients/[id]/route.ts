@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { lapsedResponse } from '@/lib/access-guard';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
 import { getStudioBySlug, normalizeSlug } from '@/lib/studio-service';
@@ -41,6 +42,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const auth = await authorize(body.slug);
     if ('error' in auth) return auth.error;
+    const lapsed = lapsedResponse(auth.studio);
+    if (lapsed) return lapsed;
 
     const clean = cleanClientProfile(body, todayInSaoPaulo());
     if (!clean.ok) return NextResponse.json({ success: false, message: clean.message }, { status: 400 });

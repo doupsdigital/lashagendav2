@@ -119,8 +119,13 @@ export default async function CatalogPage({ params, searchParams }: CatalogPageP
           <div className="w-16 h-16 rounded-2xl bg-rose-100 text-rose-500 flex items-center justify-center mx-auto mb-4">
             <Sparkles className="w-8 h-8" />
           </div>
-          <h1 className="font-serif text-2xl font-bold mb-2 text-rose-900">Catálogo Temporariamente Indisponível</h1>
-          <p className="text-sm text-rose-900/70 leading-relaxed">Volte em breve! 🌸</p>
+          {/* Texto para a cliente final (F11.7): sem falar de pagamento. */}
+          <h1 className="font-serif text-2xl font-bold mb-2 text-rose-900">Página em pausa</h1>
+          <p className="text-sm text-rose-900/70 leading-relaxed">
+            Os serviços e agendamentos de <strong className="text-rose-900">{catalog.studio_name}</strong> não estão disponíveis por
+            aqui no momento.
+          </p>
+          <p className="text-sm text-rose-900/70 leading-relaxed mt-3">Se você já tem horário marcado, fale direto com a profissional. 🌸</p>
         </div>
       </main>
     );

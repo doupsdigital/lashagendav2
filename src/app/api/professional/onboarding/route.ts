@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { lapsedResponseForSlug } from '@/lib/access-guard';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
 import { normalizeWhatsappBR } from '@/lib/format';
@@ -18,6 +19,8 @@ export async function POST(request: Request) {
     if (!slug || !(await isProfessionalRequestAuthorized(slug))) {
       return NextResponse.json({ success: false, message: 'Sessão expirada. Abra o app de novo.' }, { status: 401 });
     }
+    const lapsed = await lapsedResponseForSlug(slug);
+    if (lapsed) return lapsed;
 
     const { data: order, error } = await supabaseAdmin
       .from('studios')

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { lapsedResponse } from '@/lib/access-guard';
 import { isPreviewStudio } from '@/lib/studio-access';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { isAllowedImageType } from '@/lib/file-validation';
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     // Validar token no Supabase
     const { data: studio } = await supabaseAdmin
       .from('studios')
-      .select('id, plan_status')
+      .select('id, plan_status, paid_until, manual_plan')
       .eq('slug', slug.toLowerCase().trim())
       .eq('edit_token', editToken)
       .maybeSingle();
@@ -40,6 +41,8 @@ export async function POST(request: Request) {
     if (!studio || isPreviewStudio(studio)) {
       return NextResponse.json({ success: false, message: 'Não autorizado para upload neste catálogo.' }, { status: 403 });
     }
+    const lapsed = lapsedResponse(studio);
+    if (lapsed) return lapsed;
 
     const rawBuffer = Buffer.from(await file.arrayBuffer());
     const { buffer, contentType, ext } = await optimizeImage(rawBuffer, file.type);

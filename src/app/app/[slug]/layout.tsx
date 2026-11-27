@@ -8,6 +8,7 @@ import { ServiceWorkerRegister } from '@/components/app-shell/ServiceWorkerRegis
 import { BottomNav } from '@/components/app-shell/BottomNav';
 import { WelcomeOnboarding } from '@/components/app-shell/WelcomeOnboarding';
 import { AppPostHogTracker } from '@/components/app-shell/AppPostHogTracker';
+import { LapsedBanner } from '@/components/billing/LapsedBanner';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -92,6 +93,8 @@ export default async function ProfessionalAppLayout({ children, params }: AppLay
   // Mesma leitura repetida pelas páginas de cada aba, custo desprezível.
   const studio = await getStudioForProfessionalApp(slug);
   const showNav = Boolean(studio) && studio?.plan_status !== 'preview';
+  // Acesso vencido (F11.7): app só para consulta, aviso em todas as telas.
+  const lapsed = Boolean(studio) && studio?.plan_status !== 'preview' && !studio?.has_paid_access;
 
   return (
     <div className={`pro-app-shell min-h-screen bg-cream text-ink font-body-pro ${showNav ? 'pb-20' : ''}`}>
@@ -106,6 +109,7 @@ export default async function ProfessionalAppLayout({ children, params }: AppLay
       )}
       {/* Boas-vindas só para quem já tem o app completo (pagante). */}
       {studio?.has_paid_access && <WelcomeOnboarding slug={slug} />}
+      {lapsed && <LapsedBanner slug={slug} />}
       {children}
       {showNav && <BottomNav slug={slug} />}
     </div>

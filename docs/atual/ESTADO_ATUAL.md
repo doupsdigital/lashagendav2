@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-27 — F11.6 concluída (criar acesso + login).**
+> Última atualização: **2026-11-27 — F11.7 concluída; F11 (marco M3) fechada no código.**
 
 ---
 
@@ -11,9 +11,9 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F11 — Venda e acesso (marco M3)** |
-| **Próxima etapa** | **F11.7 — Plano no app** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
-| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10 (F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
+| **Fase atual** | **F12 — Admin + PWA + notificações** |
+| **Próxima etapa** | **F12.1 — Admin** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11 (F11: teste do marco M3 pela usuária ainda a fazer — precisa da `desenv` publicada na Vercel, produtos de teste e webhook da Cakto, `RESEND_API_KEY`; F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
 ## 2. O que existe no repositório
@@ -203,6 +203,13 @@
   (confere o link, grava a senha e já abre o app). Links dos e-mails usam `appOrigin()` em
   `email.ts` (nunca o `Host` da requisição). **Google desligado no Supabase de dev** — o botão
   existe mas dá erro até configurar o OAuth na F13 (decisão da dona).
+- Plano no app (F11.7): card "Meu plano" (`CaktoPlanCard`) com em dia / renovação recusada /
+  cancelada / vencido; botões de renovar vão ao checkout com o `sck` do estúdio (sem link
+  configurado, caem no WhatsApp do suporte); `#plano` no Início. **Acesso vencido = app só
+  leitura** (decisão da dona, 2026-11-27): `src/lib/access-guard.ts` (`lapsedResponse*`) em todas
+  as rotas que gravam (403 `access_lapsed`); liberados entrar/sair, criar acesso, notificações,
+  apagar cliente e retirar a autorização da ficha (LGPD). Faixa `LapsedBanner` em todas as telas
+  (layout). Catálogo vencido/desativado: "Página em pausa" (sem falar de pagamento).
 - Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
   `rate_limits` do banco dev antes de rodar os de agendamento.
 - Páginas do app sem sessão: Início, Agenda, Clientes, Relatórios e Config conferem a sessão na própria página e não leem

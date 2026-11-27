@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { lapsedResponse } from '@/lib/access-guard';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
 import { getStudioBySlug, normalizeSlug } from '@/lib/studio-service';
@@ -27,6 +28,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     }
     const studio = await getStudioBySlug(slug);
     if (!studio) return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
+    const lapsed = lapsedResponse(studio);
+    if (lapsed) return lapsed;
 
     const ok = UUID_RE.test(id) && UUID_RE.test(recordId) && (await deleteRecord(studio.id, id, recordId));
     if (!ok) return NextResponse.json({ success: false, message: 'Registro não encontrado.' }, { status: 404 });

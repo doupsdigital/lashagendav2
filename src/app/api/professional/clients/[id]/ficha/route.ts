@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { lapsedResponse } from '@/lib/access-guard';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
 import { getStudioBySlug, normalizeSlug } from '@/lib/studio-service';
@@ -28,6 +29,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
     const studio = await getStudioBySlug(slug);
     if (!studio) return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
+    const lapsed = lapsedResponse(studio);
+    if (lapsed) return lapsed;
 
     const hasTechnical = 'technical' in body;
     const hasHealth = 'health' in body;

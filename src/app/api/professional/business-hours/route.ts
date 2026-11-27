@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { lapsedResponseForSlug } from '@/lib/access-guard';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
@@ -49,6 +50,8 @@ export async function PUT(request: Request) {
     if (!(await isProfessionalRequestAuthorized(normalizedSlug))) {
       return NextResponse.json({ success: false, message: 'Sessão inválida ou expirada.' }, { status: 401 });
     }
+    const lapsed = await lapsedResponseForSlug(normalizedSlug);
+    if (lapsed) return lapsed;
 
     const { data: studio, error: studioErr } = await supabaseAdmin
       .from('studios')

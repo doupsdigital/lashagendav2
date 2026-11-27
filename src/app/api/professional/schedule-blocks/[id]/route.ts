@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { lapsedResponseForSlug } from '@/lib/access-guard';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
@@ -40,6 +41,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     if (orderErr || !order || !(await isProfessionalRequestAuthorized(order.slug))) {
       return NextResponse.json({ success: false, message: 'Sessão inválida ou expirada.' }, { status: 401 });
     }
+    const lapsed = await lapsedResponseForSlug(order.slug);
+    if (lapsed) return lapsed;
 
     const { error: deleteErr } = await supabaseAdmin.from('schedule_blocks').delete().eq('id', id);
     if (deleteErr) {

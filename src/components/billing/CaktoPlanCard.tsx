@@ -36,9 +36,13 @@ function formatDate(iso: string, withYear: boolean) {
   });
 }
 
-function checkoutUrl(plan: 'mensal' | 'anual', ref: string | null): string | undefined {
+/** Checkout da Cakto com o `sck` do estúdio. Sem o link configurado no
+ *  ambiente, cai no WhatsApp do suporte (o botão nunca fica morto). */
+function checkoutUrl(plan: 'mensal' | 'anual', ref: string | null): string {
   const base = CAKTO_CHECKOUT_URLS[plan];
-  if (!base) return undefined; // checkout desligado até a F11
+  if (!base) {
+    return `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(`Oi! Quero ativar o plano ${plan} do meu LashAgenda.`)}`;
+  }
   const url = new URL(base);
   if (ref) url.searchParams.set('sck', ref);
   return url.toString();
@@ -80,11 +84,13 @@ export const CaktoPlanCard: React.FC<CaktoPlanCardProps> = ({ plan, status, paid
       <div className="rounded-2xl p-5 bg-rose-50 border-2 border-rose-300">
         <p className="flex items-center gap-2 font-bold text-[17px] text-rose-800">
           <AlertTriangle className="w-5 h-5" />
-          Seu catálogo está fora do ar
+          Seu acesso venceu
         </p>
         <p className="text-[15px] text-rose-800/80 mt-1.5 leading-relaxed">
-          Suas clientes não conseguem ver seus serviços agora. Ative de novo e ele volta na hora, do jeito que você deixou.
+          Seu catálogo saiu do ar e o app ficou só para consulta: você vê sua agenda e suas clientes, mas não consegue
+          mudar nada. Renove e tudo volta na hora, do jeito que você deixou. Nada foi apagado.
         </p>
+        {paidUntil && <p className="text-[13px] text-rose-800/70 mt-2">Venceu em {untilLabel}.</p>}
         {reactivateButtons}
       </div>
     );
@@ -99,7 +105,7 @@ export const CaktoPlanCard: React.FC<CaktoPlanCardProps> = ({ plan, status, paid
           A renovação no cartão não passou
         </p>
         <p className="text-[15px] text-amber-900/80 mt-1.5 leading-relaxed">
-          Seu catálogo continua no ar por mais alguns dias. Pra não sair do ar, ative de novo:
+          Seu LashAgenda continua funcionando até {formatDate(new Date(paidUntilMs + GRACE_MS).toISOString(), false)}. Pra não parar, ative de novo:
         </p>
         {reactivateButtons}
       </div>
@@ -112,7 +118,7 @@ export const CaktoPlanCard: React.FC<CaktoPlanCardProps> = ({ plan, status, paid
       <div className="rounded-2xl p-5 bg-surface border border-linen">
         <p className="font-bold text-[17px] text-ink">Assinatura cancelada</p>
         <p className="text-[15px] text-ink-soft mt-1.5 leading-relaxed">
-          Seu catálogo continua no ar até <strong className="text-ink">{untilLabel}</strong>. Mudou de ideia? É só ativar de novo:
+          Seu LashAgenda continua funcionando até <strong className="text-ink">{untilLabel}</strong>. Mudou de ideia? É só ativar de novo:
         </p>
         {reactivateButtons}
       </div>
@@ -133,7 +139,7 @@ export const CaktoPlanCard: React.FC<CaktoPlanCardProps> = ({ plan, status, paid
           </p>
           <p className="text-sm text-ink-soft mt-0.5">
             {isAnual
-              ? `Seu catálogo está garantido até ${untilLabel}`
+              ? `Pago até ${untilLabel} · Pix, não renova sozinho`
               : `R$ ${brl(CAKTO_MENSAL_PRICE)}/mês no cartão · renova por volta de ${paidUntil ? formatDate(paidUntil, false) : ''}`}
           </p>
         </div>
@@ -163,8 +169,8 @@ export const CaktoPlanCard: React.FC<CaktoPlanCardProps> = ({ plan, status, paid
           {showCancel && (
             <div className="mt-2 text-[14px] text-ink-soft leading-relaxed">
               <p>
-                Você pode cancelar quando quiser, <strong className="text-ink">sem multa e sem fidelidade</strong>. Seu catálogo continua no ar
-                até o fim do mês que você já pagou.
+                Você pode cancelar quando quiser, <strong className="text-ink">sem multa e sem fidelidade</strong>. Seu LashAgenda continua
+                funcionando até o fim do mês que você já pagou.
               </p>
               <p className="mt-2">
                 É só entrar no portal de assinaturas da Cakto com o <strong className="text-ink">e-mail que você usou na compra</strong>.

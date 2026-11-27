@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { lapsedResponseForSlug } from '@/lib/access-guard';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
@@ -50,6 +51,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (!(await isProfessionalRequestAuthorized(studioSlug))) {
       return NextResponse.json({ success: false, message: 'Sessão inválida ou expirada.' }, { status: 401 });
     }
+    const lapsed = await lapsedResponseForSlug(studioSlug);
+    if (lapsed) return lapsed;
 
     // Cancelado não volta (o horário pode já ter sido ocupado); aguardando
     // precisa ser confirmado antes de concluir — regras em appointment-actions.
