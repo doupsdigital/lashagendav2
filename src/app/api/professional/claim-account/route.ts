@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
     if (order.auth_user_id) {
       return NextResponse.json(
-        { success: false, message: 'Esse catálogo já tem um login vinculado.' },
+        { success: false, message: 'Este LashAgenda já tem um acesso criado.' },
         { status: 409 }
       );
     }
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       // Violação de unicidade = essa conta já está vinculada a outro catálogo.
       if (updateError.code === '23505') {
         return NextResponse.json(
-          { success: false, message: 'Essa conta já está vinculada a outro catálogo.' },
+          { success: false, message: 'Essa conta já é o acesso de outro LashAgenda.' },
           { status: 409 }
         );
       }

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { CheckCircle2, KeyRound, LogOut } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase-browser';
 import { GoogleIcon } from '@/components/auth/GoogleIcon';
+import { PASSWORD_MIN, passwordProblem } from '@/lib/auth/access-rules';
 
 interface AccountSectionProps {
   slug: string;
@@ -21,25 +22,14 @@ interface AccountSectionProps {
   onDone?: () => void;
 }
 
-/** Vincula uma conta do Supabase Auth (recém criada/logada no client) ao
- *  catálogo atual, via a mesma rota que o callback do Google usa. */
-async function claimAccount(slug: string, accessToken: string): Promise<{ success: boolean; message?: string }> {
-  const res = await fetch('/api/professional/claim-account', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ slug, access_token: accessToken }),
-  });
-  return res.json();
-}
-
 export const AccountSection: React.FC<AccountSectionProps> = ({ slug, hasAccount, accountEmail = null, inOnboarding = false, onDone }) => {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState<'password' | 'google' | null>(null);
   const [error, setError] = useState('');
-  const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [done, setDone] = useState(hasAccount);
+  const [linkedEmail, setLinkedEmail] = useState<string | null>(accountEmail);
   const [justLinkedGoogle, setJustLinkedGoogle] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   // Sem acesso criado, sair deixa ela dependendo do link mágico: pede confirmação (F10.4).
@@ -67,67 +57,32 @@ export const AccountSection: React.FC<AccountSectionProps> = ({ slug, hasAccount
     }
   }, []);
 
-  const finishClaim = async (accessToken: string) => {
-    const result = await claimAccount(slug, accessToken);
-    if (!result.success) {
-      setError(result.message || 'Não foi possível vincular sua conta.');
-      return;
-    }
-    setDone(true);
-    setNeedsConfirmation(false);
-    onDone?.();
-  };
-
+  // F11.6: o servidor cria e vincula na hora, sem e-mail de confirmação
+  // (ela já está dentro do app). E-mail que já tem conta só vincula com a
+  // senha certa dessa conta.
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading('password');
     setError('');
-
+    const problem = passwordProblem(password);
+    if (problem) return setError(problem);
+    setLoading('password');
     try {
-      const { data, error: authError } = await supabaseBrowser.auth.signUp({ email: email.trim(), password });
-      if (authError) {
-        if (!authError.message.includes('already registered')) {
-          setError('Não foi possível criar a conta. Confira o e-mail e a senha (mínimo 6 caracteres).');
-          return;
-        }
-        // Já existe conta com esse e-mail (F10.4: antes mandava tocar num
-        // "Já tenho conta" que não existia): entra com a senha digitada e
-        // vincula essa conta a este estúdio.
-        const { data: signIn, error: signInError } = await supabaseBrowser.auth.signInWithPassword({ email: email.trim(), password });
-        if (signInError || !signIn.session) {
-          setError('Já existe uma conta com esse e-mail e a senha não confere. Se esqueceu a senha, fale com o suporte.');
-          return;
-        }
-        await finishClaim(signIn.session.access_token);
+      const res = await fetch('/api/professional/create-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, email: email.trim(), password }),
+      });
+      const json = (await res.json()) as { success: boolean; email?: string; message?: string };
+      if (!json.success) {
+        setError(json.message || 'Não foi possível criar o acesso. Tente de novo.');
         return;
       }
-
-      if (data.session) {
-        await finishClaim(data.session.access_token);
-      } else {
-        // Confirmação de e-mail ligada no projeto — a conta existe, mas só
-        // tem sessão depois que a profissional confirmar pelo e-mail.
-        setNeedsConfirmation(true);
-      }
+      setLinkedEmail(json.email || email.trim().toLowerCase());
+      setPassword('');
+      setDone(true);
+      onDone?.();
     } catch {
-      setError('Falha na conexão. Tente novamente.');
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const handleAlreadyConfirmed = async () => {
-    setLoading('password');
-    setError('');
-    try {
-      const { data, error: authError } = await supabaseBrowser.auth.signInWithPassword({ email: email.trim(), password });
-      if (authError || !data.session) {
-        setError('Ainda não deu pra confirmar — confira seu e-mail e tente de novo.');
-        return;
-      }
-      await finishClaim(data.session.access_token);
-    } catch {
-      setError('Falha na conexão. Tente novamente.');
+      setError('Falha na conexão. Tente de novo.');
     } finally {
       setLoading(null);
     }
@@ -205,16 +160,16 @@ export const AccountSection: React.FC<AccountSectionProps> = ({ slug, hasAccount
                *  curtas (o que mudou / como entrar) em vez de uma só longa. */}
               <p className="text-sm text-rose-800/70 mt-0.5">
                 {justLinkedGoogle && 'Conta Google vinculada com sucesso! '}
-                Você não depende mais do link mágico pra acessar. Da próxima vez, é só entrar direto com seu e-mail e senha
+                Você não depende mais do link do e-mail da compra. De qualquer celular, é só entrar com seu e-mail e senha
                 (ou Google) em{' '}
                 <Link href="/entrar" className="font-semibold text-rose-800 underline underline-offset-2">
                   lashagenda.com/entrar
                 </Link>
                 .
               </p>
-              {accountEmail && (
+              {linkedEmail && (
                 <p className="text-sm text-rose-800 mt-1.5">
-                  Entra com: <strong className="break-all">{accountEmail}</strong>
+                  Entra com: <strong className="break-all">{linkedEmail}</strong>
                 </p>
               )}
             </div>
@@ -232,55 +187,38 @@ export const AccountSection: React.FC<AccountSectionProps> = ({ slug, hasAccount
           <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-2">
             <KeyRound className="w-6 h-6" />
           </div>
-          <p className="font-serif-pro font-bold text-lg text-ink">Crie um acesso com senha</p>
-          <p className="text-[15px] text-ink-soft mt-0.5">Pra entrar direto, sem precisar do link mágico toda vez.</p>
+          <p className="font-serif-pro font-bold text-lg text-ink">Crie seu acesso</p>
+          <p className="text-[15px] text-ink-soft mt-0.5">Pra entrar de qualquer celular, sem depender do e-mail da compra.</p>
         </div>
 
-        {needsConfirmation ? (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm text-ink-soft text-center leading-relaxed">
-              Enviamos um e-mail de confirmação pra <strong>{email}</strong>. Depois de confirmar, toque no botão
-              abaixo.
-            </p>
-            {error && <p className="text-sm text-rose-600 text-center">{error}</p>}
-            <button
-              type="button"
-              onClick={handleAlreadyConfirmed}
-              disabled={loading !== null}
-              className="h-11 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-[15px] font-bold disabled:opacity-50 transition-colors"
-            >
-              {loading === 'password' ? 'Verificando...' : 'Já confirmei'}
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleCreateAccount} className="flex flex-col gap-3">
-            <input
-              type="email"
-              required
-              placeholder="Seu e-mail"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="h-12 rounded-xl bg-surface border border-linen px-3 text-base text-ink placeholder:text-ink-faint"
-            />
-            <input
-              type="password"
-              required
-              minLength={6}
-              placeholder="Crie uma senha"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="h-12 rounded-xl bg-surface border border-linen px-3 text-base text-ink placeholder:text-ink-faint"
-            />
-            {error && <p className="text-sm text-rose-600">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading !== null}
-              className="h-11 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-[15px] font-bold disabled:opacity-50 transition-colors"
-            >
-              {loading === 'password' ? 'Criando...' : 'Criar acesso'}
-            </button>
-          </form>
-        )}
+        <form onSubmit={handleCreateAccount} className="flex flex-col gap-3">
+          <input
+            type="email"
+            required
+            placeholder="Seu e-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="h-12 rounded-xl bg-surface border border-linen px-3 text-base text-ink placeholder:text-ink-faint"
+          />
+          <input
+            type="password"
+            required
+            minLength={PASSWORD_MIN}
+            autoComplete="new-password"
+            placeholder={`Crie uma senha (mínimo ${PASSWORD_MIN})`}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="h-12 rounded-xl bg-surface border border-linen px-3 text-base text-ink placeholder:text-ink-faint"
+          />
+          {error && <p className="text-sm text-rose-600">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading !== null}
+            className="h-11 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-[15px] font-bold disabled:opacity-50 transition-colors"
+          >
+            {loading === 'password' ? 'Criando...' : 'Criar acesso'}
+          </button>
+        </form>
 
         <div className="flex items-center gap-3 my-4">
           <div className="h-px bg-rose-200 flex-1" />
@@ -299,7 +237,7 @@ export const AccountSection: React.FC<AccountSectionProps> = ({ slug, hasAccount
           ) : (
             <>
               <GoogleIcon className="w-4 h-4" />
-              Vincular com Google
+              Usar minha conta Google
             </>
           )}
         </button>

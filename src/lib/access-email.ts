@@ -102,3 +102,51 @@ Dúvidas? Fale com a gente no WhatsApp: ${whatsUrl}`;
 
   return { subject, html, text };
 }
+
+export interface PasswordResetEmailInput {
+  name: string;
+  /** Link já pronto para `/entrar/nova-senha` (vale 1 hora, uma vez só). */
+  resetUrl: string;
+  supportWhatsapp: string;
+}
+
+/** E-mail do "esqueci a senha" (F11.6). Vai pelo Resend, não pelo e-mail
+ *  padrão do Supabase (em inglês e com limite baixo de envios). */
+export function buildPasswordResetEmailContent(p: PasswordResetEmailInput) {
+  const firstName = p.name.trim().split(/\s+/)[0] || 'Lash';
+  const n = escapeHtml(firstName);
+  const url = escapeHtml(p.resetUrl);
+  const whatsUrl = `https://wa.me/${p.supportWhatsapp}?text=${encodeURIComponent('Oi! Preciso de ajuda pra entrar no meu LashAgenda.')}`;
+  const subject = 'Crie uma nova senha do seu LashAgenda';
+
+  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title></head>
+<body style="margin:0;padding:0;background:${C.bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg};padding:24px 12px"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:${C.card};border-radius:20px;border:1px solid ${C.line};overflow:hidden">
+  <tr><td style="padding:28px">
+    <div style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:${C.r600};font-weight:700">LashAgenda</div>
+    <div style="font-size:22px;line-height:1.3;color:${C.ink};font-weight:700;margin-top:8px">Oi, ${n}! Vamos criar uma nova senha</div>
+    <p style="margin:14px 0 20px;font-size:15px;color:${C.ink};line-height:1.6">Recebemos um pedido para trocar a senha do seu LashAgenda. Toque no botão abaixo e escolha a nova senha. O link vale por 1 hora e só funciona uma vez.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+      <a href="${url}" style="display:inline-block;background:${C.r600};color:#ffffff;text-decoration:none;font-size:17px;font-weight:700;padding:16px 32px;border-radius:14px">Criar nova senha</a>
+    </td></tr></table>
+    <p style="margin:14px 0 0;font-size:13px;color:${C.soft};line-height:1.5;text-align:center">Se o botão não abrir, copie este link e cole no navegador:<br><a href="${url}" style="color:${C.r600};word-break:break-all">${url}</a></p>
+    <p style="margin:22px 0 0;font-size:13px;color:${C.soft};line-height:1.6">Não foi você? Pode ignorar este e-mail: sua senha continua a mesma.</p>
+  </td></tr>
+  <tr><td style="padding:16px 28px 22px;border-top:1px solid ${C.line};font-size:13px;color:${C.soft};text-align:center">
+    Ficou com dúvida? <a href="${whatsUrl}" style="color:${C.r600};font-weight:700">Fale com a gente no WhatsApp</a>
+  </td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+
+  const text = `Oi, ${firstName}! Recebemos um pedido para trocar a senha do seu LashAgenda.
+
+Crie a nova senha por este link (vale por 1 hora e só funciona uma vez):
+${p.resetUrl}
+
+Não foi você? Pode ignorar este e-mail: sua senha continua a mesma.
+Dúvidas? Fale com a gente no WhatsApp: ${whatsUrl}`;
+
+  return { subject, html, text };
+}

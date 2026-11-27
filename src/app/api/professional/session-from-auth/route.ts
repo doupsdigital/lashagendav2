@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Essa conta ainda não está vinculada a nenhum catálogo. Entre pelo link mágico e ative o login em Configurações.',
+          message: 'Esse acesso ainda não está ligado a nenhum LashAgenda. Entre pelo botão do e-mail da compra e crie seu acesso em Config → Acesso.',
         },
         { status: 404 }
       );

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogIn, Mail, Lock } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase-browser';
@@ -23,8 +23,39 @@ export function ProfessionalLoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState<'password' | 'google' | null>(null);
+  const [loading, setLoading] = useState<'password' | 'google' | 'forgot' | null>(null);
   const [error, setError] = useState('');
+  // "Esqueci a senha" (F11.6): mesma tela, outro formulário. `?esqueci=1`
+  // abre direto (link "Pedir um link novo" da tela de nova senha).
+  const [forgot, setForgot] = useState(false);
+  const [forgotSent, setForgotSent] = useState('');
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('esqueci') === '1') setForgot(true);
+  }, []);
+
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading('forgot');
+    setError('');
+    try {
+      const res = await fetch('/api/auth/password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const json = (await res.json()) as { success: boolean; message?: string };
+      if (!json.success) {
+        setError(json.message || 'Não foi possível mandar agora. Tente de novo.');
+        return;
+      }
+      setForgotSent(json.message || 'Pronto! Confira seu e-mail.');
+    } catch {
+      setError('Falha na conexão. Tente de novo.');
+    } finally {
+      setLoading(null);
+    }
+  };
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,9 +111,54 @@ export function ProfessionalLoginForm() {
             <LogIn className="w-6 h-6" />
           </div>
           <h1 className="font-serif-pro font-bold text-2xl text-ink">Entrar</h1>
-          <p className="text-[13px] text-ink-soft mt-1">Acesse o painel do seu LashAgenda</p>
+          <p className="text-[13px] text-ink-soft mt-1">
+            {forgot ? 'Vamos mandar um link para você criar uma nova senha' : 'Acesse o seu LashAgenda'}
+          </p>
         </div>
 
+        {forgot ? (
+          <div className="flex flex-col gap-3">
+            {forgotSent ? (
+              <p className="text-[15px] text-ink-soft leading-relaxed text-center">{forgotSent}</p>
+            ) : (
+              <form onSubmit={handleForgot} className="flex flex-col gap-3">
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-ink-faint absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    required
+                    autoFocus
+                    autoComplete="email"
+                    placeholder="O e-mail do seu acesso"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full h-11 rounded-xl bg-cream border border-linen pl-9 pr-3 text-base text-ink placeholder:text-ink-faint"
+                  />
+                </div>
+                {error && <p className="text-[13px] text-rose-600">{error}</p>}
+                <button
+                  type="submit"
+                  disabled={loading !== null}
+                  className="h-11 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-[15px] font-bold disabled:opacity-50 transition-colors"
+                >
+                  {loading === 'forgot' ? 'Mandando...' : 'Mandar o link'}
+                </button>
+              </form>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setForgot(false);
+                setForgotSent('');
+                setError('');
+              }}
+              className="text-[13px] font-bold text-rose-600 py-1"
+            >
+              Voltar para entrar
+            </button>
+          </div>
+        ) : (
+        <>
         <form onSubmit={handlePasswordLogin} className="flex flex-col gap-3">
           <div className="relative">
             <Mail className="w-4 h-4 text-ink-faint absolute left-3 top-1/2 -translate-y-1/2" />
@@ -107,6 +183,16 @@ export function ProfessionalLoginForm() {
               className="w-full h-11 rounded-xl bg-cream border border-linen pl-9 pr-3 text-[15px] text-ink placeholder:text-ink-faint"
             />
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setForgot(true);
+              setError('');
+            }}
+            className="self-end text-[13px] font-semibold text-ink-soft underline underline-offset-2 -mt-1"
+          >
+            Esqueci a senha
+          </button>
 
           {error && <p className="text-[13px] text-rose-600">{error}</p>}
 
@@ -142,9 +228,10 @@ export function ProfessionalLoginForm() {
         </button>
 
         <p className="text-[13px] text-ink-faint text-center leading-relaxed">
-          Ainda não tem login? Peça o link mágico de acesso pra quem te enviou o catálogo e ative o login em
-          Configurações.
+          Ainda não criou seu acesso? Entre pelo botão do e-mail da compra e crie em Config → Acesso.
         </p>
+        </>
+        )}
       </div>
     </main>
   );

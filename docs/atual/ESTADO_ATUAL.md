@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-27 — F11.5 concluída (primeiros passos).**
+> Última atualização: **2026-11-27 — F11.6 concluída (criar acesso + login).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F11 — Venda e acesso (marco M3)** |
-| **Próxima etapa** | **F11.6 — Criar acesso + login** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F11.7 — Plano no app** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10 (F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -194,6 +194,15 @@
   (`auth_user_id`), compartilhar (copiar/enviar). Fatos do banco em `self-serve-progress.ts`.
   Vídeos: `SELF_SERVE_STEP_VIDEOS` (vazio = sem vídeo). O card "Deixe seu studio pronto" do
   Início só aparece depois que os primeiros passos terminam.
+- Acesso e login (F11.6): `POST /api/professional/create-access` cria a conta no Supabase Auth
+  **sem e-mail de confirmação** (decisão da dona, 2026-11-27 — ela já está dentro do app) e
+  vincula ao estúdio; e-mail já existente só vincula com a senha certa. Regras em
+  `src/lib/auth/access-rules.ts` (senha mínimo 8). "Esqueci a senha" em `/entrar`:
+  `POST /api/auth/password-reset` (resposta sempre igual; `generateLink` de recuperação + e-mail
+  pelo Resend, em português) → `/entrar/nova-senha?token_hash=` → `POST /api/auth/password-update`
+  (confere o link, grava a senha e já abre o app). Links dos e-mails usam `appOrigin()` em
+  `email.ts` (nunca o `Host` da requisição). **Google desligado no Supabase de dev** — o botão
+  existe mas dá erro até configurar o OAuth na F13 (decisão da dona).
 - Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
   `rate_limits` do banco dev antes de rodar os de agendamento.
 - Páginas do app sem sessão: Início, Agenda, Clientes, Relatórios e Config conferem a sessão na própria página e não leem

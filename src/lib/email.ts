@@ -1,7 +1,7 @@
 import 'server-only';
 import { PRODUCTION_DOMAIN } from './public-url';
 import { SUPPORT_WHATSAPP } from './support';
-import { buildAccessEmailContent } from './access-email';
+import { buildAccessEmailContent, buildPasswordResetEmailContent } from './access-email';
 
 /** E-mails transacionais via Resend, por `fetch`, sem dependência nova.
  *  Nunca lança erro: um e-mail que falhou não pode derrubar o webhook da
@@ -40,14 +40,32 @@ export async function sendEmail(input: { to: string; subject: string; html: stri
   }
 }
 
+/** Endereço do app nos links dos e-mails. Nunca vem do `Host` da requisição
+ *  (alguém poderia forjar e receber o link de outra pessoa): `APP_ORIGIN`
+ *  quando definido (teste na Vercel), `localhost` no `next dev`, senão o
+ *  domínio oficial. */
+export function appOrigin(): string {
+  if (process.env.APP_ORIGIN) return process.env.APP_ORIGIN.replace(/\/+$/, '');
+  if (process.env.NODE_ENV === 'development') return 'http://localhost:3000';
+  return `https://${PRODUCTION_DOMAIN}`;
+}
+
 /** E-mail de acesso enviado na primeira aprovação da Cakto (conteúdo em
  *  `access-email.ts`). Os links usam `APP_ORIGIN` quando definido (ambiente
  *  de teste na Vercel); sem ele, o domínio oficial. */
 export function buildAccessEmail(params: { name: string; slug: string; shortCode: string }) {
   return buildAccessEmailContent({
     ...params,
-    origin: process.env.APP_ORIGIN || `https://${PRODUCTION_DOMAIN}`,
+    origin: appOrigin(),
     productionDomain: PRODUCTION_DOMAIN,
     supportWhatsapp: SUPPORT_WHATSAPP,
   });
+}
+
+/** E-mail do "esqueci a senha" (F11.6). O link leva o `token_hash` do
+ *  Supabase para `/entrar/nova-senha`, que confirma na tela (assim um leitor
+ *  de e-mail que abre links sozinho não gasta o link). */
+export function buildPasswordResetEmail(params: { name: string; tokenHash: string }) {
+  const resetUrl = `${appOrigin()}/entrar/nova-senha?token_hash=${encodeURIComponent(params.tokenHash)}`;
+  return buildPasswordResetEmailContent({ name: params.name, resetUrl, supportWhatsapp: SUPPORT_WHATSAPP });
 }

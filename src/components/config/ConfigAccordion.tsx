@@ -167,7 +167,7 @@ export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
         'Minha conta',
         hasAccount
           ? 'Aqui você pode sair desse dispositivo, se precisar.'
-          : 'Crie um acesso com senha pra não depender só do link mágico.'
+          : 'Crie seu acesso com senha ou Google pra entrar de qualquer celular.'
       ),
       buildStep('suporte', 'Suporte e dúvidas', 'Teve alguma dúvida ou travou em algo? Fala com a gente por aqui.'),
     ];
