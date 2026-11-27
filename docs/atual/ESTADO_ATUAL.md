@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-26 — F11.3 concluída (`/ativando`).**
+> Última atualização: **2026-11-27 — F11.4 concluída (e-mail de acesso).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F11 — Venda e acesso (marco M3)** |
-| **Próxima etapa** | **F11.4 — E-mail de acesso (Resend)** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F11.5 — Primeiros passos** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10 (F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -180,6 +180,13 @@
   Ajustados textos ("LashAgenda" em vez de "catálogo") e a fonte dos títulos (`font-serif-pro`).
   Sem pixel na página. Compra sem `sck` cria estúdio novo e a prévia fica "confirmando" — acesso
   pelo e-mail (F11.4); confirmar na compra de teste real se a Cakto manda o `sck`.
+- E-mail de acesso (F11.4): conteúdo em `src/lib/access-email.ts` (puro, testado em
+  `scripts/test-access-email.mjs`); envio em `email.ts` pelo Resend, só na primeira ativação
+  (renovação não reenvia; falha não derruba a ativação, fica anotada no `cakto_events`).
+  Remetente: `EMAIL_FROM`, ou `LashAgenda <acesso@lashagenda.com>` em produção, ou o de teste
+  `onboarding@resend.dev` (só entrega para o dono da conta Resend). Links seguem `APP_ORIGIN`
+  (padrão `https://lashagenda.com`). Pendente: chave `RESEND_API_KEY` para envio real e
+  verificar o domínio `lashagenda.com` no Resend (F13).
 - Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
   `rate_limits` do banco dev antes de rodar os de agendamento.
 - Páginas do app sem sessão: Início, Agenda, Clientes, Relatórios e Config conferem a sessão na própria página e não leem
