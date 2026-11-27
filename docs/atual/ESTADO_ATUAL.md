@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-27 — F12.3 concluída (notificações).**
+> Última atualização: **2026-11-27 — F12.4 concluída; F12 fechada no código.**
 
 ---
 
@@ -11,9 +11,9 @@
 
 | | |
 |---|---|
-| **Fase atual** | **F12 — Admin + PWA + notificações** |
-| **Próxima etapa** | **F12.4 — Telegram** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
-| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11 (F11: teste do marco M3 pela usuária ainda a fazer — precisa da `desenv` publicada na Vercel, produtos de teste e webhook da Cakto, `RESEND_API_KEY`; F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
+| **Fase atual** | **F13 — Produção e domínio** |
+| **Próxima etapa** | **F13 — partes de código (revisão de segurança da F13.5 e `RESERVED_SLUGS` da F13.2); o resto da F13 é tarefa manual guiada, no fim** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12 (F12: teste da usuária — instalar no celular, push de agendamento, +1 mês pelo admin — fica para os testes do fim; precisa de VAPID e Telegram na Vercel; F11: teste do marco M3 pela usuária ainda a fazer — precisa da `desenv` publicada na Vercel, produtos de teste e webhook da Cakto, `RESEND_API_KEY`; F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
 ## 2. O que existe no repositório
@@ -234,6 +234,12 @@
   app instalado → "Ver como instalar". Clique na notificação navega a janela do app já aberta.
   **Chaves VAPID só no `.env.local` (geradas para dev); faltam na Vercel** (Preview com as de
   dev; produção com chaves novas) — tarefa manual do fim.
+- Telegram (F12.4): textos em `src/lib/telegram-messages.ts` (puro, com teste; nada de saúde).
+  Avisos: prévia (resumido), nova assinatura, renovação recusada, cancelamento, reembolso/
+  chargeback, **erro no webhook** (todo `result: error`) e segredo errado (1/h por rate limit).
+  Fora da produção (`VERCEL_ENV`) sai marcado "🧪 [teste]"; timeout de 5 s. `TELEGRAM_API_BASE`
+  só para teste local (ignorado em produção). **`TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` ainda não
+  configurados** — tarefa manual do fim.
 - Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
   `rate_limits` do banco dev antes de rodar os de agendamento.
 - Páginas do app sem sessão: Início, Agenda, Clientes, Relatórios e Config conferem a sessão na própria página e não leem

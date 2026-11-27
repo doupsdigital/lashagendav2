@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { sendTelegramMessage } from '@/lib/telegram';
+import { previewCreatedMessage } from '@/lib/telegram-messages';
 import { createSelfServeLashCatalog } from '@/lib/self-serve-catalog';
 import { isPreviewExpired, isPreviewStudio } from '@/lib/studio-access';
 import {
@@ -106,7 +107,7 @@ export async function POST(request: Request) {
 
     // `await` de propósito: na Vercel, promessa solta pode ser cortada quando
     // a resposta sai. Não pesa — ela está olhando a animação de ~3s.
-    await sendTelegramMessage(`✨ Nova prévia (/lash): ${name}\n🔗 https://${created.slug}.${PRODUCTION_DOMAIN}`);
+    await sendTelegramMessage(previewCreatedMessage({ name, slug: created.slug }));
 
     // Números do admin (F12.1): só o instante. Falhar aqui (ex.: migração
     // ainda não rodada) não atrapalha a prévia.

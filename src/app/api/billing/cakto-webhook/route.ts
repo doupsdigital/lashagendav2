@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { sendTelegramMessage } from '@/lib/telegram';
+import {
+  canceledMessage,
+  renewalRefusedMessage,
+  revokedMessage,
+  saleMessage,
+  webhookErrorMessage,
+  webhookRejectedMessage,
+} from '@/lib/telegram-messages';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { assignAppShortCode } from '@/lib/short-link';
 import { normalizeWhatsappBR } from '@/lib/format';
 import { createSelfServeLashCatalog } from '@/lib/self-serve-catalog';
 import { buildAccessEmail, sendEmail } from '@/lib/email';
-import { PRODUCTION_DOMAIN } from '@/lib/public-url';
 import { CAKTO_ANUAL_PRICE, CAKTO_MENSAL_PRICE, priceLabel } from '@/lib/pricing';
 import {
   CAKTO_APPROVED_EVENTS,
@@ -71,10 +79,6 @@ async function findOrder(column: string, value: string | null): Promise<StudioRo
   return (data as StudioRow | null) ?? null;
 }
 
-function nowBR() {
-  return new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-}
-
 export async function POST(request: Request) {
   const raw = await request.text();
   let payload: Json = null;
@@ -97,11 +101,18 @@ export async function POST(request: Request) {
 
   if (!isValidCaktoSecret(secret)) {
     await logEvent({ ...base, result: 'rejected', message: 'secret inválido ou CAKTO_WEBHOOK_SECRET ausente' });
+    // F12.4: avisa, mas no máximo 1 vez por hora (chamadas repetidas não
+    // viram enxurrada no Telegram).
+    if (await checkRateLimit('telegram:cakto-rejected', 1, 60 * 60)) {
+      await sendTelegramMessage(webhookRejectedMessage(new Date()));
+    }
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
   const done = async (result: LogResult, message: string, slug?: string | null) => {
     await logEvent({ ...base, result, message, slug });
+    // F12.4: a Cakto não reenvia — erro aqui precisa de olho humano na hora.
+    if (result === 'error') await sendTelegramMessage(webhookErrorMessage({ event, detail: message, slug, at: new Date() }));
     return NextResponse.json({ ok: result !== 'error', result, message });
   };
 
@@ -156,19 +167,22 @@ export async function POST(request: Request) {
             plan_status: 'canceled',
           })
           .eq('id', order.id);
-        await sendTelegramMessage(`⚠️ Cakto: ${event === 'refund' ? 'reembolso' : 'chargeback'}\n\n👤 ${order.owner_name}\n🔗 https://${PRODUCTION_DOMAIN}/c/${order.slug}\n🕒 ${nowBR()}`);
+        await sendTelegramMessage(
+          revokedMessage({ kind: event === 'refund' ? 'refund' : 'chargeback', name: order.owner_name, slug: order.slug, at: new Date() })
+        );
         return done('processed', `acesso cortado (${event})`, order.slug);
       }
 
       if (isCanceled) {
         // Mantém `paid_until`: ela usa até o fim do período que já pagou.
         await supabaseAdmin.from('studios').update({ plan_status: 'canceled' }).eq('id', order.id);
-        await sendTelegramMessage(`🔕 Cakto: assinatura cancelada\n\n👤 ${order.owner_name}\n🔗 https://${PRODUCTION_DOMAIN}/c/${order.slug}\n📅 No ar até ${order.paid_until ? new Date(order.paid_until).toLocaleDateString('pt-BR') : '-'}`);
+        await sendTelegramMessage(canceledMessage({ name: order.owner_name, slug: order.slug, paidUntil: order.paid_until }));
         return done('processed', 'assinatura cancelada (acesso mantido até paid_until)', order.slug);
       }
 
       // Renovação recusada
       await supabaseAdmin.from('studios').update({ plan_status: 'suspended' }).eq('id', order.id);
+      await sendTelegramMessage(renewalRefusedMessage({ name: order.owner_name, slug: order.slug, paidUntil: order.paid_until }));
       return done('processed', 'renovação recusada (suspenso; paid_until decide quando sai do ar)', order.slug);
     }
 
@@ -243,7 +257,15 @@ export async function POST(request: Request) {
 
     if (isFirstActivation) {
       await sendTelegramMessage(
-        `💳 Nova venda Cakto (${plan === 'anual' ? `Anual ${priceLabel(CAKTO_ANUAL_PRICE)}` : `Mensal ${priceLabel(CAKTO_MENSAL_PRICE)}`})!${createdWithoutPreview ? '\n⚠️ Sem prévia — catálogo criado pelo nome da compra, conferir.' : ''}\n\n👤 ${buyerName}\n🔗 https://${PRODUCTION_DOMAIN}/c/${order.slug}\n🕒 ${nowBR()}\n📧${emailNote.replace(' · ', ' ')}`
+        saleMessage({
+          plan: plan as CaktoPlan,
+          priceLabel: priceLabel(plan === 'anual' ? CAKTO_ANUAL_PRICE : CAKTO_MENSAL_PRICE),
+          buyerName,
+          slug: order.slug,
+          withoutPreview: createdWithoutPreview,
+          emailNote: emailNote.replace(/^ · /, ''),
+          at: new Date(),
+        })
       );
     }
 
