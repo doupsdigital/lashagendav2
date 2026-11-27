@@ -1,0 +1,171 @@
+import { NextResponse } from 'next/server';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { getStudioBySlug } from '@/lib/studio-service';
+import { isBookingLive, isPreviewExpired, isPreviewStudio } from '@/lib/studio-access';
+import { computeAvailableSlots } from '@/lib/scheduling/availability';
+import { DEMO_RULES, demoDayContext } from '@/lib/scheduling/demo-booking';
+import { getAvailableSlotsForDate } from '@/lib/scheduling/slot-lookup';
+import {
+  createAppointment,
+  findOrCreateClient,
+  loadBookingItems,
+  totalDurationMinutes,
+  totalPrice,
+  type BookingItemRef,
+} from '@/lib/scheduling/booking-service';
+import { priceToLabel } from '@/lib/service-format';
+import { manageAppointmentPath } from '@/lib/scheduling/client-appointment';
+import { INVALID_WHATSAPP_MESSAGE, isValidClientWhatsapp, normalizeClientWhatsapp } from '@/lib/scheduling/client-phone';
+import { sendPushToStudio } from '@/lib/push-notifications';
+
+/** POST /api/scheduling/book
+ *  Pública (a cliente final não tem conta — só nome + WhatsApp), rate-limited.
+ *  Body: { slug, items: [{ service_id, variation_id? }], starts_at (ISO), client_name,
+ *  client_whatsapp, client_notes? } — ou `service_id`/`variation_id` (um
+ *  serviço só, formato antigo). Vários serviços ficam um atrás do outro. */
+export async function POST(request: Request) {
+  try {
+    const ip = getClientIp(request);
+    const allowed = await checkRateLimit(`scheduling-book:${ip}`, 10, 300);
+    if (!allowed) {
+      return NextResponse.json({ success: false, message: 'Muitas tentativas. Aguarde alguns minutos e tente de novo.' }, { status: 429 });
+    }
+
+    const body = await request.json();
+    const { slug, items: itemsInput, service_id, variation_id, starts_at, client_name, client_whatsapp, client_notes } = body as {
+      slug?: string;
+      items?: BookingItemRef[];
+      service_id?: string;
+      variation_id?: string;
+      starts_at?: string;
+      client_name?: string;
+      client_whatsapp?: string;
+      client_notes?: string;
+    };
+
+    const refs: BookingItemRef[] = Array.isArray(itemsInput)
+      ? itemsInput
+      : service_id
+        ? [{ service_id, variation_id: variation_id || null }]
+        : [];
+
+    if (!slug || refs.length === 0 || !starts_at || !client_name?.trim() || !client_whatsapp?.trim()) {
+      return NextResponse.json({ success: false, message: 'Preencha nome, WhatsApp e escolha um horário.' }, { status: 400 });
+    }
+
+    if (!isValidClientWhatsapp(normalizeClientWhatsapp(client_whatsapp))) {
+      return NextResponse.json({ success: false, message: INVALID_WHATSAPP_MESSAGE }, { status: 400 });
+    }
+
+    const startsAtDate = new Date(starts_at);
+    if (Number.isNaN(startsAtDate.getTime())) {
+      return NextResponse.json({ success: false, message: 'Horário inválido.' }, { status: 400 });
+    }
+
+    const studio = await getStudioBySlug(slug);
+    if (!studio) {
+      return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
+    }
+
+    // Prévia (F11.1): demonstração — confere tudo como de verdade, mas não
+    // grava cliente nem agendamento, nem manda aviso.
+    const demo = isPreviewStudio(studio) && !isPreviewExpired(studio);
+    if (!demo && !isBookingLive(studio)) {
+      return NextResponse.json({ success: false, message: 'A agenda online está fechada no momento. Fale com a profissional pelo WhatsApp.' }, { status: 400 });
+    }
+
+    const items = await loadBookingItems(studio.id, refs, { requireBookable: true });
+    if (!items) {
+      return NextResponse.json({ success: false, message: 'Serviço indisponível pra agendamento automático.' }, { status: 400 });
+    }
+
+    if (demo) {
+      const demoDate = startsAtDate.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+      const demoSlots = computeAvailableSlots({
+        dateStr: demoDate,
+        durationMinutes: totalDurationMinutes(items),
+        ...demoDayContext(demoDate),
+        minNoticeMinutes: DEMO_RULES.min_notice_minutes,
+        bookingWindowDays: DEMO_RULES.booking_window_days,
+      });
+      const slot = demoSlots.find((s) => s.startsAt === startsAtDate.toISOString());
+      if (!slot) {
+        return NextResponse.json({ success: false, message: 'Esse horário não está mais disponível. Escolha outro, por favor.' }, { status: 409 });
+      }
+      return NextResponse.json({
+        success: true,
+        demo: true,
+        appointment: { id: 'demo', starts_at: slot.startsAt, ends_at: slot.endsAt, status: studio.booking_mode === 'auto' ? 'confirmed' : 'pending' },
+        manageUrl: null,
+        icsUrl: null,
+        service: { title: items.map((i) => i.title).join(' + '), price: priceToLabel(totalPrice(items)) },
+      });
+    }
+
+    // Revalida o horário antes de gravar (a lista do navegador pode estar
+    // desatualizada). A garantia final contra corrida é a trava do banco.
+    const dateStr = startsAtDate.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); // YYYY-MM-DD
+    const slots = await getAvailableSlotsForDate(studio.id, dateStr, totalDurationMinutes(items), studio);
+    if (!slots.some((s) => s.startsAt === startsAtDate.toISOString())) {
+      return NextResponse.json(
+        { success: false, message: 'Esse horário não está mais disponível. Escolha outro, por favor.' },
+        { status: 409 }
+      );
+    }
+
+    const clientId = await findOrCreateClient(studio.id, client_name, client_whatsapp, 'booking');
+    if (!clientId) {
+      return NextResponse.json({ success: false, message: 'Erro ao confirmar o agendamento.' }, { status: 500 });
+    }
+
+    // Modo automático confirma na hora; com aprovação fica aguardando ela.
+    const result = await createAppointment({
+      studioId: studio.id,
+      clientId,
+      startsAt: startsAtDate,
+      items,
+      status: studio.booking_mode === 'auto' ? 'confirmed' : 'pending',
+      origin: 'catalog',
+      clientNotes: client_notes,
+    });
+
+    if (!result.ok) {
+      if (result.reason === 'conflict') {
+        return NextResponse.json(
+          { success: false, message: 'Esse horário acabou de ser reservado por outra pessoa. Escolha outro, por favor.' },
+          { status: 409 }
+        );
+      }
+      return NextResponse.json({ success: false, message: 'Erro ao confirmar o agendamento.' }, { status: 500 });
+    }
+
+    // Push só para agendamentos feitos pela cliente. Dia e hora no fuso de
+    // São Paulo (o servidor roda em UTC).
+    const weekday = startsAtDate.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '');
+    const dayMonth = startsAtDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' });
+    const time = startsAtDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+
+    // Modo automático: já está confirmado, o aviso só informa. Com aprovação:
+    // o aviso leva direto para a lista de "aguardando".
+    const confirmed = result.appointment.status === 'confirmed';
+    await sendPushToStudio(studio.id, {
+      title: confirmed ? '📅 Novo agendamento confirmado' : '⏳ Novo agendamento para confirmar',
+      body: `${client_name.trim()} · ${items.map((i) => i.title).join(' + ')} · ${weekday}, ${dayMonth} às ${time}`,
+      url: confirmed ? `/app/${studio.slug}/agenda` : `/app/${studio.slug}/agenda#pendentes`,
+    });
+
+    // O link único vai só para quem acabou de agendar (F5.4): é por ele que a
+    // cliente vê, adiciona à agenda e cancela.
+    const { manage_token: manageToken, ...appointment } = result.appointment;
+    return NextResponse.json({
+      success: true,
+      appointment,
+      manageUrl: manageAppointmentPath(studio.slug, manageToken),
+      icsUrl: `/api/scheduling/appointment/${manageToken}/ics?slug=${studio.slug}`,
+      service: { title: items.map((i) => i.title).join(' + '), price: priceToLabel(totalPrice(items)) },
+    });
+  } catch (error) {
+    console.error('[API Scheduling Book Exception]:', error);
+    return NextResponse.json({ success: false, message: 'Erro interno ao criar o agendamento.' }, { status: 500 });
+  }
+}

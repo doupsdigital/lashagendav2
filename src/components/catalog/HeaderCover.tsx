@@ -1,0 +1,257 @@
+import React from 'react';
+import { CatalogOrderData, ThemeVariant } from '@/types/catalog';
+import { HeroParticles } from './HeroParticles';
+import { NICHE_DEFAULT_COVER } from '@/lib/catalog-covers';
+
+interface HeaderCoverProps {
+  data: CatalogOrderData;
+  categories: string[];
+  isEditMode?: boolean;
+  onOpenCoverModal?: () => void;
+  onUpdateClientName?: (newName: string) => void;
+  onUpdateHeroPhrase?: (newPhrase: string) => void;
+  onUpdateStudioLabel?: (newLabel: string) => void;
+  /** Só o showroom (`/c/showcase/[niche]`) passa isso (pedido real,
+   *  2026-10-08: testar os botões de Rosé/Luxury flanqueando o selo "Seja
+   *  Bem Vinda" em vez do painel flutuante "Personalizar"). `undefined`
+   *  em catálogos reais, que continuam mostrando só o selo, sem alteração
+   *  nenhuma. */
+  themeSwitcher?: { value: ThemeVariant; onChange: (variant: ThemeVariant) => void };
+  /** Só na prévia gratuita do funil `/lash` (2026-11-17): o botão flutuante
+   *  de WhatsApp abre a simulação em vez do link real (ainda não existe o
+   *  número dela). Ausente = link real de sempre. */
+  onWhatsappClick?: () => void;
+}
+
+export const HeaderCover: React.FC<HeaderCoverProps> = ({
+  data,
+  categories,
+  isEditMode = false,
+  onOpenCoverModal,
+  onUpdateClientName,
+  onUpdateHeroPhrase,
+  onUpdateStudioLabel,
+  themeSwitcher,
+  onWhatsappClick,
+}) => {
+  const wspText = encodeURIComponent(`Olá! Vim pelo seu catálogo digital e gostaria de tirar uma dúvida.`);
+  const wspUrl = `https://wa.me/${data.whatsapp_number}?text=${wspText}`;
+
+  // Se a profissional não mandou foto de capa, cai pra trás na mesma foto que
+  // a tela final (Contato) já usa — via a cadeia dela (cta_bg_url >
+  // final_screen_bg_url), NUNCA o contrário: a tela final (CTASection.tsx)
+  // não lê `cover_media_url` de propósito (bug real, 2026-09-22 — comentário
+  // lá explica). Herdar nessa direção é seguro porque não é bidirecional: só
+  // a capa cai pra trás na tela final, a tela final nunca cai pra trás na
+  // capa. Lash/Nail (pedido real, 2026-10-07) pulam direto pra capa
+  // "padronizada" do nicho (`NICHE_DEFAULT_COVER`) em vez de cair na foto da
+  // tela final — nichos sem entrada ali continuam com o comportamento de
+  // sempre. Se nada disso existir, cai no asset genérico do modelo (local,
+  // não mais externo — a URL de lashmenu.com quebrava sem aviso se o
+  // domínio antigo saísse do ar).
+  const heroImage =
+    data.cover_media_url ||
+    data.avatar_url ||
+    NICHE_DEFAULT_COVER[data.niche] ||
+    data.cta_bg_url ||
+    data.final_screen_bg_url ||
+    '/modelos/mosaico/assets/img/Hero.webp';
+  // Duas coisas diferentes que estavam misturadas numa variável só (bug
+  // real reportado, 2026-09-23 — "mulher deslocada pra direita" no
+  // catálogo de exemplo Nail): o recorte horizontal da foto foi calibrado
+  // pra foto específica classico/Hero.webp (mulher enquadrada mais à
+  // esquerda) — não faz sentido nenhum pra a foto genérica mosaico/Hero.webp
+  // (mulher centralizada), que é o que qualquer catálogo acaba usando
+  // quando não tem foto própria, INDEPENDENTE do layout escolhido (o preset
+  // do Nail, por ex., aponta pra mosaico/Hero mesmo quando o layout
+  // escolhido é Clássico). Então o recorte tem que decidir pela FOTO
+  // carregada, não pelo layout. Já o `hero--classico` (variação do Ken
+  // Burns/moldura do template) continua sendo por layout mesmo — isso sim é
+  // uma escolha de design do template, não da foto.
+  //
+  // Valor do recorte (`-20% 18%`) CORRIGIDO de volta, 2026-09-23: no
+  // primeiro fix eu troquei pra `45% 18%`, achando (por um comentário CSS
+  // antigo) que era o valor "de verdade" calibrado pra essa foto — mas
+  // `45% 18%` nunca tinha sido o que aparecia pra ninguém de verdade: o
+  // CSS antigo tinha DOIS valores conflitantes pro mesmo caso (`45% 18%` E,
+  // mais abaixo no arquivo, um `-20% 18%` que sempre vencia por vir depois
+  // — é esse `-20%` que qualquer catálogo Clássico mostrou de verdade nos
+  // últimos meses). Ao "limpar" o CSS duplicado eu troquei pelo valor
+  // errado (o que nunca rodou) em vez do que realmente estava em produção
+  // — regressão real, achada testando o showroom. `-20% 18%` de volta,
+  // agora só pra foto certa (não mais pro Nail).
+  const isClassicoLayout = data.layout_model === 'classico';
+  const isClassicoPhoto = heroImage.toLowerCase().includes('classico');
+  const objectPosition = isClassicoPhoto ? '-20% 18%' : 'center 18%';
+
+  const handleCoverClick = () => {
+    onOpenCoverModal?.();
+  };
+
+  return (
+    <section className={`hero is-visible ${isClassicoLayout ? 'hero--classico' : ''}`} id="hero" data-screen-label="Capa">
+      {/* 1. Foto de Fundo Ken Burns */}
+      <div className="hero__foto-wrap">
+        <img
+          src={heroImage}
+          alt={data.studio_name || data.client_name}
+          className="hero__foto"
+          style={{ objectPosition }}
+          fetchPriority="high"
+        />
+      </div>
+
+      {/* 2. Scrim (Gradiente Esfumaçado) */}
+      <div className="hero__scrim"></div>
+
+      {/* 2.5 Partículas Flutuantes Iluminadas (bolhas rosé/douradas por tema) */}
+      <HeroParticles />
+
+      {/* 3. BOTÃO FLUTUANTE SOBRE A CAPA: 📷 Alterar Foto de Capa (Absolute na Section Hero) */}
+      {isEditMode && (
+        <div className="lm-cover-edit-overlay">
+          <button
+            type="button"
+            className="lm-cover-edit-btn"
+            data-tour="cat-cover"
+            title="Clique para alterar a foto de capa"
+            onClick={handleCoverClick}
+          >
+            📷 Alterar Foto de Capa
+          </button>
+        </div>
+      )}
+
+      {/* 4. Conteúdo Sobreposto */}
+      <div className="hero__conteudo">
+        {/* Selo Seja Bem Vinda — com showroom, flanqueado pelos botões de tema */}
+        <div className={`hero__selo anim-fade-up delay-1${themeSwitcher ? ' hero__selo--with-switcher' : ''}`}>
+          {themeSwitcher && (
+            <button
+              type="button"
+              onClick={() => themeSwitcher.onChange('rose')}
+              className={`hero__theme-pill hero__theme-pill--rose${themeSwitcher.value === 'rose' ? ' hero__theme-pill--is-active' : ''}`}
+            >
+              🌸 Rosé
+            </button>
+          )}
+          <span>Seja Bem Vinda</span>
+          {themeSwitcher && (
+            <button
+              type="button"
+              onClick={() => themeSwitcher.onChange('luxury')}
+              className={`hero__theme-pill hero__theme-pill--luxury${themeSwitcher.value === 'luxury' ? ' hero__theme-pill--is-active' : ''}`}
+            >
+              👑 Luxury
+            </button>
+          )}
+        </div>
+
+        {/* Título & Nome */}
+        <div className="hero__titulo">
+          <div className="hero__studio-line anim-fade-up delay-2">
+            <span
+              className="hero__studio-label"
+              data-lm-editable={isEditMode ? 'true' : undefined}
+              contentEditable={isEditMode}
+              suppressContentEditableWarning={true}
+              suppressHydrationWarning={isEditMode}
+              onBlur={(e) => {
+                if (isEditMode && onUpdateStudioLabel) {
+                  onUpdateStudioLabel(e.currentTarget.innerText.trim());
+                }
+              }}
+            >
+              {data.studio_label || 'STUDIO'}
+            </span>
+            <span className="hero__studio-divider"></span>
+          </div>
+
+          <h1
+            className="anim-fade-up delay-2"
+            data-tour="cat-text"
+            data-lm-editable={isEditMode ? 'true' : undefined}
+            contentEditable={isEditMode}
+            suppressContentEditableWarning={true}
+            suppressHydrationWarning={isEditMode}
+            onBlur={(e) => {
+              if (isEditMode && onUpdateClientName) {
+                onUpdateClientName(e.currentTarget.innerText.trim());
+              }
+            }}
+          >
+            {data.client_name}
+          </h1>
+
+          <div className="hero__filete anim-fade-up delay-3"></div>
+
+          <p
+            className="hero__frase-cilios anim-fade-up delay-4"
+            data-lm-editable={isEditMode ? 'true' : undefined}
+            contentEditable={isEditMode}
+            suppressContentEditableWarning={true}
+            suppressHydrationWarning={isEditMode}
+            onBlur={(e) => {
+              if (isEditMode && onUpdateHeroPhrase) {
+                onUpdateHeroPhrase(e.currentTarget.innerText.trim());
+              }
+            }}
+          >
+            {data.hero_phrase || data.bio_description || 'A arte de transformar o seu olhar — leveza incomparável, precisão e elegância.'}
+          </p>
+        </div>
+
+        {/* Chips de Categorias Sobre a Foto — no máximo 4, mesma ordem dos
+            filtros da tela de Procedimentos (reordenável lá, no modo edição) */}
+        {categories.length > 0 && (
+          <div className="hero__chips anim-fade-up delay-5" id="hero-chips">
+            {categories.slice(0, 4).map((cat) => (
+              <span className="hero__chip" key={cat}>
+                {cat}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Botão de Rolagem Ver Catálogo */}
+        <a href="#catalogo" className="hero__scroll-cue anim-fade-up delay-6" aria-label="Deslize para ver o catálogo">
+          <span>Ver Catálogo</span>
+          <div className="hero__scroll-linha"></div>
+        </a>
+      </div>
+
+      {/* Botão Flutuante de WhatsApp (Canto Inferior Direito) */}
+      <a
+        href={wspUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="wsp-float-btn"
+        id="wsp-float-btn"
+        onClick={
+          onWhatsappClick
+            ? (e) => {
+                e.preventDefault();
+                onWhatsappClick();
+              }
+            : undefined
+        }
+        aria-label="Falar comigo no WhatsApp"
+      >
+        <div className="wsp-float-btn__icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"
+              fill="#FFFFFF"
+            />
+            <path
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M12 2C6.477 2 2 6.477 2 12c0 2.15.68 4.14 1.839 5.776L2.5 21.5l3.876-1.309A9.957 9.957 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.96 7.96 0 01-4.298-1.246l-.308-.184-2.296.775.775-2.253-.2-.317A7.957 7.957 0 014 12c0-4.418 3.582-8 8-8s8 3.582 8 8-3.582 8-8 8z"
+              fill="#FFFFFF"
+            />
+          </svg>
+        </div>
+      </a>
+    </section>
+  );
+};

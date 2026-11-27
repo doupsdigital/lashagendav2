@@ -1,0 +1,2324 @@
+/* ==========================================================================
+   LANDING PAGE — PORTADA QUASE 1:1 DE legacy/vendas/lpb/css/style.css
+   ==========================================================================
+   Todo seletor aqui tem prefixo `lp-` (e vive dentro de `.lp-lashmenu`) de
+   propósito — os nomes originais (`.container`, `.btn`, `.badge`...) são
+   genéricos demais pra ficar soltos num app Tailwind, colidiriam com a
+   utility `container` do Tailwind (ambas fariam `.container`, a que vier
+   depois no CSS compilado ganharia, quebrando um dos dois lados sem
+   avisar). Os VALORES (cor, rem, clamp, animação) são copiados exatamente
+   do arquivo legado — pedido explícito da usuária pra bater igual,
+   2026-09-23, depois de uma primeira tentativa em Tailwind solto que saiu
+   com tamanhos/fonte diferentes do original. */
+
+.lp-lashmenu {
+  --lp-bg: #faf8f5;
+  --lp-bg-subtle: #f4f0ea;
+  --lp-card: #ffffff;
+  --lp-border: #ede9e3;
+  --lp-accent: #c84b72;
+  --lp-accent-light: #fbedf2;
+  --lp-accent-dark: #a33a5c;
+  --lp-text: #1a1220;
+  --lp-muted: #7a6b78;
+  --lp-radius-md: 16px;
+  --lp-radius-lg: 22px;
+  --lp-radius-pill: 999px;
+
+  background: var(--lp-bg);
+  color: var(--lp-text);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+.lp-lashmenu *,
+.lp-lashmenu *::before,
+.lp-lashmenu *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.lp-lashmenu h1,
+.lp-lashmenu h2,
+.lp-lashmenu h3,
+.lp-lashmenu h4 {
+  color: var(--lp-text);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
+  word-break: break-word;
+}
+
+/* Scroll reveal (fade + sobe de baixo) — pedido real, 2026-10-15, efeito
+ *  comum em landing pages premium. O atributo `data-visible` é ligado pelo
+ *  `IntersectionObserver` em `useScrollReveal` (`src/hooks/`); aqui só a
+ *  transição em si. É um atributo, não uma classe, de propósito (ver
+ *  comentário em `useScrollReveal.ts`) — uma classe `is-visible` quebrava o
+ *  FAQ (card sumia ao fechar outra pergunta) porque o React reescreve
+ *  `className` inteiro a cada re-render da lista, apagando o que o
+ *  observer tinha ligado por fora do React; um atributo separado sobrevive
+ *  a isso. `--reveal-delay` (opcional, via inline style) cria o efeito
+ *  "cascata" em grupos de cards/itens que aparecem juntos.
+ *  `prefers-reduced-motion` desliga o movimento (acessibilidade) sem nunca
+ *  travar conteúdo em opacity:0. */
+.lp-lashmenu [data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0s);
+}
+
+.lp-lashmenu [data-reveal][data-visible] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-lashmenu [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+.lp-container {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.lp-text-gradient {
+  color: var(--lp-accent);
+}
+
+.lp-text-wine {
+  color: #6d1430;
+}
+
+.lp-hero-title-line2 {
+  display: block;
+  margin-top: 8px;
+}
+
+/* Botões */
+.lp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 24px;
+  border-radius: var(--lp-radius-md);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  text-align: center;
+}
+
+.lp-btn--primary {
+  background: var(--lp-accent);
+  color: #ffffff;
+  box-shadow: 0 10px 32px rgba(200, 75, 114, 0.32);
+  position: relative;
+  overflow: hidden;
+  animation: lp-slow-cta-pulse 3s infinite ease-in-out;
+}
+
+.lp-btn--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 40px rgba(200, 75, 114, 0.45);
+}
+
+.lp-btn--whatsapp {
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 26px rgba(37, 211, 102, 0.35);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  font-size: 0.95rem;
+  padding: 16px 20px;
+}
+
+.lp-btn--whatsapp:hover {
+  background: linear-gradient(135deg, #20bd5a 0%, #0e7368 100%);
+  box-shadow: 0 12px 32px rgba(37, 211, 102, 0.48);
+  transform: translateY(-2px);
+}
+
+/* Pulsação pra dar mais destaque ao CTA principal da Oferta (pedido real,
+ *  2026-10-26) — mesmo espírito do `lp-slow-cta-pulse` já usado em
+ *  `.lp-btn--primary`, só com o glow na cor verde do próprio botão em vez
+ *  do rosa do accent. Classe própria (não em `.lp-btn--whatsapp` direto)
+ *  pra não animar os outros CTAs de WhatsApp da página que reaproveitam a
+ *  mesma classe base. */
+.lp-tier-cta-pulse {
+  animation: lp-tier-cta-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes lp-tier-cta-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 8px 26px rgba(37, 211, 102, 0.35); }
+  50% { transform: scale(1.03); box-shadow: 0 12px 36px rgba(37, 211, 102, 0.6), 0 0 18px rgba(37, 211, 102, 0.35); }
+}
+
+@keyframes lp-slow-cta-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 8px 24px rgba(200, 75, 114, 0.35); }
+  50% { transform: scale(1.025); box-shadow: 0 12px 34px rgba(200, 75, 114, 0.55), 0 0 15px rgba(200, 75, 114, 0.3); }
+}
+
+/* ==========================================================================
+   BARRA DE ANÚNCIO NO TOPO
+   ========================================================================== */
+.lp-top-bar {
+  background: var(--lp-accent);
+  color: #ffffff;
+  padding: 8px 0;
+  box-shadow: 0 3px 14px rgba(192, 75, 107, 0.22);
+}
+
+.lp-announcement-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.lp-topbar-avatars {
+  display: inline-flex;
+  align-items: center;
+}
+
+.lp-topbar-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #ffffff;
+  margin-left: -7px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.lp-topbar-avatar:first-child {
+  margin-left: 0;
+}
+
+.lp-topbar-stars {
+  color: #fcd34d;
+  font-size: 0.76rem;
+  letter-spacing: 1px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.lp-announcement-text {
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.lp-announcement-text strong {
+  font-weight: 800;
+  color: #ffffff;
+}
+
+@media (max-width: 600px) {
+  .lp-top-bar { padding: 7px 0; }
+  .lp-announcement-content { gap: 6px; }
+  .lp-topbar-avatar { width: 20px; height: 20px; }
+  .lp-topbar-stars { font-size: 0.7rem; }
+  .lp-announcement-text { font-size: 0.72rem; }
+}
+
+/* ==========================================================================
+   HERO
+   ========================================================================== */
+.lp-hero-section {
+  padding: clamp(26px, 3.8vw, 44px) 0 38px;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+/* Faixa diagonal de nicho, canto superior direito da Hero (pedido real,
+ *  2026-10-14 — trocou um selo circular por essa faixa, mesmo estilo visual
+ *  do `.lp-vs-ribbon` usado nos cards Antes/Depois, mas espelhada pro canto
+ *  direito e com tipografia serifada em itálico, pra ficar "estilizada" em
+ *  vez do bold uppercase genérico). Vive dentro de `.lp-container` (já tem
+ *  `position: relative`); o wrap com `overflow: hidden` clipa a faixa certinho
+ *  no canto, do jeito clássico de ribbon de oferta. */
+/* Proporção escalada (×1.4) da versão que funcionava certinho (sem cortar)
+ *  — manter a MESMA razão entre caixa de recorte e tamanho da faixa é o que
+ *  evita o corte; só aumentar a faixa sem aumentar a caixa junto corta ela
+ *  (bug da tentativa anterior, 2026-10-14). */
+.lp-hero-niche-ribbon-wrap {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 155px;
+  height: 155px;
+  overflow: hidden;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.lp-hero-niche-ribbon {
+  position: absolute;
+  top: 28px;
+  right: -48px;
+  width: 203px;
+  height: 42px;
+  transform: rotate(45deg);
+  background: linear-gradient(135deg, var(--lp-accent) 0%, var(--lp-accent-dark) 100%);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+@media (max-width: 900px) {
+  .lp-hero-niche-ribbon-wrap { width: 130px; height: 130px; }
+  .lp-hero-niche-ribbon { top: 21px; right: -45px; width: 175px; height: 36px; }
+}
+
+.lp-hero-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 36px;
+  align-items: center;
+  width: 100%;
+}
+
+.lp-hero-content {
+  text-align: left;
+}
+
+.lp-hero-brand-block {
+  margin-bottom: 20px;
+}
+
+/* Teste "Ei, LashDesigner/NailDesigner" sem a linha de eyebrow embaixo
+ *  (pedido real, 2026-10-20) — reduz o espaçamento pra reequilibrar
+ *  depois que a linha some. */
+.lp-hero-brand-block--compact {
+  margin-bottom: 18px;
+}
+
+.lp-hero-brand-block--compact .lp-hero-brand-h1 {
+  margin-bottom: 0;
+}
+
+.lp-hero-brand-h1 {
+  font-size: clamp(1.9rem, 4.3vw, 3rem);
+  font-weight: 800;
+  color: #34222c;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  margin: 0 0 6px;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.lp-hero-brand-h1 em {
+  font-style: italic;
+  font-weight: 800;
+  color: var(--lp-accent);
+  margin-left: 1px;
+}
+
+.lp-hero-brand-tagline {
+  font-size: clamp(0.74rem, 1.4vw, 0.85rem);
+  font-weight: 700;
+  color: var(--lp-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+/* Trecho em destaque dentro do eyebrow (ex: "Lash Designer" dentro de "O
+ *  catálogo digital da Lash Designer") — pedido real, 2026-10-14: fonte
+ *  maior e cor de marca, pra chamar mais atenção que o resto da frase. */
+.lp-eyebrow-highlight {
+  font-size: 1.3em;
+  color: var(--lp-accent);
+  font-weight: 900;
+}
+
+.lp-hero-title {
+  font-size: clamp(2rem, 4.6vw, 3.1rem);
+  font-weight: 900;
+  line-height: 1.16;
+  letter-spacing: -0.03em;
+  margin-bottom: 8px;
+}
+
+/* Voltou a ser texto simples, sem fundo (pedido real, 2026-10-20 — a
+ *  tentativa de card rosa "ficou com muito texto amarelo" e não agradou;
+ *  referência final foi um mockup dela no Claude Design: "Conheça o
+ *  StudioMenu" vira uma linha maior tipo título — ver
+ *  `.lp-hero-subtitle-lead` abaixo —, o resto do texto normal, e quem
+ *  ganhou o destaque forte (fundo rosa) foi o botão "Toque no celular"
+ *  logo abaixo, ver `.lp-hero-swipe-hint--emphasis`). */
+.lp-hero-subtitle {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--lp-muted);
+  line-height: 1.65;
+  margin-bottom: 24px;
+  max-width: 520px;
+  text-align: center;
+}
+
+/* Linha "Conheça o StudioMenu." maior, tipo mini-título, reproduzindo o
+ *  mockup (pedido real, 2026-10-20) — o resto da subheadline continua no
+ *  tamanho normal de `.lp-hero-subtitle` logo abaixo dela. */
+.lp-hero-subtitle-lead {
+  display: block;
+  font-size: clamp(1.5rem, 3.2vw, 1.9rem);
+  font-weight: 800;
+  color: var(--lp-text);
+  line-height: 1.25;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Blur suave só atrás dessa linha (pedido real, 2026-10-20), pra dar
+ *  contraste sem virar um card com borda dura. */
+.lp-hero-subtitle-lead::before {
+  content: '';
+  position: absolute;
+  inset: -16px -10%;
+  background: radial-gradient(ellipse at center, rgba(200, 75, 114, 0.55) 0%, rgba(200, 75, 114, 0.15) 55%, rgba(200, 75, 114, 0) 78%);
+  filter: blur(14px);
+  z-index: -1;
+}
+
+/* Destaques só dentro dessa subheadline (pedido real, 2026-10-20) — não
+ *  mexe em `.lp-text-gradient`/`.lp-text-wine` global (usadas também no
+ *  título da Hero e no resto da subheadline), só o "StudioMenu" e o "Não
+ *  é PDF nem Canva" especificamente. */
+.lp-hero-subtitle-brand {
+  font-size: 1.2em;
+}
+
+.lp-hero-subtitle .lp-text-wine {
+  text-decoration: underline;
+}
+
+/* Linha curta entre o título e a imagem de dor (pedido real, 2026-10-27) —
+ *  reforça o título numa frase só, antes da `whatsappPainImage`. Menor que
+ *  `.lp-hero-title`, maior que `.lp-hero-subtitle` normal, pra funcionar
+ *  como subtítulo de transição. */
+.lp-hero-tagline {
+  font-size: clamp(1.08rem, 2.26vw, 1.31rem);
+  font-weight: 600;
+  color: var(--lp-muted);
+  line-height: 1.4;
+  margin: 0 0 16px;
+  max-width: 480px;
+}
+
+/* Imagem "WhatsApp bagunçado" (pedido real, 2026-10-20) — representa
+ *  visualmente a dor que a Hero descreve em texto (tabela de preços e
+ *  fotos soltas no WhatsApp). Mesmo `max-width` da subheadline acima, pra
+ *  ocupar a largura do bloco de texto sem estourar pro lado do mockup. */
+.lp-hero-pain-image-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: 10px;
+}
+
+.lp-hero-pain-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--lp-radius-md);
+}
+
+/* Brilho deslizando só sobre a área do celular dentro da imagem (pedido
+ *  real, 2026-10-26) — mesmo mecanismo visual de `.lp-pain-reinforce-shine-
+ *  wrap` mais abaixo, só que sem máscara de alpha (essa imagem é um
+ *  composto único, sem recorte separado do celular) — em vez disso, um
+ *  retângulo arredondado com `overflow: hidden` posicionado por
+ *  porcentagem, calibrado nos pixels reais de `capa_hero_nova.png` (celular
+ *  ocupa de ~45% a ~98,5% da largura e ~5,5% a ~88% da altura). Reajustar
+ *  esses números se a imagem for trocada por outra com proporções
+ *  diferentes. */
+.lp-hero-pain-shine {
+  position: absolute;
+  left: 45%;
+  right: 1.5%;
+  top: 5.5%;
+  bottom: 12%;
+  border-radius: 11% / 5%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.lp-hero-pain-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.55) 50%, transparent 100%);
+  transform: skewX(-20deg);
+  filter: blur(8px);
+  animation: heroChipShine 4.5s ease-in-out infinite;
+}
+
+.lp-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.lp-hero-swipe-hint {
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: var(--lp-accent);
+  margin-top: 14px;
+}
+
+/* Botão pill com seta, reproduzindo o mockup dela no Claude Design
+ *  (pedido real, 2026-10-20) — continua o único elemento com fundo rosa
+ *  forte da Hero, já que a subheadline acima voltou a ser texto simples. */
+.lp-hero-swipe-hint--emphasis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--lp-accent);
+  padding: 14px 28px;
+  border-radius: var(--lp-radius-pill);
+  box-shadow: 0 10px 28px rgba(200, 75, 114, 0.3);
+  margin: 20px auto 0;
+}
+
+@media (max-width: 900px) {
+  .lp-hero-grid { grid-template-columns: 1fr; gap: 32px; }
+}
+
+@media (max-width: 600px) {
+  .lp-hero-section { padding-top: 50px; padding-bottom: 24px; }
+  .lp-hero-actions .lp-btn { width: 100%; }
+}
+
+/* ── Mockup do celular ── */
+.lp-hero-phone-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+  width: 100%;
+}
+
+.lp-phone-interactive-container {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+}
+
+/* Moldura de verdade de iPhone: a tela recua `--lp-bezel` de cada lado (o
+ *  cálculo original do LashMenu preenchia o retângulo do celular 100% até
+ *  a borda, sem sobra nenhuma pra mostrar a cor de fundo do aparelho — só
+ *  dava pra ver um fiapo da moldura nos 4 cantos arredondados; reportado
+ *  como "sem bordas de iPhone, parece, ou está muito fina", 2026-09-23).
+ *  Escala em X e Y calculada separadamente (mesmo truque do
+ *  `.showroom-phone` mais abaixo no arquivo original) pra preencher a
+ *  área da tela exatamente, mesmo com a proporção não batendo 100% com a
+ *  do iframe 390×844. */
+.lp-testdrive-phone {
+  --lp-phone-w: 245px;
+  --lp-phone-h: 530px;
+  --lp-bezel: 6px;
+  --lp-screen-w: calc(var(--lp-phone-w) - var(--lp-bezel) * 2);
+  --lp-screen-h: calc(var(--lp-phone-h) - var(--lp-bezel) * 2);
+  --lp-base-w: 390px;
+  --lp-base-h: 844px;
+
+  position: relative;
+  width: var(--lp-phone-w);
+  max-width: 65vw;
+  height: var(--lp-phone-h);
+  background: linear-gradient(155deg, #2e2729 0%, #110e10 55%);
+  border-radius: 34px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  margin: 0 auto;
+}
+
+.lp-testdrive-notch {
+  position: absolute;
+  top: var(--lp-bezel, 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 62px;
+  height: 10px;
+  background: #000000;
+  border-radius: 6px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.lp-testdrive-screen {
+  position: absolute;
+  top: var(--lp-bezel, 6px);
+  left: var(--lp-bezel, 6px);
+  width: var(--lp-screen-w);
+  height: var(--lp-screen-h);
+  border-radius: 29px;
+  overflow: hidden;
+  background: #f2cad5;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4) inset;
+}
+
+.lp-testdrive-screen-scaler {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--lp-base-w);
+  height: var(--lp-base-h);
+  transform-origin: 0 0;
+  transform: scale(calc(var(--lp-screen-w) / var(--lp-base-w)), calc(var(--lp-screen-h) / var(--lp-base-h)));
+  background: #f2cad5;
+}
+
+.lp-testdrive-screen-scaler iframe {
+  width: 390px !important;
+  height: 844px !important;
+  border: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block;
+  background: #f2cad5;
+}
+
+/* Modo "vitrine estática" (pedido real, 2026-10-14) — iframe some do fluxo
+ *  de toque/scroll (só decorativo, mostra a capa ao vivo), quem recebe o
+ *  toque é `.lp-testdrive-tap-overlay` logo abaixo, que abre o modal
+ *  fullscreen em vez de deixar rolar inline (causa do bug de gesto visto
+ *  em gravações do PostHog). */
+.lp-testdrive-screen--static,
+.lp-testdrive-screen--static * {
+  pointer-events: none;
+}
+
+.lp-testdrive-tap-overlay {
+  position: absolute;
+  top: var(--lp-bezel, 6px);
+  left: var(--lp-bezel, 6px);
+  width: var(--lp-screen-w);
+  height: var(--lp-screen-h);
+  border-radius: 29px;
+  border: none;
+  background: rgba(20, 8, 14, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 50;
+  padding: 0;
+  transition: background 0.2s ease;
+}
+
+.lp-testdrive-tap-overlay:hover {
+  background: rgba(20, 8, 14, 0.3);
+}
+
+.lp-testdrive-tap-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  color: var(--lp-accent-dark);
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 10px 18px;
+  border-radius: 100px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+  animation: lp-tag-soft-pulse 2.4s infinite ease-in-out;
+}
+
+.lp-testdrive-tap-badge svg {
+  color: var(--lp-accent);
+  flex-shrink: 0;
+}
+
+/* "Toque aqui" nos 2 lados do mockup — setas apontando pro celular
+ *  (pedido real, 2026-10-19; re-adicionado isoladamente, sem a âncora
+ *  `#catalogo`, pra testar os 2 em separado depois do revert do bug de
+ *  scroll). Mesma linguagem do indicador "Sua foto aqui" mais abaixo
+ *  (`lp-photo-point-icon`), só maior e mais afastada — fora do celular de
+ *  vez, não pendurada na borda. `.lp-testdrive-phone` é `position:
+ *  relative`, então ancora nela. */
+.lp-testdrive-tap-arrow {
+  position: absolute;
+  top: 50%;
+  pointer-events: none;
+  z-index: 110;
+  filter: drop-shadow(0 3px 10px rgba(200, 75, 114, 0.4));
+}
+
+.lp-testdrive-tap-arrow--left {
+  left: -62px;
+  animation: lp-tap-arrow-bounce-right 1.4s infinite ease-in-out;
+}
+
+.lp-testdrive-tap-arrow--right {
+  right: -62px;
+  animation: lp-tap-arrow-bounce-left 1.4s infinite ease-in-out;
+}
+
+@keyframes lp-tap-arrow-bounce-right {
+  0%, 100% { transform: translateY(-50%) translateX(0); }
+  50% { transform: translateY(-50%) translateX(8px); }
+}
+
+@keyframes lp-tap-arrow-bounce-left {
+  0%, 100% { transform: translateY(-50%) translateX(0); }
+  50% { transform: translateY(-50%) translateX(-8px); }
+}
+
+@media (max-width: 480px) {
+  .lp-testdrive-tap-arrow svg { width: 26px; height: 26px; }
+  .lp-testdrive-tap-arrow--left { left: -36px; }
+  .lp-testdrive-tap-arrow--right { right: -36px; }
+}
+
+@media (min-width: 600px) {
+  .lp-testdrive-phone { --lp-phone-w: 310px; --lp-phone-h: 671px; --lp-bezel: 7px; }
+}
+
+.lp-phone-scroll-indicator,
+.lp-phone-left-indicator {
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-phone-scroll-indicator.is-hidden,
+.lp-phone-left-indicator.is-hidden {
+  opacity: 0;
+  transform: translateY(-50%) scale(0.85);
+  pointer-events: none;
+}
+
+.lp-phone-scroll-indicator {
+  position: absolute;
+  top: 32%;
+  right: -94px;
+  transform: translateY(-50%);
+  z-index: 120;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.lp-phone-left-indicator {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 120;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Mesmo valor (espelhado) de quando o Deslize ainda era o único indicador,
+ *  fixo do lado direito (`right: -52px`) — mantém o visual original de
+ *  "pendurado na borda" do celular, só migrado pro lado esquerdo. */
+.lp-phone-left-indicator--deslize {
+  left: -52px;
+}
+
+/* Clique nos cards sempre foi do lado esquerdo — valor inalterado. */
+.lp-phone-left-indicator--clique {
+  left: -94px;
+}
+
+.lp-left-cue-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #c84b72;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  padding: 3.5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(200, 75, 114, 0.35);
+  box-shadow: 0 4px 14px rgba(200, 75, 114, 0.2);
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: lp-tag-soft-pulse 2.4s infinite ease-in-out;
+}
+
+.lp-left-tap-icon {
+  filter: drop-shadow(0 4px 12px rgba(200, 75, 114, 0.38));
+  animation: lp-tap-pulse 1.4s infinite ease-in-out;
+}
+
+@keyframes lp-tap-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.86); }
+}
+
+.lp-photo-cursor-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: lp-pointer-point-left 1.8s infinite ease-in-out;
+}
+
+.lp-photo-point-icon {
+  filter: drop-shadow(0 2px 8px rgba(200, 75, 114, 0.35));
+}
+
+@keyframes lp-pointer-point-left {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-7px); }
+}
+
+.lp-scroll-cue-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #c84b72;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(200, 75, 114, 0.35);
+  box-shadow: 0 4px 12px rgba(200, 75, 114, 0.18);
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: lp-tag-soft-pulse 2.4s infinite ease-in-out;
+}
+
+.lp-scroll-cursor-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  animation: lp-pointer-swipe-down 2.4s infinite cubic-bezier(0.45, 0, 0.25, 1);
+}
+
+.lp-touch-pointer-hand-svg {
+  filter: drop-shadow(0 4px 10px rgba(200, 75, 114, 0.35));
+}
+
+.lp-scroll-cue-arrow-svg {
+  filter: drop-shadow(0 2px 6px rgba(200, 75, 114, 0.3));
+  animation: lp-arrow-bounce 1.2s infinite ease-in-out;
+}
+
+@keyframes lp-pointer-swipe-down {
+  0% { transform: translateY(-12px); opacity: 0.2; }
+  20% { opacity: 1; }
+  75% { transform: translateY(18px); opacity: 1; }
+  100% { transform: translateY(24px); opacity: 0.15; }
+}
+
+@keyframes lp-arrow-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+
+@keyframes lp-tag-soft-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(200, 75, 114, 0.18); }
+  50% { transform: scale(1.04); box-shadow: 0 6px 16px rgba(200, 75, 114, 0.3); }
+}
+
+@media (max-width: 480px) {
+  .lp-phone-scroll-indicator { right: -72px; }
+  .lp-scroll-cue-tag { font-size: 0.60rem; padding: 2.5px 6.5px; }
+  .lp-phone-left-indicator--deslize { left: -44px; }
+  .lp-phone-left-indicator--clique { left: -72px; }
+  .lp-left-cue-tag { font-size: 0.58rem; padding: 2.5px 7px; }
+  .lp-left-tap-icon { width: 24px; height: 24px; }
+}
+
+/* ==========================================================================
+   MARQUEE DE DEPOIMENTOS
+   ========================================================================== */
+.lp-marquee-ribbon-section {
+  background: var(--lp-accent);
+  color: #ffffff;
+  padding: clamp(34px, 4.8vw, 50px) 0;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 8px 30px rgba(192, 75, 107, 0.28);
+}
+
+.lp-marquee-ribbon-wrap {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  mask-image: linear-gradient(to right, transparent, black 3%, black 97%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 3%, black 97%, transparent);
+}
+
+.lp-marquee-ribbon-track {
+  display: flex;
+  align-items: stretch;
+  gap: 22px;
+  width: max-content;
+  animation: lp-ribbon-marquee 34s linear infinite;
+  will-change: transform;
+  padding: 8px 0;
+}
+
+.lp-marquee-ribbon-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes lp-ribbon-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.lp-marquee-review-card {
+  width: 290px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border: 1.5px solid rgba(230, 80, 115, 0.18);
+  border-radius: 20px;
+  padding: 16px 18px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lp-mrc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lp-mrc-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--lp-accent);
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(230, 80, 115, 0.25);
+}
+
+.lp-mrc-user {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.lp-mrc-name {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #1f1417;
+  line-height: 1.1;
+}
+
+.lp-mrc-stars {
+  color: #ffb800;
+  font-size: 0.82rem;
+  letter-spacing: 1px;
+}
+
+.lp-mrc-quote {
+  font-size: 0.83rem;
+  line-height: 1.45;
+  color: #4a3e44;
+  margin: 0;
+  font-style: italic;
+  font-weight: 500;
+}
+
+@media (max-width: 600px) {
+  .lp-marquee-ribbon-section { padding: 26px 0; }
+  .lp-marquee-ribbon-track { gap: 14px; animation-duration: 25s; }
+  .lp-marquee-review-card { width: 250px; padding: 14px 15px; border-radius: 16px; }
+  .lp-mrc-avatar { width: 34px; height: 34px; }
+  .lp-mrc-name { font-size: 0.82rem; }
+  .lp-mrc-quote { font-size: 0.78rem; }
+}
+
+/* ==========================================================================
+   COMO FUNCIONA (LINHA DO TEMPO VERTICAL)
+   ========================================================================== */
+.lp-steps-section {
+  padding: 56px 0 60px;
+  background: #ffffff;
+}
+
+.lp-steps-list {
+  list-style: none;
+  margin: 40px 0 0;
+  padding: 0;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.lp-step-item {
+  display: flex;
+  gap: 22px;
+  align-items: stretch;
+}
+
+.lp-step-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 56px;
+}
+
+.lp-step-number {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lp-accent) 0%, var(--lp-accent-dark) 100%);
+  color: #ffffff;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+  box-shadow: 0 8px 20px rgba(200, 75, 114, 0.35);
+  border: 3px solid #ffffff;
+  outline: 1.5px solid rgba(200, 75, 114, 0.25);
+}
+
+.lp-step-connector {
+  width: 3px;
+  flex-grow: 1;
+  margin: 6px 0;
+  background: linear-gradient(to bottom, rgba(200, 75, 114, 0.45), rgba(200, 75, 114, 0.12));
+  border-radius: 2px;
+  min-height: 28px;
+}
+
+.lp-step-content {
+  padding-bottom: 36px;
+  padding-top: 8px;
+}
+
+.lp-step-item:last-child .lp-step-content {
+  padding-bottom: 0;
+}
+
+.lp-step-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--lp-text);
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+
+.lp-step-desc {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--lp-muted);
+  max-width: 480px;
+}
+
+@media (max-width: 600px) {
+  .lp-steps-section { padding: 44px 0 46px; }
+  .lp-step-number { width: 46px; height: 46px; font-size: 1.55rem; }
+  .lp-step-marker { width: 46px; }
+  .lp-step-item { gap: 16px; }
+  .lp-step-content { padding-bottom: 28px; }
+  .lp-step-title { font-size: 1.2rem; }
+  .lp-step-desc { font-size: 1rem; }
+}
+
+/* ==========================================================================
+   SEÇÃO ANTES x DEPOIS
+   ========================================================================== */
+.lp-comparison-section {
+  padding: 60px 0;
+  background: #ffffff;
+}
+
+.lp-section-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.lp-section-kicker {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--lp-accent);
+  margin-bottom: 10px;
+}
+
+.lp-section-title {
+  font-size: clamp(1.4rem, 4.2vw, 2.5rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  margin-bottom: 12px;
+  line-height: 1.2;
+}
+
+@media (max-width: 600px) {
+  .lp-section-title { font-size: 1.48rem; line-height: 1.25; }
+}
+
+.lp-vs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin-top: 36px;
+}
+
+@media (max-width: 768px) {
+  .lp-vs-grid { grid-template-columns: 1fr; }
+}
+
+.lp-vs-box {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--lp-radius-lg);
+  padding: 28px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.03);
+}
+
+.lp-vs-box--bad { background: #fef2f2; border: 1.5px solid #fecaca; }
+.lp-vs-box--good { background: #f0fdf4; border: 1.5px solid #bbf7d0; }
+
+.lp-vs-box-head { margin-top: 10px; margin-bottom: 20px; }
+
+.lp-vs-box--bad .lp-vs-box-head h3 { color: #dc2626; font-size: 1.2rem; font-weight: 800; margin: 0 0 0 28px; }
+.lp-vs-box--good .lp-vs-box-head h3 { color: #16a34a; font-size: 1.2rem; font-weight: 800; margin: 0 0 0 28px; }
+
+/* Badge diagonal "Antes/Depois" no canto, tipo etiqueta de oferta. */
+.lp-vs-ribbon {
+  position: absolute;
+  top: 16px;
+  left: -34px;
+  width: 135px;
+  transform: rotate(-45deg);
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 0;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 2;
+}
+
+.lp-vs-ribbon--bad { background: #dc2626; }
+.lp-vs-ribbon--good { background: #16a34a; }
+
+.lp-vs-bullet-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+}
+
+.lp-vs-bullet-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--lp-text);
+}
+
+.lp-vs-svg-bad { color: #dc2626; flex-shrink: 0; margin-top: 2px; }
+.lp-vs-svg-good { color: #16a34a; flex-shrink: 0; margin-top: 2px; }
+
+/* ==========================================================================
+   OFERTA / PLANOS
+   ========================================================================== */
+.lp-pricing-section {
+  background: linear-gradient(145deg, #c84b72 0%, #b03a60 100%);
+  padding: clamp(50px, 7vw, 80px) 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.lp-pricing-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 600px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.20) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.lp-pricing-header-title {
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.lp-pricing-header-title .lp-section-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+
+.lp-pricing-header-title .lp-section-subtitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+
+.lp-pricing-tier-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+/* Teste de X1 com um card só (Plano Agenda comentado, 2026-10-08) — centraliza
+   e limita a largura em vez de deixar o card sozinho esticado/desalinhado
+   num grid pensado pra 2 colunas. */
+.lp-pricing-tier-grid--single {
+  grid-template-columns: 1fr;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .lp-pricing-tier-grid { grid-template-columns: 1fr; gap: 22px; }
+}
+
+.lp-pricing-tier-card {
+  background: #ffffff;
+  border: 1px solid rgba(200, 75, 114, 0.2);
+  border-radius: 24px;
+  padding: 32px 26px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.12);
+  color: #1a1412;
+}
+
+.lp-pricing-tier-card--vip {
+  border: 2.5px solid #c84b72;
+  box-shadow: 0 16px 50px rgba(200, 75, 114, 0.28);
+}
+
+.lp-tier-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 5px 14px;
+  border-radius: 100px;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.lp-tier-badge--basic {
+  background: #fdf2f5;
+  color: #c84b72;
+  border: 1px solid rgba(200, 75, 114, 0.25);
+}
+
+.lp-tier-badge--vip {
+  background: linear-gradient(135deg, #c84b72 0%, #a82b54 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(200, 75, 114, 0.3);
+}
+
+.lp-tier-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 2.13rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #1a1412;
+  text-align: center;
+}
+
+.lp-tier-desc {
+  font-size: 0.88rem;
+  color: #665a5e;
+  line-height: 1.48;
+  margin-bottom: 20px;
+  min-height: 48px;
+}
+
+.lp-tier-price-box {
+  background: linear-gradient(135deg, #fff0f3 0%, #fce4eb 100%);
+  border-radius: 18px;
+  padding: 18px 16px;
+  text-align: center;
+  margin-bottom: 22px;
+  border: 1.5px solid rgba(200, 75, 114, 0.35);
+  box-shadow: 0 4px 16px rgba(200, 75, 114, 0.08);
+  color: #1a1412;
+}
+
+.lp-pricing-tier-card--vip .lp-tier-price-box {
+  background: linear-gradient(135deg, #c84b72 0%, #b03a60 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 8px 24px rgba(200, 75, 114, 0.35);
+}
+
+.lp-tier-price-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  color: #c84b72;
+  line-height: 1;
+}
+
+.lp-pricing-tier-card--vip .lp-tier-price-main { color: #ffffff; }
+
+.lp-tier-currency { font-size: 1.2rem; font-weight: 800; }
+.lp-tier-val { font-size: 3rem; font-weight: 900; }
+.lp-tier-cents { font-size: 1.2rem; font-weight: 700; }
+/* "/mês" ao lado do preço, não embaixo (pedido real, teste de X1, 2026-10-08). */
+.lp-tier-period { font-size: 1rem; font-weight: 700; margin-left: 4px; opacity: 0.85; }
+
+.lp-tier-price-sub {
+  font-size: 0.78rem;
+  color: #6e4652;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+.lp-pricing-tier-card--vip .lp-tier-price-sub {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+
+/* Âncora "De R$X por" (teste de plano único, pedido real, 2026-10-19) —
+ *  só aparece quando `content.singleAnnualPlanTest` existe (ver
+ *  `SalesLandingPage.tsx`); substitui o papel que o card Mensal fazia
+ *  antes (dar uma referência de comparação pro preço do Anual). */
+.lp-tier-price-anchor {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 4px;
+}
+
+.lp-tier-price-anchor-value {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Selo de desconto do Plano Anual (2026-10-15) — "burst" de 16 pontas no
+ *  canto superior direito do card, igual referência enviada pela usuária.
+ *  `.lp-pricing-tier-card` já é `position: relative`, então isto ancora
+ *  nela; levemente rotacionado pra parecer um selo colado, não um ícone
+ *  reto. */
+.lp-tier-discount-seal {
+  position: absolute;
+  top: 16px;
+  right: 12px;
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e0393f 0%, #b3161c 100%);
+  clip-path: polygon(50.00% 0.00%, 58.00% 9.79%, 69.13% 3.81%, 72.78% 15.91%, 85.36% 14.64%, 84.09% 27.22%, 96.19% 30.87%, 90.21% 42.00%, 100.00% 50.00%, 90.21% 58.00%, 96.19% 69.13%, 84.09% 72.78%, 85.36% 85.36%, 72.78% 84.09%, 69.13% 96.19%, 58.00% 90.21%, 50.00% 100.00%, 42.00% 90.21%, 30.87% 96.19%, 27.22% 84.09%, 14.64% 85.36%, 15.91% 72.78%, 3.81% 69.13%, 9.79% 58.00%, 0.00% 50.00%, 9.79% 42.00%, 3.81% 30.87%, 15.91% 27.22%, 14.64% 14.64%, 27.22% 15.91%, 30.87% 3.81%, 42.00% 9.79%);
+  /* Rotação aplicada no selo INTEIRO (forma + texto juntos, sem
+   *  contra-rotacionar o <span>) — a estrela de 16 pontas tem simetria
+   *  quase igual a cada ~22.5°, então rotacionar só a forma (com o texto
+   *  sempre reto por cima) ficava visualmente imperceptível. Girando os
+   *  dois juntos, o "OFF" inclinado é o que deixa a rotação visível. */
+  transform: rotate(14deg);
+  box-shadow: 0 6px 16px rgba(179, 22, 28, 0.45);
+  z-index: 2;
+}
+
+.lp-tier-discount-seal span {
+  color: #ffffff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* Especificidade maior de propósito (`.lp-tier-discount-seal
+ *  .lp-tier-discount-seal-percent`, não só `.lp-tier-discount-seal-percent`
+ *  sozinha) — sem isso, `.lp-tier-discount-seal span` (que estiliza o
+ *  "OFF") vence por ter mais especificidade e trava o font-size do "49%"
+ *  sempre em 0.72rem, não importa o valor aqui. */
+.lp-tier-discount-seal .lp-tier-discount-seal-percent {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: -4px;
+}
+
+@media (max-width: 768px) {
+  .lp-tier-discount-seal {
+    width: 70px;
+    height: 70px;
+    top: 12px;
+    right: 8px;
+  }
+
+  .lp-tier-discount-seal span { font-size: 0.52rem; }
+  .lp-tier-discount-seal .lp-tier-discount-seal-percent { font-size: 1.2rem; }
+}
+
+.lp-tier-bullets {
+  list-style: none;
+  margin: 0 0 26px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-grow: 1;
+}
+
+.lp-tier-bullets li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: #383033;
+  line-height: 1.35;
+}
+
+.lp-tier-bullets li svg { color: #c84b72; flex-shrink: 0; }
+
+/* Âncora de valor nichada (pedido real, 2026-10-15; realinhada depois de
+ *  feedback real — a 1ª versão (font-size maior + ícone maior) quebrava o
+ *  alinhamento com as outras bullets quando o texto virava 2 linhas, porque
+ *  herdava `align-items: center` (centraliza o ícone no MEIO do bloco de 2
+ *  linhas, em vez de no topo da 1ª linha como as outras bullets parecem
+ *  ter). Agora só a cor/negrito do texto destaca — tamanho de fonte e
+ *  ícone praticamente iguais aos das outras linhas, e `align-items:
+ *  flex-start` prende o ícone no topo, igual o ritmo visual das demais. */
+.lp-tier-bullets li.lp-tier-bullet--value-anchor {
+  align-items: flex-start;
+}
+
+.lp-tier-bullet--value-anchor strong {
+  color: #b45309;
+}
+
+.lp-tier-bullet-icon {
+  font-size: 1em;
+  line-height: 1.35;
+  flex-shrink: 0;
+}
+
+.lp-tier-guarantee {
+  margin: 12px 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #7a6a70;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   ENTREGA EXPRESSA (FAIXA ROSA FORTE)
+   ========================================================================== */
+/* Virou seção própria (pedido real, 2026-10-14) — era só um badge pequeno
+ *  dentro da Hero, agora cria a alternância branco/rosa logo cedo na
+ *  página, mesmo gradiente forte da seção de Oferta. */
+.lp-delivery-highlight-section {
+  padding: 44px 0;
+  background: linear-gradient(145deg, #c84b72 0%, #b03a60 100%);
+  text-align: center;
+}
+
+.lp-delivery-highlight-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.lp-delivery-highlight-icon {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #ffffff;
+  font-size: 1.3rem;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+}
+
+/* `.lp-lashmenu h2` (mais acima no arquivo) força cor escura — precisa de 2
+ *  classes aqui (maior especificidade) pra ganhar dessa regra. */
+.lp-delivery-highlight-section .lp-delivery-highlight-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0;
+}
+
+.lp-delivery-highlight-text {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.92);
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+.lp-delivery-highlight-text strong {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+/* ==========================================================================
+   FAIXA DE DESTAQUE: ENTREGA 24H
+   ========================================================================== */
+.lp-delivery-banner-section {
+  padding: 24px 0;
+  background: #fbf0f3;
+  border-top: 1px solid rgba(200, 75, 114, 0.15);
+  border-bottom: 1px solid rgba(200, 75, 114, 0.15);
+}
+
+.lp-delivery-banner-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: #ffffff;
+  border: 1.5px solid rgba(200, 75, 114, 0.25);
+  border-radius: var(--lp-radius-md);
+  padding: 16px 24px;
+  box-shadow: 0 6px 20px rgba(200, 75, 114, 0.08);
+  text-align: center;
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.lp-db-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.lp-db-text {
+  font-size: 0.98rem;
+  color: var(--lp-text);
+  line-height: 1.45;
+  font-weight: 500;
+}
+
+.lp-db-text strong {
+  color: var(--lp-accent);
+  font-weight: 800;
+}
+
+@media (max-width: 600px) {
+  .lp-delivery-highlight-section { padding: 36px 0; }
+  .lp-delivery-highlight-icon { width: 40px; height: 40px; font-size: 1.15rem; }
+  .lp-delivery-highlight-title { font-size: 1.6rem; }
+  .lp-delivery-highlight-text { font-size: 1.05rem; }
+  .lp-delivery-banner-box { gap: 8px; padding: 14px 16px; }
+  .lp-db-text { font-size: 0.88rem; }
+}
+
+/* ==========================================================================
+   DÚVIDAS FREQUENTES (FAQ)
+   ========================================================================== */
+/* Reforço da dor entre o preço e o FAQ (pedido real, 2026-10-20) — 3ª
+ *  tentativa: fundo rosa contínuo com a seção de preço "juntava" as 2
+ *  seções (feedback real). Agora usa o MESMO fundo neutro do FAQ logo
+ *  abaixo (`var(--lp-bg)`) e a MESMA fonte dos títulos do FAQ
+ *  (`.lp-section-title` — Plus Jakarta Sans, peso 900, sem serifada). Só a
+ *  IMAGEM ganha destaque em rosa — um glow desfocado e com formato
+ *  orgânico (não círculo/quadrado "duro"), via `filter: blur()` num
+ *  pseudo-elemento em vez de borda nítida. */
+.lp-pain-reinforce-section {
+  background: var(--lp-bg);
+  padding: 56px 0 24px;
+  text-align: center;
+}
+
+.lp-pain-reinforce-heading {
+  max-width: 420px;
+  margin: 0 auto 12px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  font-size: clamp(1.45rem, 4.6vw, 1.9rem);
+  line-height: 1.25;
+  color: var(--lp-text);
+}
+
+.lp-pain-reinforce-highlight {
+  color: #6d1430;
+  text-decoration: underline;
+  text-decoration-color: #6d1430;
+  text-underline-offset: 3px;
+}
+
+.lp-pain-reinforce-highlight--plain {
+  text-decoration: none;
+}
+
+/* Lado a lado "ruim vs bom" (pedido real, 2026-10-20) — WhatsApp com X à
+ *  esquerda (menor, pra caber as 2) e catálogo StudioMenu à direita, com
+ *  rotação espelhada (sentidos opostos) reforçando o contraste visual. */
+.lp-pain-reinforce-images-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Glow rosa desfocado atrás de cada celular — `blur()` (não borda nítida)
+ *  pra não virar um círculo/quadrado "duro" atrás da imagem (pedido real,
+ *  2026-10-20). Formato levemente elíptico/assimétrico (`border-radius`
+ *  com 4 valores diferentes), reforçado pelo blur. */
+.lp-pain-reinforce-image-wrap {
+  position: relative;
+  /* `flex: 1 1 0` + `min-width: 0` (bug real visto no PostHog, 2026-10-26)
+   *  — antes era `flex: 0 0 auto` (não encolhe), e o aumento de tamanho das
+   *  2 imagens (155→200px / 195→240px, 2026-10-20) fez a largura somada
+   *  (~408px) passar do espaço disponível em QUALQUER celular (`.lp-container`
+   *  só tem ~335-375px de largura útil) — sem poder encolher, a sobra
+   *  invadia pra fora da tela e sumia, cortada pelo `overflow-x: hidden` do
+   *  `.lp-lashmenu` (raiz da página): a borda ESQUERDA da imagem ruim (cabeçalho
+   *  + 1ª mensagem do WhatsApp) e a borda DIREITA da imagem boa ficavam
+   *  invisíveis. Agora os 2 encolhem proporcionalmente pra caber na tela —
+   *  os `max-width` abaixo continuam valendo como teto pro desktop. */
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* A imagem BOA é maior e "invade" por cima da ruim (pedido real,
+ *  2026-10-20: "como se o bom começasse a entrar no ruim, bem pouquinho")
+ *  — margem negativa aproxima as duas, `z-index` maior garante que ela
+ *  fica por CIMA na sobreposição. Em `%` (não px fixo) de propósito — assim
+ *  a sobreposição encolhe junto com as imagens em telas estreitas, em vez
+ *  de continuar com -32px fixos enquanto as imagens ficam bem menores. */
+.lp-pain-reinforce-image-wrap--good {
+  margin-left: -8%;
+  z-index: 2;
+}
+
+.lp-pain-reinforce-image-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  background: radial-gradient(ellipse, var(--lp-accent) 0%, var(--lp-accent-light) 55%, transparent 78%);
+  border-radius: 42% 58% 55% 45% / 55% 45% 58% 42%;
+  filter: blur(26px);
+  opacity: 0.75;
+  z-index: 0;
+}
+
+.lp-pain-reinforce-image {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  /* `filter: drop-shadow` (não `box-shadow`) de propósito — a imagem tem
+   *  fundo transparente ao redor do celular (confirmado nos pixels do
+   *  arquivo); `box-shadow`/`border-radius` sempre seguem o RETÂNGULO do
+   *  elemento, ignorando o alfa, e criavam um "cartão" fantasma visível ao
+   *  redor do mockup. `drop-shadow` segue só os pixels visíveis. */
+  filter: drop-shadow(0 18px 36px rgba(26, 18, 32, 0.3));
+}
+
+.lp-pain-reinforce-image--bad {
+  position: relative;
+  z-index: 1;
+  max-width: 200px;
+  transform: rotate(-6deg);
+}
+
+.lp-pain-reinforce-image--good {
+  position: relative;
+}
+
+/* Rotação da imagem BOA fica aqui (não na `<img>`), pra o brilho mascarado
+ *  abaixo girar junto e continuar alinhado com a foto (pedido real,
+ *  2026-10-20). */
+/* `mask-image` fica no PAI (não no `::after` que desliza) — ele tem o
+ *  tamanho exato da imagem real, então recorta certinho pra silhueta do
+ *  celular. A faixa de brilho (filha) desliza livremente por dentro,
+ *  sempre clipada por essa máscara do pai, sem depender de matemática de
+ *  `background-position`/`background-size` (1ª tentativa deixou um
+ *  resíduo visível parado no canto, achado real 2026-10-20). */
+.lp-pain-reinforce-shine-wrap {
+  position: relative;
+  z-index: 2;
+  display: block;
+  max-width: 240px;
+  margin: 0 auto;
+  transform: rotate(6deg);
+  mask-image: var(--good-mockup-mask);
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-image: var(--good-mockup-mask);
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
+/* Brilho prateado deslizando — mesmo mecanismo de `.hero__chip::after`/
+ *  `heroChipShine` em `catalog-theme.css` (faixa estreita enviesada,
+ *  atravessando de um lado a outro), só que mais devagar aqui (4.5s, pedido
+ *  real — o das cápsulas da capa é 3s). */
+.lp-pain-reinforce-shine-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.5) 50%, transparent 100%);
+  transform: skewX(-20deg);
+  /* `blur` amacia a silhueta da faixa (pedido real, 2026-10-20: "parece um
+   *  retângulo passando") — sem isso, mesmo com as bordas transparentes
+   *  no gradiente, o paralelogramo enviesado ficava com um contorno reto
+   *  perceptível. */
+  filter: blur(8px);
+  animation: heroChipShine 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Selo de check verde saindo por cima da borda de baixo da imagem BOA
+ *  (overflow de propósito, pedido real, 2026-10-20) — sinaliza "essa é a
+ *  certa", espelhando o X vermelho (já desenhado dentro da outra imagem)
+ *  do lado oposto. */
+.lp-pain-reinforce-check-badge {
+  position: absolute;
+  z-index: 2;
+  bottom: -14px;
+  right: 18%;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #22b573;
+  border: 3px solid var(--lp-bg);
+  box-shadow: 0 8px 18px rgba(34, 181, 115, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lp-pain-reinforce-text {
+  max-width: 440px;
+  margin: 0 auto 28px;
+  font-size: 1.02rem;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--lp-muted);
+}
+
+.lp-pain-reinforce-text strong {
+  display: inline-block;
+  color: var(--lp-accent-dark);
+  background: var(--lp-accent-light);
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 1.12em;
+}
+
+.lp-faq-section {
+  padding: 0 0 80px;
+  background: var(--lp-bg);
+}
+
+/* Faixa rosa leve atrás do cabeçalho do FAQ (pedido real, 2026-10-20) —
+ *  contraste com o fundo neutro do resto da seção. Full-bleed de graça:
+ *  vive FORA do `.lp-container` (que tem `max-width`), direto dentro da
+ *  `<section>`, que não tem limite de largura — sem precisar de nenhuma
+ *  técnica de margem negativa. */
+.lp-faq-header-band {
+  background: #f6d2de;
+  padding: 32px 0 8px;
+  margin-bottom: 20px;
+}
+
+/* Só o título do FAQ, não `.lp-section-title` global (reaproveitada em
+ *  outras seções). */
+.lp-faq-header-band .lp-section-title {
+  font-style: italic;
+}
+
+.lp-faq-list {
+  max-width: 780px;
+  margin: 32px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lp-faq-item {
+  background: #ffffff;
+  border: 1.5px solid var(--lp-border);
+  border-radius: var(--lp-radius-md);
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+}
+
+.lp-faq-item:hover {
+  border-color: rgba(200, 75, 114, 0.35);
+  box-shadow: 0 6px 20px rgba(200, 75, 114, 0.06);
+}
+
+.lp-faq-item.is-open {
+  border-color: var(--lp-accent);
+  box-shadow: 0 8px 25px rgba(200, 75, 114, 0.12);
+  background: #ffffff;
+}
+
+.lp-faq-question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--lp-text);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.lp-faq-item.is-open .lp-faq-question {
+  color: var(--lp-accent);
+}
+
+.lp-faq-question-text {
+  line-height: 1.35;
+}
+
+.lp-faq-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--lp-bg-subtle);
+  color: var(--lp-accent);
+  flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease;
+}
+
+.lp-faq-item.is-open .lp-faq-icon {
+  transform: rotate(180deg);
+  background: var(--lp-accent);
+  color: #ffffff;
+}
+
+.lp-faq-answer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-faq-item.is-open .lp-faq-answer {
+  grid-template-rows: 1fr;
+}
+
+.lp-faq-answer-inner {
+  overflow: hidden;
+}
+
+.lp-faq-answer-inner p {
+  padding: 0 24px 22px;
+  font-size: 0.93rem;
+  line-height: 1.6;
+  color: #554852;
+  margin: 0;
+  font-weight: 500;
+}
+
+@media (max-width: 600px) {
+  .lp-faq-section { padding: 44px 0 60px; }
+  .lp-faq-question { padding: 16px 18px; font-size: 0.92rem; }
+  .lp-faq-answer-inner p { padding: 0 18px 18px; font-size: 0.88rem; }
+  .lp-faq-icon { width: 28px; height: 28px; }
+}
+
+/* Quebra-objeção da assinatura — sempre a 1ª pergunta do FAQ, com destaque
+ *  visual próprio (pedido real, 2026-10-15): fundo rosa claro sempre ligado
+ *  (não só quando aberta), borda e selo de cor acesos o tempo todo, e um
+ *  pulso suave tipo "ping" ao redor do card pra chamar o olho sem ser
+ *  irritante (`animation-iteration-count: infinite`, mas sutil e lento). */
+.lp-faq-item--highlight {
+  background: var(--lp-accent-light);
+  border-color: var(--lp-accent);
+  animation: lp-faq-highlight-ping 2.6s ease-in-out infinite;
+}
+
+.lp-faq-item--highlight:hover,
+.lp-faq-item--highlight.is-open {
+  background: var(--lp-accent-light);
+  border-color: var(--lp-accent-dark);
+}
+
+.lp-faq-item--highlight .lp-faq-icon {
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--lp-accent-dark);
+}
+
+.lp-faq-item--highlight.is-open .lp-faq-icon {
+  background: var(--lp-accent-dark);
+  color: #ffffff;
+}
+
+.lp-faq-highlight-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 16px 0 0 24px;
+  padding: 5px 14px;
+  background: linear-gradient(135deg, var(--lp-accent) 0%, var(--lp-accent-dark) 100%);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 100px;
+}
+
+.lp-faq-item--highlight .lp-faq-question {
+  padding-top: 14px;
+}
+
+.lp-faq-highlight-icon {
+  display: inline-flex;
+  margin-right: 8px;
+  font-size: 1.05em;
+}
+
+@keyframes lp-faq-highlight-ping {
+  0%, 100% { box-shadow: 0 8px 25px rgba(200, 75, 114, 0.18), 0 0 0 0 rgba(200, 75, 114, 0.3); }
+  50% { box-shadow: 0 8px 25px rgba(200, 75, 114, 0.18), 0 0 0 9px rgba(200, 75, 114, 0); }
+}
+
+@media (max-width: 600px) {
+  .lp-faq-highlight-badge { margin: 14px 0 0 18px; font-size: 0.68rem; padding: 4px 12px; }
+  .lp-faq-item--highlight .lp-faq-question { padding-top: 10px; }
+}
+
+/* ==========================================================================
+   SEÇÃO MATADORA (CTA SHOWCASE AO VIVO)
+   ========================================================================== */
+.lp-live-cta-section {
+  padding: 0 0 80px;
+  background: var(--lp-bg);
+}
+
+.lp-live-cta-box {
+  background: linear-gradient(135deg, var(--lp-accent) 0%, var(--lp-accent-dark) 100%);
+  border-radius: 28px;
+  padding: clamp(32px, 4.5vw, 48px) clamp(20px, 4vw, 40px);
+  text-align: center;
+  color: #ffffff;
+  box-shadow: 0 16px 40px rgba(200, 75, 114, 0.28);
+  position: relative;
+  overflow: hidden;
+  max-width: 920px;
+  margin: 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.lp-live-cta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 6px 16px;
+  border-radius: 100px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #ffffff;
+  margin-bottom: 18px;
+  text-transform: uppercase;
+}
+
+.lp-live-cta-title {
+  font-size: clamp(1.2rem, 3.2vw, 1.8rem);
+  font-weight: 600;
+  color: #ffffff !important;
+  line-height: 1.35;
+  margin-bottom: 22px;
+  letter-spacing: -0.01em;
+}
+
+.lp-live-cta-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.lp-live-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #ffffff;
+  color: var(--lp-accent-dark) !important;
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 16px 36px;
+  border-radius: var(--lp-radius-md);
+  text-decoration: none;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: 0.02em;
+}
+
+.lp-live-cta-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  background: #ffffff;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.28);
+  color: var(--lp-accent) !important;
+}
+
+@media (max-width: 600px) {
+  .lp-live-cta-section { padding-bottom: 50px; }
+  .lp-live-cta-box { border-radius: 20px; padding: 26px 18px; }
+  .lp-live-cta-btn { width: 100%; font-size: 0.92rem; padding: 15px 20px; }
+}
+
+/* ==========================================================================
+   RODAPÉ
+   ========================================================================== */
+.lp-site-footer {
+  background: #fbf0f3;
+  border-top: 1px solid rgba(200, 75, 114, 0.15);
+  padding: 24px 20px 28px;
+  margin: 0;
+  color: #553d46;
+  text-align: center;
+}
+
+.lp-footer-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.lp-footer-logo {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #24141a;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.lp-footer-logo em {
+  font-style: italic;
+  color: var(--lp-accent);
+}
+
+.lp-footer-tagline {
+  font-size: 0.80rem;
+  color: #7a5c67;
+  letter-spacing: 0.02em;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.lp-footer-copy {
+  font-size: 0.72rem;
+  color: #9e7f8a;
+  margin-top: 6px;
+  letter-spacing: 0.02em;
+}
+
+/* ==========================================================================
+   MODAL FULLSCREEN DE TESTE DO CATÁLOGO
+   ========================================================================== */
+/* Sempre montado no DOM (o React nunca desmonta, só troca `.is-open`) —
+ *  ver comentário em `MockupModal.tsx` pro porquê (carregar instantâneo). */
+.lp-mockup-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 8, 14, 0.82);
+  backdrop-filter: blur(3px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 18px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.22s ease, visibility 0.22s;
+}
+
+.lp-mockup-modal-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Moldura de celular de verdade (mesma linguagem visual do mockup da Hero,
+ *  `.lp-testdrive-phone`) — pedido real, 2026-10-14: sem isso parecia uma
+ *  página nova em vez de um teste "por cima" da landing. A margem do
+ *  overlay ao redor (padding acima) deixa o fundo escurecido da própria
+ *  landing visível nos cantos, reforçando que é uma camada por cima. */
+/* Largura/altura/padding vêm de `style` inline (`MockupModal.tsx`) — a
+ *  moldura inteira (bezel + tela) escala como um bloco rígido só, sempre na
+ *  proporção do design (390x844 + bezel), pra nunca sobrar faixa de fundo
+ *  rosa num dos lados (bug real em produção, 2026-10-15). */
+.lp-mockup-modal-phone {
+  position: relative;
+  border-radius: 42px;
+  background: linear-gradient(155deg, #2e2729 0%, #110e10 55%);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.lp-mockup-modal-notch {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px;
+  height: 11px;
+  background: #000000;
+  border-radius: 6px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.lp-mockup-modal-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 32px;
+  overflow: hidden;
+  background: #f2cad5;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4) inset;
+}
+
+/* Iframe SEMPRE no tamanho de design (390×844, um celular de verdade) —
+ *  só a aparência é encolhida pelo `scale()` calculado via JS (ver
+ *  `MockupModal.tsx`), igual o mockup da Hero faz com CSS puro. Sem isso o
+ *  site dentro do iframe renderiza pensando que está numa tela menor que
+ *  um celular (achado real testando no celular, 2026-10-14). */
+.lp-mockup-modal-scaler {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 390px;
+  height: 844px;
+  margin-top: -422px;
+  margin-left: -195px;
+  transform-origin: center center;
+  background: #f2cad5;
+}
+
+.lp-mockup-modal-scaler iframe {
+  width: 390px !important;
+  height: 844px !important;
+  border: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block;
+  background: #f2cad5;
+}
+
+/* Dicas de interação (re-port do `HeroMockup.tsx`, pedido real,
+ *  2026-10-16) — aqui o iframe é a superfície REAL de teste (não uma
+ *  vitrine estática), então essas dicas só reforçam que dá pra
+ *  rolar/tocar. `pointer-events: none` garante que nunca bloqueiam o
+ *  toque/scroll de verdade no iframe.
+ *
+ *  Vivem em `.lp-mockup-modal-phone` (a MOLDURA), não em
+ *  `.lp-mockup-modal-scaler` (reforçado depois de feedback real,
+ *  2026-10-16 — a 1ª tentativa ficava dentro da tela, por cima da
+ *  foto/texto, confundindo com o conteúdo). `left`/`right` negativos
+ *  penduram elas um pouco pra fora da tela, coladas na borda/bezel, igual
+ *  era no mockup antigo da Hero (`.lp-phone-left-indicator`/
+ *  `.lp-phone-scroll-indicator`). O deslocamento é propositalmente
+ *  pequeno (16px, não os ~50-94px da Hora) — a margem escura ao redor do
+ *  celular aqui é bem mais apertada (padding do overlay, que cai pra só
+ *  26px no mobile em `.lp-mockup-modal-overlay`), então um valor maior
+ *  cortaria a dica pra fora da tela em aparelhos pequenos. */
+.lp-mockup-hint {
+  position: absolute;
+  z-index: 40;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.lp-mockup-hint--swipe {
+  left: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+  animation: lp-mockup-hint-in-swipe 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* "Mude as cores do tema" (pedido real, 2026-10-19) — perto do topo da
+ *  moldura, igual à posição real dos botões Rosé/Luxury na capa (flanqueando
+ *  o selo "Seja Bem Vinda"). Seta pro TOPO (`flex-direction: column` com o
+ *  ícone antes do texto) em vez de pro lado, já que aponta pra um botão
+ *  ACIMA da dica, não ao lado. */
+.lp-mockup-hint--theme-rose,
+.lp-mockup-hint--theme-luxury {
+  top: 10%;
+  animation: lp-mockup-hint-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.lp-mockup-hint--theme-rose {
+  left: -16px;
+}
+
+.lp-mockup-hint--theme-luxury {
+  right: -16px;
+}
+
+@keyframes lp-mockup-hint-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes lp-mockup-hint-in-swipe {
+  from { opacity: 0; transform: translateY(-50%) scale(0.85); }
+  to { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+/* Botão de fechar bem evidente (pedido real, 2026-10-14 — o anterior era
+ *  discreto demais) — círculo branco sólido, encostado no canto da moldura. */
+.lp-mockup-modal-close {
+  position: absolute;
+  top: -14px;
+  right: -10px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #2a1a20;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
+  z-index: 10;
+  transition: transform 0.15s ease;
+}
+
+.lp-mockup-modal-close:hover {
+  transform: scale(1.08);
+}
+
+@media (max-width: 600px) {
+  .lp-mockup-modal-overlay { padding: 34px 26px; }
+  .lp-mockup-modal-phone { border-radius: 36px; }
+  .lp-mockup-modal-screen { border-radius: 28px; }
+}
+
+/* ==========================================================================
+   BOTÃO FLUTUANTE DE WHATSAPP
+   ========================================================================== */
+.lp-sticky-wa-bar {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
+  width: calc(100% - 32px);
+  max-width: 440px;
+}
+
+.lp-sticky-wa-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  color: #ffffff !important;
+  font-weight: 800;
+  font-size: 0.9rem;
+  padding: 14px 20px;
+  border-radius: 100px;
+  box-shadow: 0 10px 30px rgba(37, 211, 102, 0.45);
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  animation: lp-pulse-button 3s ease-in-out infinite;
+}
+
+@keyframes lp-pulse-button {
+  0%, 100% { box-shadow: 0 6px 24px rgba(200, 75, 114, 0.35); }
+  50% { box-shadow: 0 10px 34px rgba(200, 75, 114, 0.6); }
+}

@@ -1,0 +1,300 @@
+'use client';
+
+import React, { useEffect, useMemo, useState } from 'react';
+import { Clock, CalendarX, PauseCircle, UserCircle, Bell, LifeBuoy, Store, SlidersHorizontal, Link2 } from 'lucide-react';
+import type { Step } from 'react-joyride';
+import { SectionCard } from '@/components/app-shell/SectionCard';
+import { ProductTour } from '@/components/tour/ProductTour';
+import { BusinessHoursEditor } from './BusinessHoursEditor';
+import { ScheduleBlocksManager } from './ScheduleBlocksManager';
+import { AgendaPauseSection } from './AgendaPauseSection';
+import { AccountSection } from './AccountSection';
+import { NotificationsSection } from './NotificationsSection';
+import { SupportSection } from './SupportSection';
+import { BusinessSection } from './BusinessSection';
+import { BookingRulesSection } from './BookingRulesSection';
+import { LinkSection } from './LinkSection';
+import type { BookingRules } from '@/lib/studio/booking-rules';
+import type { BusinessProfile } from '@/lib/studio/business-service';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import type { BusinessHoursConfigRow, ScheduleBlockConfigRow } from '@/lib/scheduling/config-service';
+
+interface ConfigAccordionProps {
+  slug: string;
+  businessHours: BusinessHoursConfigRow[];
+  scheduleBlocks: ScheduleBlockConfigRow[];
+  /** Agendamento automático de fato ligado (Plus ativo ou toggle manual do
+   *  admin) — sem isso, Horários e Bloqueios não têm nenhum efeito prático
+   *  (a Agenda nem chega a mostrar conteúdo real), então ficam travados. */
+  bookingEnabled: boolean;
+  /** Ela mesma pausou o agendamento automático temporariamente (Fase 23). */
+  agendaPaused: boolean;
+  /** Conta do Supabase Auth já vinculada pro login real (Fase 17) — null
+   *  enquanto a profissional só entra pelo link mágico. */
+  authUserId: string | null;
+  /** Dados de "Meu negócio" (F10.1). */
+  business: BusinessProfile;
+  /** Regras de agendamento (F10.2). */
+  bookingRules: BookingRules;
+  /** QR code do link (F10.3), PNG em data URL. */
+  linkQr: string;
+  /** E-mail do login vinculado (F10.4). */
+  accountEmail: string | null;
+}
+
+type SectionKey = 'negocio' | 'link' | 'regras' | 'horarios' | 'bloqueios' | 'pausar' | 'conta' | 'notificacoes' | 'suporte';
+
+/** Acordeão da aba Config — 3 seções que já existiam (`BusinessHoursEditor`,
+ *  `ScheduleBlocksManager`, `SubscriptionSection`), agora dentro de
+ *  `SectionCard`. Só controla abrir/fechar; nenhum dos formulários internos
+ *  mudou de comportamento. Todas começam abertas (Fase 15 — antes só
+ *  "Minha assinatura" abria sozinha via `#assinatura`, link do cartão de
+ *  upsell do Plano Agenda; esse comportamento continua, só que agora não
+ *  muda nada já que tudo já vem aberto). */
+export const ConfigAccordion: React.FC<ConfigAccordionProps> = ({
+  slug,
+  businessHours,
+  scheduleBlocks,
+  bookingEnabled,
+  agendaPaused,
+  authUserId,
+  business,
+  bookingRules,
+  linkQr,
+  accountEmail,
+}) => {
+  const [open, setOpen] = useState<Record<SectionKey, boolean>>({
+    negocio: false,
+    link: false,
+    regras: false,
+    horarios: false,
+    bloqueios: true,
+    pausar: false,
+    conta: false,
+    notificacoes: false,
+    suporte: false,
+  });
+
+  // O card de "Notificações" fica sempre na lista (mostra "Notificações
+  // ativas!" quando já está ligado, com link pra testar de novo) — só some
+  // quando o navegador não suporta push. Antes sumia também quando já
+  // ativado; mudou depois que a confirmação "ativas" ficou clara.
+  const { permission: pushPermission, ready: pushReady } = usePushNotifications(slug);
+  const showNotifications = pushReady && pushPermission !== 'unsupported';
+
+  const [tourStartHash, setTourStartHash] = useState<SectionKey | undefined>(undefined);
+
+  // Auto-abre a seção referenciada pelo hash do link — usado pelo upsell do
+  // Plus (`#assinatura`, já existia) e agora também pelos cards de
+  // onboarding pós-pagamento (`#conta`, `#horarios`, Fase 19). Também guarda
+  // o hash pro tour começar por ali (Fase 20) — sem isso, o tour sempre
+  // começava do primeiro card e "puxava" a tela de volta, brigando com o
+  // scroll que o link já tinha feito (achado testando o card "Criar acesso").
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    const sectionForHash: Partial<Record<string, SectionKey>> = {
+      negocio: 'negocio',
+      link: 'link',
+      regras: 'regras',
+      conta: 'conta',
+      horarios: 'horarios',
+      bloqueios: 'bloqueios',
+      pausar: 'pausar',
+      notificacoes: 'notificacoes',
+      suporte: 'suporte',
+    };
+    const key = sectionForHash[hash];
+    if (key) {
+      setOpen((prev) => ({ ...prev, [key]: true }));
+      setTourStartHash(key);
+      // Espera um tick antes de rolar — o alvo específico (`#upgrade-plus`)
+      // só existe no DOM depois que a seção abre (conteúdo condicional,
+      // `isOpen` acabou de virar `true` acima); sem esperar, o elemento
+      // ainda não tinha sido renderizado. Cai pro id da seção como reserva
+      // se o alvo específico não existir (ex: ela não é Básico ativo).
+      setTimeout(() => {
+        const specific = document.getElementById(hash);
+        const fallback = document.getElementById(key);
+        (specific || fallback)?.scrollIntoView({ block: 'start' });
+      }, 50);
+    }
+  }, []);
+
+  const toggle = (key: SectionKey) => setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  // Vira dependência do useMemo abaixo em vez de `showNotifications` puro —
+  // sem isso, `usePushNotifications` resolvendo a permissão (assíncrono,
+  // acontece perto do mount, junto com o tour começando) recalculava
+  // `tourSteps` inteiro (objetos novos) mesmo pra quem só tem Básico, onde
+  // esse valor nem chega a entrar no resultado. Assim, fica travado em
+  // `false` sempre que `!bookingEnabled`, nunca recalcula à toa.
+  const includeNotifications = bookingEnabled && showNotifications;
+  const hasAccount = Boolean(authUserId);
+
+  // Tour guiado da Config (Fase 20) — um balão por seção, de cima pra baixo,
+  // sempre apontando pro CABEÇALHO de cada card (não pro card inteiro, nem
+  // abrindo/fechando a seção durante o tour como numa versão anterior) — o
+  // cabeçalho tem altura fixa, então a posição do balão nunca pula
+  // dependendo do quanto de conteúdo está aberto (achado testando de
+  // verdade: "Horários de atendimento" é um card grande, e ele fazia o
+  // balão ficar impossível de ver quando abria durante o próprio tour).
+  // Horários/Bloqueios/Notificações ficam de fora enquanto `!bookingEnabled`
+  // (Básico sem Plus): são cards travados, mostrar um balão explicando algo
+  // que ela ainda não pode usar só confunde. O texto de "Minha conta" muda
+  // depois que o acesso já foi criado — apontar pra "crie um acesso" quando
+  // ela já criou não faz sentido.
+  const tourSteps = useMemo<Step[]>(() => {
+    const buildStep = (key: SectionKey, title: string, content: string): Step => ({
+      id: key,
+      target: `[data-tour="${key}-header"]`,
+      title,
+      content,
+    });
+
+    return [
+      ...(bookingEnabled
+        ? [
+            buildStep('horarios', 'Horários de atendimento', 'Defina os dias e horários em que você atende.'),
+            buildStep('bloqueios', 'Bloqueios e folgas', 'Bloqueie datas específicas (férias, feriado, etc) sem mexer no seu expediente fixo.'),
+            buildStep('pausar', 'Desligar Agenda', 'Pause o agendamento automático quando precisar — suas clientes voltam a combinar horário pelo WhatsApp.'),
+            ...(includeNotifications
+              ? [buildStep('notificacoes', 'Notificações', 'Ative avisos no seu celular pra novos agendamentos.')]
+              : []),
+          ]
+        : []),
+      buildStep(
+        'conta',
+        'Minha conta',
+        hasAccount
+          ? 'Aqui você pode sair desse dispositivo, se precisar.'
+          : 'Crie seu acesso com senha ou Google pra entrar de qualquer celular.'
+      ),
+      buildStep('suporte', 'Suporte e dúvidas', 'Teve alguma dúvida ou travou em algo? Fala com a gente por aqui.'),
+    ];
+  }, [bookingEnabled, includeNotifications, hasAccount]);
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* `enabled={pushReady}`: até o navegador responder sobre notificações, a lista
+       *  de passos ainda não é a definitiva (o passo "Notificações" entra/sai
+       *  depois) — começar antes disso usava uma chave de "já vi" diferente da
+       *  que fica gravada no fim, e o tour reaparecia a cada visita (bug). */}
+      <ProductTour tourId="config" slug={slug} steps={tourSteps} enabled={pushReady} initialStepId={tourStartHash} />
+      {/* Meu negócio (F10.1): fora do tour de propósito — um passo novo
+       *  mudaria a chave de "já visto" e reabriria o tour inteiro para quem
+       *  já viu. */}
+      <div id="negocio">
+        <SectionCard icon={Store} title="Meu negócio" isOpen={open.negocio} onToggle={() => toggle('negocio')}>
+          <BusinessSection slug={slug} initial={business} />
+        </SectionCard>
+      </div>
+
+      {/* Meu link (F10.3) — fora do tour, mesmo motivo. */}
+      <div id="link">
+        <SectionCard icon={Link2} title="Meu link" isOpen={open.link} onToggle={() => toggle('link')}>
+          <LinkSection slug={slug} qrDataUrl={linkQr} />
+        </SectionCard>
+      </div>
+
+      {/* Regras de agendamento (F10.2) — também fora do tour, mesmo motivo. */}
+      <div id="regras">
+        <SectionCard
+          icon={SlidersHorizontal}
+          title="Regras de agendamento"
+          isOpen={open.regras}
+          onToggle={() => toggle('regras')}
+          locked={!bookingEnabled}
+          lockedHint="Disponível quando o agendamento automático (Plano Agenda) estiver ativo."
+        >
+          <BookingRulesSection slug={slug} initial={bookingRules} />
+        </SectionCard>
+      </div>
+
+      <div id="horarios">
+        <SectionCard
+          icon={Clock}
+          title="Horários de atendimento"
+          isOpen={open.horarios}
+          onToggle={() => toggle('horarios')}
+          locked={!bookingEnabled}
+          lockedHint="Disponível quando o agendamento automático (Plano Agenda) estiver ativo."
+          dataTour="horarios-header"
+        >
+          <BusinessHoursEditor slug={slug} initialHours={businessHours} />
+        </SectionCard>
+      </div>
+
+      <div id="bloqueios">
+        <SectionCard
+          icon={CalendarX}
+          title="Bloqueios e folgas"
+          isOpen={open.bloqueios}
+          onToggle={() => toggle('bloqueios')}
+          locked={!bookingEnabled}
+          lockedHint="Disponível quando o agendamento automático (Plano Agenda) estiver ativo."
+          dataTour="bloqueios-header"
+        >
+          <ScheduleBlocksManager slug={slug} blocks={scheduleBlocks} />
+        </SectionCard>
+      </div>
+
+      <div id="pausar">
+        <SectionCard
+          icon={PauseCircle}
+          title="Desligar Agenda"
+          isOpen={open.pausar}
+          onToggle={() => toggle('pausar')}
+          locked={!bookingEnabled}
+          lockedHint="Disponível quando o agendamento automático (Plano Agenda) estiver ativo."
+          dataTour="pausar-header"
+        >
+          <AgendaPauseSection slug={slug} initialPaused={agendaPaused} />
+        </SectionCard>
+      </div>
+
+      {showNotifications && (
+        <div id="notificacoes">
+          <SectionCard
+            icon={Bell}
+            title="Notificações"
+            isOpen={open.notificacoes}
+            onToggle={() => toggle('notificacoes')}
+            locked={!bookingEnabled}
+            lockedHint="Disponível quando o agendamento automático (Plano Agenda) estiver ativo."
+            dataTour="notificacoes-header"
+          >
+            <NotificationsSection slug={slug} />
+          </SectionCard>
+        </div>
+      )}
+
+      <div id="conta">
+        <SectionCard
+          icon={UserCircle}
+          title="Minha conta"
+          isOpen={open.conta}
+          onToggle={() => toggle('conta')}
+          dataTour="conta-header"
+        >
+          <AccountSection slug={slug} hasAccount={hasAccount} accountEmail={accountEmail} />
+        </SectionCard>
+      </div>
+
+      {/* Última seção de propósito (pedido, 2026-09-23) — suporte direto por
+       *  WhatsApp com o LashAgenda, não com a cliente dela. Colapsado por
+       *  padrão, mesmo padrão de todas as outras: nada fixo/flutuante
+       *  poluindo o dia a dia do app. */}
+      <div id="suporte">
+        <SectionCard
+          icon={LifeBuoy}
+          title="Suporte e dúvidas"
+          isOpen={open.suporte}
+          onToggle={() => toggle('suporte')}
+          dataTour="suporte-header"
+        >
+          <SupportSection slug={slug} />
+        </SectionCard>
+      </div>
+    </div>
+  );
+};

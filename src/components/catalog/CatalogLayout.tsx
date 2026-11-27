@@ -1,0 +1,844 @@
+'use client';
+
+import React, { useMemo, useEffect, useState } from 'react';
+import type { Step } from 'react-joyride';
+import { capture } from '@/lib/analytics';
+import { CatalogOrderData, ProcedureItem, ThemeVariant, LayoutModel, CatalogInstructionItem } from '@/types/catalog';
+import { HeaderCover } from './HeaderCover';
+import { ProcedureGrid } from './ProcedureGrid';
+import { InstructionsSection } from './InstructionsSection';
+import { CTASection } from './CTASection';
+import { VisualEditorBottomBar } from './VisualEditorBottomBar';
+import { VisualEditorModals } from './VisualEditorModals';
+import { NewCatalogWelcomeOverlay } from './NewCatalogWelcomeOverlay';
+import { BookingModal } from './modals/BookingModal';
+import { FakeBookingModal } from './modals/FakeBookingModal';
+import { AgendaDemoScreen } from './modals/AgendaDemoScreen';
+import { FakeWhatsappScreen } from './modals/FakeWhatsappScreen';
+import { ProductTour } from '@/components/tour/ProductTour';
+import { PreviewBanner } from './PreviewBanner';
+
+import '@/styles/visual-editor.css';
+
+interface CatalogLayoutProps {
+  data: CatalogOrderData;
+  isEditMode?: boolean;
+  editToken?: string;
+  isNewCatalog?: boolean;
+  onThemeChange?: (theme: ThemeVariant) => void;
+  /** Só o showroom (`/c/showcase/[niche]`, sem catálogo real por trás)
+   *  usa isso — troca o wizard de agendamento real (que bate em
+   *  /api/scheduling/*, exige uma linha de verdade em `orders`) por uma
+   *  simulação 100% local (`FakeBookingModal`), pra dar pra mostrar a
+   *  experiência de agendamento automático sem precisar de uma
+   *  profissional fake no banco (2026-09-24). Não muda nada em catálogos
+   *  reais — default `false`. */
+  demoBookingOnly?: boolean;
+  /** Repassado direto pro `HeaderCover` — ver o comentário lá. Só o
+   *  showroom usa (pedido real, 2026-10-08). */
+  themeSwitcher?: { value: ThemeVariant; onChange: (variant: ThemeVariant) => void };
+  /** Repassado direto pro `ProcedureGrid` — ver o comentário lá. Só o
+   *  showroom usa (pedido real, 2026-10-08). */
+  layoutSwitcher?: { value: LayoutModel; onChange: (layout: LayoutModel) => void };
+  /** Não renderiza a seção de Capa — só a vitrine ESTÁTICA do mockup da
+   *  Hero usa isso (`HeroMockup.tsx`, pedido real, 2026-10-19), pra mostrar
+   *  direto a tela de serviços/cards, igual o criativo do anúncio.
+   *  Decisão de propósito: NÃO é feito rolando até a seção (3 tentativas
+   *  diferentes de "rolar até o catálogo" — âncora de URL, `scrollIntoView`
+   *  no load do iframe pelo pai, e `scrollIntoView` interno no próprio
+   *  documento — causaram o MESMO bug real em produção, 2026-10-19: a
+   *  página PAI (fora do iframe) rolava sozinha ao carregar. Não renderizar
+   *  a Capa elimina a necessidade de rolar — a tela de serviços já nasce
+   *  no topo, sem nenhuma chamada de scroll envolvida. Não muda nada em
+   *  catálogos reais nem no showroom normal — default `false`. */
+  hideCoverSection?: boolean;
+  /** Prévia gratuita do funil `/lash` (2026-11-17) — catálogo ainda não
+   *  pago. O WhatsApp vira a simulação (`FakeWhatsappScreen`, a mesma do
+   *  showroom), porque ainda não existe o número dela; `showBanner` mostra a
+   *  faixa "Prévia · expira em… · Ativar" (desligada quando o catálogo está
+   *  embutido na própria página de vendas). Nunca combinado com edição. */
+  previewMode?: { expiresAt: string; activateUrl: string; showBanner: boolean };
+}
+
+export const CatalogLayout: React.FC<CatalogLayoutProps> = ({
+  data,
+  isEditMode = false,
+  editToken = '',
+  isNewCatalog = false,
+  onThemeChange,
+  demoBookingOnly = false,
+  themeSwitcher,
+  layoutSwitcher,
+  hideCoverSection = false,
+  previewMode,
+}) => {
+  const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(isNewCatalog);
+  const [catalogState, setCatalogState] = useState<CatalogOrderData>(data);
+  const [isSaved, setIsSaved] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Pilha de Histórico para Undo/Redo (↩️ e ↪️)
+  const [historyStack, setHistoryStack] = useState<CatalogOrderData[]>([data]);
+  const [historyIndex, setHistoryIndex] = useState<number>(0);
+
+  // Re-sincroniza o estado interno quando a prop `data` representa um catálogo/variante
+  // diferente (ex: showroom trocando nicho/modelo/tema). Sem isso, como o estado só é
+  // inicializado uma vez via useState(data), a troca seria ignorada. Não afeta a página
+  // real do catálogo (`/c/[slug]`), onde `data` é estático e nunca muda após o mount.
+  useEffect(() => {
+    setCatalogState(data);
+    setHistoryStack([data]);
+    setHistoryIndex(0);
+  }, [data.slug, data.layout_model, data.theme_variant]);
+
+  // Modais Ativos
+  const [activeModal, setActiveModal] = useState<
+    | 'none'
+    | 'cover'
+    | 'procedure'
+    | 'social'
+    | 'instruction_item'
+    | 'instruction_delete_confirm'
+    | 'category'
+    | 'save_confirm'
+    | 'save_success'
+    | 'save_error'
+    | 'category_delete_confirm'
+    | 'category_delete_blocked'
+    | 'proc_delete_confirm'
+    | 'discard_confirm'
+  >('none');
+  const [editingProc, setEditingProc] = useState<ProcedureItem | null>(null);
+  const [editingProcIndex, setEditingProcIndex] = useState<number | null>(null);
+  const [editingSocialType, setEditingSocialType] = useState<'whatsapp' | 'instagram' | 'address' | 'maps' | null>(null);
+  const [editingInstructionItem, setEditingInstructionItem] = useState<CatalogInstructionItem | null>(null);
+  const [editingInstructionItemIndex, setEditingInstructionItemIndex] = useState<number | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<{ name: string; count: number } | null>(null);
+  const [procToDelete, setProcToDelete] = useState<ProcedureItem | null>(null);
+  const [instructionItemToDelete, setInstructionItemToDelete] = useState<CatalogInstructionItem | null>(null);
+  const [saveErrorMessage, setSaveErrorMessage] = useState<string>('');
+
+  // Item em processo de agendamento (wizard do cliente final) — estado
+  // independente do `activeModal` acima, que é exclusivo dos modais do
+  // editor visual e nunca renderiza fora de isEditMode.
+  const [bookingItem, setBookingItem] = useState<ProcedureItem | null>(null);
+
+  // Só preenchido no showroom (`demoBookingOnly`): depois que ela simula um
+  // horário no FakeBookingModal, mostramos a Agenda de exemplo em vez do
+  // "Ok, entendido" simples (pedido 2026-09-28, pra gravar o vídeo da
+  // experiência completa da profissional).
+  const [agendaDemo, setAgendaDemo] = useState<{ service: ProcedureItem; time: string; dateLabel: string } | null>(null);
+  // Par do agendaDemo pro modo "Básico" do showroom — ver FakeWhatsappScreen.
+  const [fakeWhatsappItem, setFakeWhatsappItem] = useState<ProcedureItem | null>(null);
+
+  // Avisa o pai (mockup/modal de teste da landing page) se algum desses 2
+  // modais de agendamento está aberto — pedido real, 2026-10-16: fechar o
+  // modal de detalhe do procedimento (`ProcedureGrid.tsx`, que já avisa o
+  // seu próprio estado) já reaparecia a dica "Clique nos cards" ANTES de um
+  // desses abrir por cima dele (ex: tocar "Agendar" fecha o detalhe e abre
+  // a simulação de WhatsApp). Mensagem própria (não a mesma do detalhe) —
+  // o pai combina as duas, evita depender da ordem de render entre
+  // componentes diferentes pra não reaparecer achando de vista por um
+  // instante.
+  useEffect(() => {
+    if (window.parent === window) return;
+    window.parent.postMessage({ type: 'VITRINE_OVERLAY_MODAL', open: Boolean(bookingItem || fakeWhatsappItem) }, '*');
+  }, [bookingItem, fakeWhatsappItem]);
+
+  // Toast discreto pra cada edição local (feedback imediato antes de "Salvar")
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const showToast = (text: string) => {
+    setToastMessage(text);
+    setTimeout(() => setToastMessage(null), 2600);
+  };
+
+  // Ativar classe no body em modo edição para ajuste de padding inferior
+  useEffect(() => {
+    if (isEditMode) {
+      document.body.classList.add('has-lm-editor');
+    } else {
+      document.body.classList.remove('has-lm-editor');
+    }
+    return () => {
+      document.body.classList.remove('has-lm-editor');
+    };
+  }, [isEditMode]);
+
+  // Alerta ao tentar recarregar a página sem salvar alterações
+  useEffect(() => {
+    if (!isSaved && isEditMode) {
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        e.returnValue = 'Você possui alterações não salvas. Lembre-se de clicar em SALVAR no rodapé para publicar!';
+      };
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
+  }, [isSaved, isEditMode]);
+
+  // Push para pilha de histórico
+  const pushState = (newState: CatalogOrderData) => {
+    const updatedHistory = historyStack.slice(0, historyIndex + 1);
+    updatedHistory.push(newState);
+    setHistoryStack(updatedHistory);
+    setHistoryIndex(updatedHistory.length - 1);
+    setCatalogState(newState);
+    setIsSaved(false);
+  };
+
+  // Undo (Desfazer ↩️)
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      const prevIdx = historyIndex - 1;
+      setHistoryIndex(prevIdx);
+      setCatalogState(historyStack[prevIdx]);
+      setIsSaved(false);
+    }
+  };
+
+  // Redo (Refazer ↪️)
+  const handleRedo = () => {
+    if (historyIndex < historyStack.length - 1) {
+      const nextIdx = historyIndex + 1;
+      setHistoryIndex(nextIdx);
+      setCatalogState(historyStack[nextIdx]);
+      setIsSaved(false);
+    }
+  };
+
+  // Descartar alterações (Reset 🗑️)
+  const handleDiscard = () => {
+    setActiveModal('discard_confirm');
+  };
+
+  const handleConfirmDiscard = () => {
+    setCatalogState(data);
+    setHistoryStack([data]);
+    setHistoryIndex(0);
+    setIsSaved(true);
+    setActiveModal('none');
+  };
+
+  // Alternar Tema (🌸 / 👑)
+  const handleToggleTheme = () => {
+    const nextTheme: ThemeVariant = catalogState.theme_variant === 'luxury' ? 'rose' : 'luxury';
+    pushState({ ...catalogState, theme_variant: nextTheme });
+    if (onThemeChange) onThemeChange(nextTheme);
+  };
+
+  // Alternar Modelo (Mosaico / Clássico)
+  const handleToggleLayout = () => {
+    const nextLayout: LayoutModel = catalogState.layout_model === 'classico' ? 'mosaico' : 'classico';
+    pushState({ ...catalogState, layout_model: nextLayout });
+    showToast('🔄 Modelo alterado!');
+  };
+
+  // Sincronizar data-theme no <html>/<body> — complementa o `data-theme` já
+  // colocado direto no JSX do wrapper (abaixo), que é o que realmente evita
+  // o "pisca" (bug real reportado, 2026-09-23): esse aqui só via useEffect
+  // rodava depois do primeiro paint, então a primeira pintura da tela SEMPRE
+  // usava as cores padrão (Rosé, por não ter nenhum data-theme ainda) antes
+  // de trocar pra Luxury — visível como um flash rápido de rosa em qualquer
+  // catálogo Luxury. O wrapper resolve isso pra quase tudo (é ancestral de
+  // todo o conteúdo real do catálogo), mas html/body em si só um componente
+  // de servidor conseguiria setar sem esse useEffect — mantido só pra cobrir
+  // a cor de fundo do html/body fora do wrapper (ex: bounce de overscroll no
+  // iOS), que segue tendo esse mesmo atraso residual (bem mais raro/sutil
+  // que o flash de conteúdo que motivou o fix).
+  useEffect(() => {
+    const theme = catalogState.theme_variant || 'rose';
+    document.body.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+    return () => {
+      document.body.removeAttribute('data-theme');
+      document.documentElement.removeAttribute('data-theme');
+    };
+  }, [catalogState.theme_variant]);
+
+  // Persistir ao confirmar no modal de salvamento (sem alerts nativos de navegador)
+  //
+  // Aceita um `stateOverride` opcional (pedido real, 2026-10-22: o "Salvar
+  // Alterações" do Procedimento passou a persistir na hora, não só em
+  // memória) — sem isso, chamar esta função logo depois de um `pushState`
+  // leria o `catalogState` ANTIGO (de antes do pushState) por causa da
+  // assincronia normal do `setState` do React, mandando pro banco uma
+  // versão sem a mudança que acabou de ser feita. `silent` evita o modal
+  // de sucesso de tela cheia (que faz sentido só pro "Salvar" geral,
+  // deliberado) — o toast do próprio modal de procedimento já avisa que
+  // salvou; o modal de ERRO continua aparecendo sempre, por ser acionável.
+  const handleConfirmSaveDatabase = async (stateOverride?: CatalogOrderData, options?: { silent?: boolean }) => {
+    const stateToSave = stateOverride || catalogState;
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/catalog/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug: stateToSave.slug,
+          edit_token: editToken,
+          catalogData: stateToSave,
+        }),
+      });
+
+      const res = await response.json();
+      if (res.success) {
+        setIsSaved(true);
+        // Troca os ids provisórios de procedimentos recém-criados pelos
+        // ids reais que o banco gerou (ver comentário no endpoint) — sem
+        // pushState (não é uma mudança de conteúdo pra entrar no
+        // undo/redo, só uma correção interna de id).
+        const idMap = (res.idMap || {}) as Record<string, string>;
+        const variationIdMap = (res.variationIdMap || {}) as Record<string, string>;
+        if (Object.keys(idMap).length > 0 || Object.keys(variationIdMap).length > 0) {
+          setCatalogState((prev) => ({
+            ...prev,
+            procedures: prev.procedures.map((p) => ({
+              ...p,
+              id: idMap[p.id] || p.id,
+              variations: p.variations?.map((v) => (variationIdMap[v.id] ? { ...v, id: variationIdMap[v.id] } : v)),
+            })),
+          }));
+        }
+        if (!options?.silent) setActiveModal('save_success');
+        capture('catalog_edit_saved', { slug: stateToSave.slug });
+      } else {
+        setSaveErrorMessage(res.message || 'Erro ao salvar as alterações no catálogo.');
+        setActiveModal('save_error');
+      }
+    } catch (err) {
+      setSaveErrorMessage('Falha na conexão de rede ao salvar o catálogo.');
+      setActiveModal('save_error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Manipuladores In-Place
+  const handleUpdateClientName = (newName: string) => {
+    if (newName && newName !== catalogState.client_name) {
+      pushState({ ...catalogState, client_name: newName });
+      showToast('✅ Nome atualizado!');
+    }
+  };
+
+  const handleUpdateHeroPhrase = (newPhrase: string) => {
+    if (newPhrase !== catalogState.hero_phrase) {
+      pushState({ ...catalogState, hero_phrase: newPhrase });
+      showToast('✅ Frase atualizada!');
+    }
+  };
+
+  const handleUpdateStudioLabel = (newLabel: string) => {
+    if (newLabel && newLabel !== catalogState.studio_label) {
+      pushState({ ...catalogState, studio_label: newLabel });
+      showToast('✅ Texto atualizado!');
+    }
+  };
+
+  const handleSaveCoverUrl = (url: string) => {
+    pushState({ ...catalogState, cover_media_url: url });
+    showToast('📷 Foto de capa atualizada!');
+  };
+
+  // Recebe os 4 campos de uma vez e faz um único pushState — chamar pushState
+  // 4 vezes seguidas (1 por campo) é o bug real encontrado em produção
+  // (2026-10-02): cada chamada montava o novo estado a partir do MESMO
+  // `catalogState` da closure (ainda não atualizado pelas chamadas
+  // anteriores, já que setState é assíncrono), então só o último campo
+  // (maps) realmente "vencia" — os outros 3, incluindo o Instagram, eram
+  // silenciosamente descartados mesmo mostrando o toast de sucesso.
+  const handleSaveSocial = (values: { whatsapp: string; instagram: string; address: string; maps: string }) => {
+    pushState({
+      ...catalogState,
+      whatsapp_number: values.whatsapp,
+      instagram_handle: values.instagram,
+      address: values.address,
+      maps_url: values.maps,
+    });
+    showToast('✅ Contatos atualizados!');
+  };
+
+  // Lista livre de itens (título + descrição) da tela de Orientações
+  // (pedido real, 2026-10-09) — mesmo padrão de handleSaveProcedure/
+  // handleDeleteProcedure abaixo, só que o array vive em
+  // `catalogState.instructions.items` em vez de `catalogState.procedures`.
+  const handleOpenAddInstructionItemModal = () => {
+    setEditingInstructionItem(null);
+    setEditingInstructionItemIndex(null);
+    setActiveModal('instruction_item');
+  };
+
+  const handleEditInstructionItem = (item: CatalogInstructionItem, index: number) => {
+    setEditingInstructionItem(item);
+    setEditingInstructionItemIndex(index);
+    setActiveModal('instruction_item');
+  };
+
+  const handleSaveInstructionItem = (values: { title: string; description: string }, index: number | null) => {
+    const currentItems = catalogState.instructions?.items || [];
+    const newItems = [...currentItems];
+    const isNew = index === null || index < 0;
+    if (!isNew) {
+      newItems[index as number] = { ...newItems[index as number], ...values };
+    } else {
+      newItems.push({ id: String(Date.now()), ...values });
+    }
+    pushState({ ...catalogState, instructions: { ...catalogState.instructions, items: newItems } });
+    showToast(isNew ? '✨ Informação adicionada!' : '✅ Informação salva!');
+  };
+
+  const handleDeleteInstructionItem = (item: CatalogInstructionItem) => {
+    setInstructionItemToDelete(item);
+    setActiveModal('instruction_delete_confirm');
+  };
+
+  const handleConfirmDeleteInstructionItem = () => {
+    if (!instructionItemToDelete) return;
+    const currentItems = catalogState.instructions?.items || [];
+    const newItems = currentItems.filter((i) => i.id !== instructionItemToDelete.id);
+    pushState({ ...catalogState, instructions: { ...catalogState.instructions, items: newItems } });
+    setInstructionItemToDelete(null);
+    setActiveModal('none');
+    showToast('🗑️ Informação excluída!');
+  };
+
+  // Pedido real, 2026-10-22: o "Salvar Alterações" do Procedimento só
+  // atualizava o estado local — ela precisava lembrar de clicar no "Salvar"
+  // geral depois pra persistir de verdade (uma cliente achou que tinha
+  // perdido as edições por isso). Agora persiste na hora, reaproveitando o
+  // mesmo `handleConfirmSaveDatabase` do "Salvar" geral (mesmo endpoint,
+  // payload completo do catálogo — não só o procedimento), passando o
+  // `newState` direto em vez de depender do `catalogState` do closure
+  // (ainda não atualizado pelo `pushState` nesse mesmo instante). */
+  const handleSaveProcedure = async (proc: ProcedureItem, index: number | null) => {
+    const { maintenance, visualEffect, ...rest } = proc as ProcedureItem & {
+      maintenance?: string;
+      visualEffect?: string;
+    };
+
+    // Manutenção/Efeito Visual viram `specs`. Investimento e Duração não
+    // entram: o detalhe do serviço monta os dois a partir dos números.
+    const specs: [string, string][] = [];
+    if (maintenance) specs.push(['Manutenção', maintenance]);
+    if (visualEffect) specs.push(['Efeito Visual', visualEffect]);
+
+    const normalizedProc: ProcedureItem = { ...rest, specs };
+
+    const newProcs = [...catalogState.procedures];
+    const isNew = index === null || index < 0;
+    if (!isNew) {
+      newProcs[index as number] = normalizedProc;
+    } else {
+      newProcs.push({ ...normalizedProc, id: String(Date.now()) });
+    }
+    const newState = { ...catalogState, procedures: newProcs };
+    pushState(newState);
+    showToast(isNew ? '✨ Procedimento adicionado!' : '✅ Procedimento salvo!');
+    await handleConfirmSaveDatabase(newState, { silent: true });
+  };
+
+  const handleDeleteProcedure = (proc: ProcedureItem) => {
+    setProcToDelete(proc);
+    setActiveModal('proc_delete_confirm');
+  };
+
+  const handleConfirmDeleteProcedure = () => {
+    if (!procToDelete) return;
+    const currentCats = Array.isArray(catalogState.categories) ? catalogState.categories : categories;
+    const newProcs = catalogState.procedures.filter((p) => p.id !== procToDelete.id);
+    // Garante que as categorias existentes permaneçam salvas mesmo se ficarem com 0 procedimentos
+    pushState({ ...catalogState, categories: currentCats, procedures: newProcs });
+    setProcToDelete(null);
+    setActiveModal('none');
+    showToast('🗑️ Procedimento excluído!');
+  };
+
+  // Reordenar procedimentos por arrastar (modo edição) — recebe a lista já
+  // na nova ordem (`ProcedureGrid` já resolve o caso de reordenar só dentro
+  // de uma categoria filtrada) e reusa o mesmo pushState/undo/Salvar de
+  // qualquer outra edição. A ordem final vira `order_index` no banco a
+  // partir da posição no array (ver buildServicesPayload).
+  const handleReorderProcedures = (newProcedures: ProcedureItem[]) => {
+    pushState({ ...catalogState, procedures: newProcedures });
+  };
+
+  const handleAddCategory = (categoryName: string) => {
+    const trimmed = categoryName.trim();
+    if (!trimmed) return;
+    const currentCats = Array.isArray(catalogState.categories) ? catalogState.categories : categories;
+    if (!currentCats.includes(trimmed)) {
+      const updatedCategories = [...currentCats, trimmed];
+      pushState({ ...catalogState, categories: updatedCategories });
+      showToast('✨ Categoria criada!');
+    }
+    setActiveModal('none');
+  };
+
+  const handleAttemptDeleteCategory = (categoryName: string, count: number) => {
+    setCategoryToDelete({ name: categoryName, count });
+    if (count > 0) {
+      setActiveModal('category_delete_blocked');
+    } else {
+      setActiveModal('category_delete_confirm');
+    }
+  };
+
+  const handleConfirmDeleteCategory = () => {
+    if (!categoryToDelete) return;
+    const catName = categoryToDelete.name;
+    const currentCats = Array.isArray(catalogState.categories) ? catalogState.categories : categories;
+    const newCategories = currentCats.filter((c) => c !== catName);
+    const newProcs = catalogState.procedures.filter((p) => p.category !== catName);
+    pushState({ ...catalogState, categories: newCategories, procedures: newProcs });
+    setCategoryToDelete(null);
+    setActiveModal('none');
+    showToast('🗑️ Categoria excluída!');
+  };
+
+  const isLuxury = catalogState.theme_variant === 'luxury';
+
+  // Extrair categorias para os chips da Hero e Filtros
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    if (Array.isArray(catalogState.categories)) {
+      catalogState.categories.forEach((cat) => {
+        if (cat) set.add(cat);
+      });
+    }
+    catalogState.procedures.forEach((p) => {
+      if (p.category) set.add(p.category);
+    });
+    return Array.from(set);
+  }, [catalogState.categories, catalogState.procedures]);
+
+  // Tour guiado do editor visual (2026-09-24) — primeira vez que ela abre
+  // `/app/[slug]/catalogo`, explica o que dá pra editar e como. Passo de
+  // editar/excluir serviço só entra se já existir pelo menos um (a barra de
+  // ações só existe dentro de cada card — sem nenhum serviço, não há nada
+  // pra apontar).
+  //
+  // `skipScroll: true` na maioria dos passos: o editor rola dentro do seu
+  // próprio contêiner (`.mosaico-app`, `overflow-y: auto` próprio, não a
+  // página inteira) — o cálculo de posição do react-joyride pra esse caso
+  // ("custom scroll parent") é bem menos confiável que o de rolagem normal
+  // de página (achado calibrando `scrollOffset` sem sucesso consistente).
+  // Capa/nome já ficam visíveis assim que o editor abre (sem rolar nada), e
+  // tema/salvar ficam numa barra `position: fixed` (sempre visíveis,
+  // independente da rolagem) — nenhum dos dois precisa de rolagem
+  // nenhuma, então pular ela de propósito evita o problema todo em vez de
+  // tentar acertar um número de offset. Só o passo de editar/excluir um
+  // serviço (que pode estar em qualquer posição da lista) continua rolando
+  // de verdade.
+  const catalogEditorSteps = useMemo<Step[]>(() => {
+    const steps: Step[] = [];
+    const showsCover = !hideCoverSection;
+    if (showsCover) {
+      steps.push({ target: '[data-tour="cat-cover"]', title: 'Troque a foto de capa', content: 'Toque aqui pra escolher uma nova foto de capa do seu catálogo.', skipScroll: true });
+    }
+    // "cat-text" aponta pro nome editável — na Capa (nome+frase) ou, sem a
+    // Capa (vitrine do mockup), pro mini-cabeçalho "STUDIO + Nome" do
+    // `ProcedureGrid`.
+    steps.push({
+      target: '[data-tour="cat-text"]',
+      title: 'Textos editáveis',
+      content: showsCover
+        ? 'Toque em qualquer texto marcado (nome, frase) pra editar direto na tela.'
+        : 'Toque no nome do seu studio pra editar direto na tela.',
+      skipScroll: true,
+    });
+    if (catalogState.procedures.length > 0) {
+      steps.push({
+        target: '[data-tour="cat-edit-proc"]',
+        title: 'Editar ou excluir um serviço',
+        content: 'Toque em ✏️ pra editar ou 🗑️ pra excluir, direto no card do serviço.',
+      });
+    }
+    // Passo "cat-add-proc" (Adicionar novos serviços) removido — o botão
+    // fica logo depois da lista de procedimentos, e o balão nunca ficou
+    // bem posicionado ali antes de descobrirmos o `skipScroll` (2026-09-24).
+    //
+    // "cat-orientacoes" (pedido real, 2026-10-19) — essa tela, diferente
+    // das outras, só aparece pra visitante real se tiver pelo menos 1
+    // item (`InstructionsSection.tsx`), mas sempre aparece aqui no editor
+    // — sem esse passo do tour, ninguém saberia por que ela "some" pro
+    // lead/cliente final se deixar tudo vazio.
+    steps.push({
+      target: '[data-tour="cat-orientacoes"]',
+      title: 'Informações importantes',
+      content: 'Essa tela é opcional: se você deixar todos os campos vazios, ela não aparece pra sua cliente.',
+    });
+    steps.push({ target: '[data-tour="cat-theme"]', title: 'Personalize tema e layout', content: 'Esses botões trocam a paleta de cores e o modelo da grade (Mosaico/Clássico).', skipScroll: true });
+    steps.push({ target: '[data-tour="cat-save"]', title: 'Não esqueça de salvar', content: 'As mudanças só valem pra cliente final depois de tocar aqui.', skipScroll: true });
+    return steps;
+  }, [catalogState.procedures.length, hideCoverSection]);
+
+  // Reordenar categoria (setas ‹ › nos chips de filtro, modo edição).
+  // Usa a lista `categories` completa (não só catalogState.categories) pra
+  // funcionar mesmo com categorias "implícitas" (que só existem porque um
+  // procedimento usa elas, nunca foram adicionadas explicitamente) -- o
+  // resultado sempre vira a lista explícita completa, na mesma ordem que
+  // aparece tanto nos filtros quanto nas cápsulas da capa.
+  const handleMoveCategory = (categoryName: string, direction: 'left' | 'right') => {
+    const currentCats = [...categories];
+    const idx = currentCats.indexOf(categoryName);
+    if (idx === -1) return;
+    const targetIdx = direction === 'left' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= currentCats.length) return;
+    [currentCats[idx], currentCats[targetIdx]] = [currentCats[targetIdx], currentCats[idx]];
+    pushState({ ...catalogState, categories: currentCats });
+    showToast('↔️ Ordem atualizada!');
+  };
+
+  return (
+    // `data-theme` direto aqui (não só via useEffect acima) é o que
+    // elimina o flash de verdade: como isLuxury já vem da prop `data`
+    // (conhecida no servidor), esse atributo já sai certo no HTML que o
+    // Next manda de cara — as regras `[data-theme="luxury"] { ... }` de
+    // catalog-theme.css/scheduling-wizard.css casam com QUALQUER
+    // ancestral que tenha o atributo, não precisam ser especificamente
+    // <html>/<body>, então esse div (ancestral de toda a tela real do
+    // catálogo) já resolve pra praticamente tudo.
+    <div
+      className={`mosaico-wrapper ${isLuxury ? 'theme-luxury' : 'theme-rose'}`}
+      data-theme={isLuxury ? 'luxury' : 'rose'}
+    >
+      {/* 0. TOAST DE FEEDBACK DAS EDIÇÕES LOCAIS (pedido real, 2026-10-22:
+       *  centralizado na tela, com o fundo desfocado — antes era um pill
+       *  pequeno perto do topo, fácil de passar despercebido com o
+       *  conteúdo do catálogo atrás). */}
+      {isEditMode && toastMessage && (
+        <div className="lm-inline-toast-overlay">
+          <div className="lm-inline-toast">{toastMessage}</div>
+        </div>
+      )}
+
+      {/* 0.5 OVERLAY DE BOAS-VINDAS (SÓ NO PRIMEIRO ACESSO DE UM CATÁLOGO RECÉM-CRIADO) */}
+      {isEditMode && showWelcomeOverlay && (
+        <NewCatalogWelcomeOverlay
+          slug={catalogState.slug}
+          editToken={editToken}
+          onClose={() => setShowWelcomeOverlay(false)}
+        />
+      )}
+
+      {/* 0.6 TOUR GUIADO DO EDITOR VISUAL (SÓ NA PRIMEIRA VEZ) — espera o
+       *  overlay de boas-vindas acima fechar antes de começar, se os dois
+       *  algum dia coexistirem na mesma rota. */}
+      {isEditMode && (
+        <ProductTour tourId="catalogo" slug={catalogState.slug} steps={catalogEditorSteps} enabled={!showWelcomeOverlay} scrollOffset={20} />
+      )}
+
+      {/* 1. CONTROLES DO EDITOR VISUAL IN-PLACE (BARRA INFERIOR E TOP STATUS) */}
+      {isEditMode && (
+        <VisualEditorBottomBar
+          catalogData={catalogState}
+          isSaved={isSaved}
+          canUndo={historyIndex > 0}
+          canRedo={historyIndex < historyStack.length - 1}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onToggleTheme={handleToggleTheme}
+          onToggleLayout={handleToggleLayout}
+          onDiscard={handleDiscard}
+          onSave={() => setActiveModal('save_confirm')}
+          isSaving={isSaving}
+        />
+      )}
+
+      {/* 2. MODAIS DE EDIÇÃO VISUAL */}
+      {isEditMode && (
+        <VisualEditorModals
+          catalogData={catalogState}
+          initialCatalogData={data}
+          editToken={editToken}
+          categories={categories}
+          activeModal={activeModal}
+          errorMessage={saveErrorMessage}
+          editingProc={editingProc}
+          editingProcIndex={editingProcIndex}
+          editingSocialType={editingSocialType}
+          editingInstructionItem={editingInstructionItem}
+          editingInstructionItemIndex={editingInstructionItemIndex}
+          categoryToDelete={categoryToDelete}
+          procToDelete={procToDelete}
+          instructionItemToDelete={instructionItemToDelete}
+          onClose={() => setActiveModal('none')}
+          onSaveProcedure={handleSaveProcedure}
+          onSaveCoverUrl={handleSaveCoverUrl}
+          onSaveSocial={handleSaveSocial}
+          onSaveInstructionItem={handleSaveInstructionItem}
+          onAddCategory={handleAddCategory}
+          onConfirmDeleteCategory={handleConfirmDeleteCategory}
+          onConfirmDeleteProc={handleConfirmDeleteProcedure}
+          onConfirmDeleteInstructionItem={handleConfirmDeleteInstructionItem}
+          onConfirmDiscard={handleConfirmDiscard}
+          onOpenAddCatModal={() => setActiveModal('category')}
+          // Bug critico real em producao, 2026-10-23: NUNCA passar
+          // `handleConfirmSaveDatabase` direto como handler de `onClick` em
+          // lugar nenhum da cadeia (ConfirmModals.tsx -> VisualEditorModals.tsx
+          // -> aqui) -- o React invoca o handler passando o SyntheticEvent do
+          // clique como 1o argumento, que vira `stateOverride` (o parametro
+          // novo de d90073a, pro "Salvar Alteracoes" do Procedimento persistir
+          // na hora). O evento tem referencia circular pro DOM -- o
+          // `JSON.stringify` no corpo da funcao lancava excecao ANTES da
+          // requisicao sair, aparecendo como "Falha na conexao de rede" pra
+          // QUALQUER catalogo, em qualquer navegador (nao era rede nem Service
+          // Worker nenhum). Arrow function sem argumento garante que nunca
+          // recebe nada no lugar de `stateOverride`.
+          onConfirmSaveDatabase={() => handleConfirmSaveDatabase()}
+          onUploadError={(msg) => showToast(`❌ ${msg}`)}
+          isSaving={isSaving}
+        />
+      )}
+
+      {/* 3. APP MOBILE CONTAINER COM SUPORTE A EDIÇÃO IN-PLACE */}
+      <div
+        className={`mosaico-app is-visible ${isLuxury ? 'is-luxury' : ''}`}
+      >
+        {/* Hero Section (Foto da Capa, Nome da Profissional, Frase Hero) —
+         *  não renderiza quando `hideCoverSection` (ver comentário na prop
+         *  acima). */}
+        {!hideCoverSection && (
+          <HeaderCover
+            data={catalogState}
+            categories={categories}
+            isEditMode={isEditMode}
+            onOpenCoverModal={() => setActiveModal('cover')}
+            onUpdateClientName={handleUpdateClientName}
+            onUpdateHeroPhrase={handleUpdateHeroPhrase}
+            onUpdateStudioLabel={handleUpdateStudioLabel}
+            themeSwitcher={themeSwitcher}
+            onWhatsappClick={
+              previewMode
+                ? () => {
+                    const procs = catalogState.procedures;
+                    const pick = procs.find((p) => p.is_highlight) || procs[0];
+                    if (pick) setFakeWhatsappItem(pick);
+                  }
+                : undefined
+            }
+          />
+        )}
+
+        {/* Seção Mosaico/Clássico de Procedimentos */}
+        <ProcedureGrid
+          procedures={catalogState.procedures}
+          allCategories={categories}
+          whatsappNumber={catalogState.whatsapp_number}
+          clientName={catalogState.client_name}
+          layoutModel={catalogState.layout_model}
+          isEditMode={isEditMode}
+          // Sem a Capa (vitrine do mockup), esse componente vira a primeira
+          // tela — mostra o mini-cabeçalho "STUDIO" + nome.
+          showStudioHeader={hideCoverSection}
+          studioLabel={catalogState.studio_label}
+          onUpdateClientName={handleUpdateClientName}
+          onUpdateStudioLabel={handleUpdateStudioLabel}
+          onEditProc={(proc) => {
+            const idx = catalogState.procedures.findIndex((p) => p.id === proc.id);
+            setEditingProc(proc);
+            setEditingProcIndex(idx >= 0 ? idx : null);
+            setActiveModal('procedure');
+          }}
+          onDeleteProc={handleDeleteProcedure}
+          onReorderProcedures={handleReorderProcedures}
+          onDeleteCategory={handleAttemptDeleteCategory}
+          onMoveCategory={handleMoveCategory}
+          onOpenAddProcModal={() => {
+            setEditingProc(null);
+            setEditingProcIndex(null);
+            setActiveModal('procedure');
+          }}
+          onOpenAddCatModal={() => setActiveModal('category')}
+          // `agenda_paused` (Fase 23): ela pausou o agendamento automático
+          // temporariamente — cliente final cai no WhatsApp, como se fosse
+          // Básico, sem nenhum outro efeito (a Agenda dela continua normal).
+          bookingEnabled={!isEditMode && Boolean(catalogState.booking_enabled) && !catalogState.agenda_paused}
+          // F5.5: com o agendamento online ligado, a profissional escolhe se
+          // a cliente também vê "agendar pelo WhatsApp". Pausada, só WhatsApp.
+          whatsappAlsoEnabled={catalogState.whatsapp_button_enabled === true}
+          onRequestBooking={!isEditMode && catalogState.booking_enabled && !catalogState.agenda_paused ? setBookingItem : undefined}
+          // Só no showroom (demoBookingOnly), quando o agendamento automático
+          // está "desligado" nessa demo (sem booking_enabled, ou com
+          // agenda_paused ligado pra simular o plano Básico) — mostra a
+          // simulação de WhatsApp em vez do link real. Catálogo de verdade
+          // nunca passa isso, então o link de WhatsApp de verdade continua
+          // intacto em produção.
+          onFakeWhatsapp={
+            previewMode || (demoBookingOnly && (!catalogState.booking_enabled || catalogState.agenda_paused))
+              ? setFakeWhatsappItem
+              : undefined
+          }
+          layoutSwitcher={layoutSwitcher}
+          // Mesma ideia — sem a Capa, o ProcedureGrid vira o único lugar pra
+          // mostrar o seletor de tema do showroom (normalmente fica dentro
+          // do HeaderCover).
+          themeSwitcher={themeSwitcher}
+        />
+
+        {/* Seção Orientações — no editor aparece mesmo vazia (pra ela
+         *  preencher); no catálogo público some quando não tem nenhum item. */}
+        {(isEditMode || (catalogState.instructions?.items?.length || 0) > 0) && (
+          <InstructionsSection
+            instructions={catalogState.instructions}
+            bgUrl={catalogState.instructions_bg_url}
+            coverUrl={catalogState.cover_media_url}
+            isEditMode={isEditMode}
+            onOpenAddInstructionItemModal={handleOpenAddInstructionItemModal}
+            onEditInstructionItem={handleEditInstructionItem}
+            onDeleteInstructionItem={handleDeleteInstructionItem}
+          />
+        )}
+
+        {/* Seção Contato & Localização */}
+        <CTASection
+          data={catalogState}
+          isEditMode={isEditMode}
+          onOpenSocialModal={(type) => {
+            setEditingSocialType(type);
+            setActiveModal('social');
+          }}
+          demoMode={demoBookingOnly}
+        />
+      </div>
+
+      {/* Wizard de Agendamento (cliente final, só quando booking_enabled) */}
+      {bookingItem && !isEditMode && (
+        demoBookingOnly ? (
+          <FakeBookingModal
+            service={bookingItem}
+            professionalName={catalogState.client_name}
+            onClose={() => setBookingItem(null)}
+            onBooked={(info) => {
+              setAgendaDemo({ service: bookingItem, ...info });
+              setBookingItem(null);
+            }}
+          />
+        ) : (
+          <BookingModal
+            service={bookingItem}
+            availableServices={catalogState.procedures.filter((p) => p.active !== false && p.bookable !== false && p.duration_minutes > 0)}
+            slug={catalogState.slug}
+            professionalName={catalogState.client_name}
+            bookingWindowDays={catalogState.booking_window_days}
+            whatsappNumber={catalogState.whatsapp_number}
+            postBookingMessage={catalogState.post_booking_message}
+            onClose={() => setBookingItem(null)}
+          />
+        )
+      )}
+
+      {agendaDemo && (
+        <AgendaDemoScreen booked={agendaDemo} onClose={() => setAgendaDemo(null)} />
+      )}
+
+      {previewMode?.showBanner && !isEditMode && (
+        <PreviewBanner expiresAt={previewMode.expiresAt} activateUrl={previewMode.activateUrl} />
+      )}
+
+      {fakeWhatsappItem && (
+        <FakeWhatsappScreen item={fakeWhatsappItem} onClose={() => setFakeWhatsappItem(null)} />
+      )}
+    </div>
+  );
+};

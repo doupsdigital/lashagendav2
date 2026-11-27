@@ -49,18 +49,18 @@ cobre, **pare e pergunte**. Depois de decidida, registre em `DECISOES_DE_PRODUTO
 | Fase | Nome | Resultado visível | Status |
 |---|---|---|---|
 | F0 | Fundação do repositório | Repo no GitHub com plano, playbook e o v1 como referência | ✅ |
-| F1 | Base do StudioMenu rodando como LashAgenda | `localhost:3000` abre um app com a marca LashAgenda, código limpo do que não serve | ⬜ |
-| F2 | Modelo de dados v2 + camada de serviço | Banco dev com o schema novo; estúdio de teste criado por script | ⬜ |
-| F3 | Catálogo público + editor visual | `/c/<slug>` mostra o catálogo; a profissional edita serviços, variações, categorias, tema | ⬜ |
-| F4 | Horários e bloqueios | Grade semanal com pausa de almoço, folgas e bloqueios parciais | ⬜ |
-| F5 | Agendamento pela cliente | Cliente agenda pelo catálogo (automático ou com aprovação) e recebe link do agendamento | ⬜ |
-| F6 | Agenda da profissional | Dia/semana/mês, confirmar/recusar, agendamento manual, concluir com valor, falta, trancar | ⬜ |
-| F7 | Clientes | Lista, busca, perfil com histórico, atendimento manual | ⬜ |
-| F8 | Ficha da cliente | Ficha técnica + saúde e cuidados, só dentro do app, com consentimento | ⬜ |
-| F9 | Início (painel) + relatórios | Números do dia/mês, pendências, relatórios por período | ⬜ |
-| F10 | Configurações | Negócio, regras de agendamento, WhatsApp, conta, ajuda, link + QR | ⬜ |
-| F11 | Venda e acesso (prévia + Cakto + e-mail) | Ciclo completo: prévia → compra → ativação → e-mail → primeiros passos | ⬜ |
-| F12 | Admin + PWA + notificações | Painel admin, app instalável, push de novo agendamento | ⬜ |
+| F1 | Base do StudioMenu rodando como LashAgenda | `localhost:3000` abre um app com a marca LashAgenda, código limpo do que não serve | ✅ |
+| F2 | Modelo de dados v2 + camada de serviço | Banco dev com o schema novo; estúdio de teste criado por script | ✅ |
+| F3 | Catálogo público + editor visual | `/c/<slug>` mostra o catálogo; a profissional edita serviços, variações, categorias, tema | ✅ |
+| F4 | Horários e bloqueios | Grade semanal com pausa de almoço, folgas e bloqueios parciais | ✅ |
+| F5 | Agendamento pela cliente | Cliente agenda pelo catálogo (automático ou com aprovação) e recebe link do agendamento | ✅ |
+| F6 | Agenda da profissional | Dia/mês (semana pulada), confirmar/recusar, agendamento manual, concluir com valor, falta, trancar | ✅ |
+| F7 | Clientes | Lista, busca, perfil com histórico, atendimento manual | ✅ |
+| F8 | Ficha da cliente | Ficha técnica + saúde e cuidados, só dentro do app, com consentimento | ✅ |
+| F9 | Início (painel) + relatórios | Números do dia/mês, pendências, relatórios por período | ✅ |
+| F10 | Configurações | Negócio, regras de agendamento, WhatsApp, conta, ajuda, link + QR | ✅ |
+| F11 | Venda e acesso (prévia + Cakto + e-mail) | Ciclo completo: prévia → compra → ativação → e-mail → primeiros passos | ✅ |
+| F12 | Admin + PWA + notificações | Painel admin, app instalável, push de novo agendamento | ✅ |
 | F13 | Produção e domínio | `lashagenda.com` + subdomínios no ar, banco prod, Cakto real | ⬜ |
 | F14 | Testes finais | Roteiro completo aprovado no celular + compra real com cupom e reembolso | ⬜ |
 | F15 | Página de venda + marketing | Landing de autosserviço, pixel novo, campanha no ar | ⬜ |
@@ -184,7 +184,7 @@ upgrades vitalício, login de cliente, portal "Meus agendamentos" com conta, app
 | PostHog | Projeto novo "LashAgenda" | usuária | F1 (chave) |
 | Telegram | Reaproveitar o bot; definir se usa o mesmo chat | usuária | F11 |
 | VAPID (push) | Gerar par de chaves novo | agente (`npx web-push generate-vapid-keys`) | F12 |
-| Google OAuth | Cliente OAuth para o login com Google (Supabase Auth) | usuária, com guia | F11 |
+| Google OAuth | Cliente OAuth para o login com Google (Supabase Auth) | usuária, com guia | F13 (adiado na F11.6, decisão da dona) |
 
 ---
 
@@ -351,7 +351,7 @@ cliente e conferir que os horários oferecidos respeitam tudo.
 
 ---
 
-### F5 — Agendamento pela cliente
+### F5 — Agendamento pela cliente ✅
 
 **Objetivo:** o carro-chefe. A cliente agenda sozinha, em poucos toques, bonito.
 
@@ -385,7 +385,7 @@ meia-noite e em dia de mudança de mês.
 
 ---
 
-### F6 — Agenda da profissional — **marco M1**
+### F6 — Agenda da profissional — **marco M1** ✅
 
 **Objetivo:** o coração do uso diário.
 
@@ -393,7 +393,7 @@ meia-noite e em dia de mudança de mês.
 
 **F6.1 — Visão dia e mês do StudioMenu** sobre o modelo novo (timeline do dia, calendário do
 mês com marcações).
-**F6.2 — Visão semana** (do v1, no visual do StudioMenu) — **confirmar com a usuária se vale**;
+**F6.2 — Visão semana** — ⏭️ **pulada** (decisão da usuária em 2026-11-25: Dia + Mês bastam no celular). Texto original: (do v1, no visual do StudioMenu) — confirmar com a usuária se vale;
 no celular a visão dia costuma bastar.
 **F6.3 — Pendentes:** confirmar / recusar (com motivo opcional e botão de WhatsApp já com a
 mensagem).
@@ -409,7 +409,7 @@ marcar uma falta, trancar um horário.
 
 ---
 
-### F7 — Clientes
+### F7 — Clientes ✅
 
 **Etapas:**
 
@@ -428,7 +428,7 @@ conferir que aparece nos números.
 
 ---
 
-### F8 — Ficha da cliente
+### F8 — Ficha da cliente ✅
 
 **Objetivo:** o diferencial "só lash", com todo cuidado de privacidade.
 
@@ -455,14 +455,15 @@ abrir o agendamento seguinte dela e ver o resumo.
 
 ---
 
-### F9 — Início (painel) + relatórios
+### F9 — Início (painel) + relatórios ✅
 
 **Etapas:**
 
 **F9.1 — Início:** atenção primeiro (agendamentos aguardando confirmação), agenda de hoje,
 números (agendamentos hoje, faturado hoje, faturado no mês, novas clientes no mês), ações
 rápidas (novo agendamento, bloquear horário, compartilhar link). Card "Continue de onde parou"
-dos primeiros passos (liga na F11).
+dos primeiros passos (liga na F11). **Visual: seguir o protótipo aprovado
+`docs/referencias/prototipo-inicio-app.html`** (cores, cards, ícones).
 **F9.2 — Relatórios:** períodos (hoje, ontem, 7 dias, este mês, mês passado, este ano,
 personalizado); total de agendamentos, concluídos, cancelamentos, faltas, valor recebido,
 novas clientes, serviços mais feitos. Gráfico simples de receita.
@@ -471,7 +472,7 @@ novas clientes, serviços mais feitos. Gráfico simples de receita.
 
 ---
 
-### F10 — Configurações — **marco M2**
+### F10 — Configurações — **marco M2** ✅
 
 **Etapas:**
 
@@ -490,7 +491,7 @@ nada fora dele.
 
 ---
 
-### F11 — Venda e acesso — **marco M3**
+### F11 — Venda e acesso — **marco M3** ✅
 
 **Objetivo:** o ciclo de compra sem X1, igual ao do StudioMenu (que está sendo validado agora).
 
@@ -521,7 +522,7 @@ de teste → ativação → e-mail → primeiros passos → login no celular.
 
 ---
 
-### F12 — Admin + PWA + notificações
+### F12 — Admin + PWA + notificações ✅
 
 **Etapas:**
 

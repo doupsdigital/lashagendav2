@@ -1,0 +1,41 @@
+{
+  "name": "lashagendav2",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test:availability": "node scripts/test-availability.mjs",
+    "test": "node scripts/test-availability.mjs && node scripts/test-client-phone.mjs && node scripts/test-client-appointment.mjs && node scripts/test-client-activity.mjs && node scripts/test-appointment-actions.mjs && node scripts/test-client-list.mjs && node scripts/test-client-profile.mjs && node scripts/test-client-history.mjs && node scripts/test-client-record.mjs && node scripts/test-client-technical.mjs && node scripts/test-client-health.mjs && node scripts/test-client-consent.mjs && node scripts/test-inicio-numbers.mjs && node scripts/test-report.mjs && node scripts/test-business-profile.mjs && node scripts/test-booking-rules.mjs && node scripts/test-slug-rules.mjs && node scripts/test-demo-booking.mjs && node scripts/test-access-email.mjs && node scripts/test-self-serve-onboarding.mjs && node scripts/test-access-rules.mjs && node scripts/test-admin-metrics.mjs && node scripts/test-pwa-platform.mjs && node scripts/test-telegram-messages.mjs && node scripts/test-reserved-slugs.mjs",
+    "test:phone": "node scripts/test-client-phone.mjs"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@supabase/supabase-js": "^2.48.1",
+    "lucide-react": "^0.475.0",
+    "next": "^16.3.4",
+    "posthog-js": "^1.438.9",
+    "qrcode": "1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-joyride": "^3.2.0",
+    "server-only": "^0.0.1",
+    "sharp": "^0.34.5",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.19",
+    "@types/qrcode": "1.5.5",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@types/web-push": "^3.6.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.2",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3"
+  }
+}

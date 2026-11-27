@@ -1,0 +1,91 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Home, Settings, CalendarCheck, Users } from 'lucide-react';
+
+interface BottomNavProps {
+  slug: string;
+}
+
+const TABS_LEFT = [
+  { key: 'inicio', label: 'Início', icon: Home },
+  { key: 'clientes', label: 'Clientes', icon: Users },
+] as const;
+const TABS_RIGHT = [{ key: 'config', label: 'Config', icon: Settings }] as const;
+type Tab = (typeof TABS_LEFT)[number] | (typeof TABS_RIGHT)[number];
+
+/** Navegação inferior do app da profissional — Início à esquerda, Config à
+ *  direita, e um botão central elevado pra Agenda, mesmo padrão do `TabBar`
+ *  do LashAgenda (docs/historico/REESTRUTURACAO_VISUAL_APP.md, Fase 1). O Catálogo
+ *  saiu da tabbar — agora só se chega lá pelo card de destaque no Início. */
+export const BottomNav: React.FC<BottomNavProps> = ({ slug }) => {
+  const pathname = usePathname();
+
+  // O editor do catálogo (chegado pelo card do Início, não mais uma aba) já
+  // tem sua própria barra flutuante fixa na base (`#lm-editor-bottom-bar`,
+  // `bottom:16px`) — duas barras fixas na base colidiriam visualmente, então
+  // a navegação continua escondida enquanto o editor está aberto.
+  if (pathname?.includes(`/app/${slug}/catalogo`)) return null;
+
+  const isAgendaActive = pathname?.startsWith(`/app/${slug}/agenda`);
+
+  const renderTab = ({ key, label, icon: Icon }: Tab) => {
+    const href = `/app/${slug}/${key}`;
+    const isActive = pathname?.startsWith(href);
+    return (
+      <Link
+        key={key}
+        href={href}
+        // `active:` (CSS :active, dispara no touchstart em <a> real, sem
+        // precisar de JS) dá um retorno visual NA HORA do toque — antes de
+        // qualquer coisa da navegação em si acontecer. Resolve a sensação
+        // de "cliquei mas não sei se registrou" (bug real reportado,
+        // 2026-09-23), que a tela de loading.tsx de cada aba sozinha não
+        // cobre (essa só aparece depois que a navegação já começou).
+        className={`flex-1 flex flex-col items-center justify-center gap-1.5 text-[13px] font-semibold transition duration-150 active:scale-95 active:opacity-60 ${
+          isActive ? 'text-rose-600' : 'text-ink-faint hover:text-ink-soft'
+        }`}
+      >
+        <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 1.75} />
+        {label}
+      </Link>
+    );
+  };
+
+  return (
+    <nav
+      className="print:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-linen pb-[env(safe-area-inset-bottom)]"
+      // Falha conhecida e antiga do WebKit/Safari no iOS: `position: fixed`
+      // pode "descolar" da borda da tela e flutuar sobre o conteúdo durante
+      // a animação de recolher/mostrar a barra de ferramentas do Safari ao
+      // rolar a página (reportado no iPhone, 2026-09-23). Forçar essa barra
+      // pra própria camada gráfica (GPU) evita que o Safari recalcule a
+      // posição errado nessa animação — mitigação padrão pra esse bug do
+      // WebKit, não muda nada visualmente nem depende de lógica nossa.
+      style={{ transform: 'translateZ(0)', WebkitBackfaceVisibility: 'hidden' }}
+    >
+      <div className="max-w-md mx-auto relative flex items-stretch h-[68px]">
+        {/* Duas metades com um vão no meio pro botão central (posicionado de
+         *  forma absoluta por cima): Início e Clientes (F7.1) à esquerda,
+         *  Config à direita. */}
+        <div className="flex-1 flex">{TABS_LEFT.map(renderTab)}</div>
+        <div className="w-20 shrink-0" aria-hidden="true" />
+        <div className="flex-1 flex">{TABS_RIGHT.map(renderTab)}</div>
+
+        {/* Botão central em destaque — Agenda */}
+        {(
+          <Link
+            href={`/app/${slug}/agenda`}
+            className={`absolute left-1/2 -translate-x-1/2 -top-6 w-16 h-16 rounded-full flex items-center justify-center text-white shadow-lg shadow-rose-600/30 border-4 border-surface transition duration-150 active:scale-90 ${
+              isAgendaActive ? 'bg-rose-700' : 'bg-rose-600'
+            }`}
+          >
+            <CalendarCheck className="w-7 h-7" />
+          </Link>
+        )}
+      </div>
+    </nav>
+  );
+};

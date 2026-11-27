@@ -1,0 +1,220 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Joyride, STATUS, type Step, type EventData } from 'react-joyride';
+import { WELCOME_CLOSED_EVENT, welcomePending } from '@/lib/welcome-gate';
+
+interface ProductTourProps {
+  /** Identifica o tour pra guardar "já viu" separado por tela (inicio/agenda/config). */
+  tourId: string;
+  slug: string;
+  steps: Step[];
+  /** Quando false, não roda (ex: Agenda sem agendamento automático ligado —
+   *  nada relevante pra apontar ainda). */
+  enabled: boolean;
+  /** `id` de um step (ver `Step.id`) pra começar o tour a partir dele em vez
+   *  do primeiro — usado quando ela chega na tela por um link específico
+   *  (ex: card "Criar acesso" leva pra `#conta`; sem isso, o tour começava
+   *  do zero e "puxava" a tela de volta pro primeiro card, brigando com o
+   *  scroll que o link já tinha feito). Ignorado se não bater com nenhum
+   *  step. */
+  initialStepId?: string;
+  /** Chamado quando o tour termina de qualquer jeito — conclui ("Concluir"
+   *  no último passo) ou pula ("Pular"). Usado pelo `primeiro-contato` pra
+   *  voltar o scroll pro topo, destacar o próximo passo esperado e disparar
+   *  o confete (pedido real, 2026-10-07: antes só disparava no "Concluir",
+   *  mas ela quer o mesmo resultado nos dois casos). */
+  onFinish?: () => void;
+  /** Distância extra ao rolar até o alvo — padrão 90px por causa da barra
+   *  fixa do topo (`PageTitleBar`) que as outras telas têm. Telas sem essa
+   *  barra (ex: editor do catálogo, sem `PageTitleBar`) podem passar um
+   *  valor menor. */
+  scrollOffset?: number;
+}
+
+/** Inclui os alvos dos steps na chave — de propósito. Sem isso, um tour já
+ *  visto com MENOS passos (ex: Config com só Básico, sem Horários/
+ *  Bloqueios ainda liberados) ficava marcado como "visto" pra sempre, e
+ *  as seções que só apareceram DEPOIS (ao virar Plus) nunca chegavam a
+ *  mostrar balão nenhum (achado testando de verdade — Fase 20). Um
+ *  conjunto de passos diferente é, pra fins de "já vi isso", um tour
+ *  diferente. */
+const storageKey = (tourId: string, slug: string, steps: Step[]) =>
+  `sm_tour_seen_${tourId}_${slug}_${steps.map((s) => String(s.target)).join('|')}`;
+
+/** "Já vi" vale também quando existe um registro de um tour com MAIS passos
+ *  que incluem todos os atuais (superconjunto). O contrário não vale (um tour
+ *  antigo com menos passos não esconde as seções novas — ver `storageKey`).
+ *  Sem isso, uma mudança que só REMOVE um passo (ex: Config sem o card de
+ *  Notificações depois que ela ativa os avisos) reabria o tour inteiro. */
+const isTourSeen = (tourId: string, slug: string, steps: Step[]): boolean => {
+  const prefix = `sm_tour_seen_${tourId}_${slug}_`;
+  const current = steps.map((s) => String(s.target));
+  for (let i = 0; i < window.localStorage.length; i += 1) {
+    const k = window.localStorage.key(i);
+    if (!k || !k.startsWith(prefix)) continue;
+    const seenTargets = new Set(k.slice(prefix.length).split('|'));
+    if (current.every((t) => seenTargets.has(t))) return true;
+  }
+  return false;
+};
+
+/** Tour guiado (balões apontando elementos da tela, um por vez) — reaproveitável
+ *  pelas telas do app (primeiro contato/Início/Agenda/Config, Fase 20).
+ *  Dispara sozinho na primeira visita e nunca mais, seja completado ou
+ *  pulado — mesmo padrão de persistência dos cards de onboarding
+ *  dispensáveis (Fase 19), só que por tela em vez de por card.
+ *
+ *  Visual e comportamento calibrados a partir de teste real no celular
+ *  (feedback: o "beacon" padrão do Joyride — uma bolinha que precisa de um
+ *  toque extra antes do balão abrir — atrapalhava mais que ajudava, e o
+ *  visual genérico destoava do resto do app): `skipBeacon` pula direto pro
+ *  balão, cores/fontes batem com a paleta real do app
+ *  (`tailwind.config.js`: rose-600 `#A85560`, `ink` `#2C1810`, fontes
+ *  Fraunces/Jost de `globals.css`, não as `font-serif`/`font-sans` padrão
+ *  do Tailwind que não estão carregadas aqui). */
+export const ProductTour: React.FC<ProductTourProps> = ({ tourId, slug, steps, enabled, initialStepId, onFinish, scrollOffset = 90 }) => {
+  const [run, setRun] = useState(false);
+
+  const key = storageKey(tourId, slug, steps);
+
+  useEffect(() => {
+    if (!enabled || steps.length === 0) return;
+    const start = () => {
+      try {
+        if (!isTourSeen(tourId, slug, steps)) setRun(true);
+      } catch {
+        setRun(true);
+      }
+    };
+    if (!welcomePending(slug)) {
+      start();
+      return;
+    }
+    // Boas-vindas ainda não vistas: espera elas fecharem (F9.1; antes os
+    // balões apareciam por cima delas). Se depois de um instante elas não
+    // estiverem na tela (ex: plano sem as boas-vindas), segue normal.
+    window.addEventListener(WELCOME_CLOSED_EVENT, start, { once: true });
+    const timer = window.setTimeout(() => {
+      if (!document.querySelector('[data-welcome-onboarding]')) {
+        window.removeEventListener(WELCOME_CLOSED_EVENT, start);
+        start();
+      }
+    }, 800);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener(WELCOME_CLOSED_EVENT, start);
+    };
+  }, [enabled, key]);
+
+  const handleEvent = (data: EventData) => {
+    if (data.status === STATUS.FINISHED || data.status === STATUS.SKIPPED) {
+      setRun(false);
+      try {
+        window.localStorage.setItem(key, '1');
+      } catch {
+        // localStorage indisponível (modo privado, etc.) — só não persiste entre sessões.
+      }
+      onFinish?.();
+    }
+  };
+
+  if (!enabled || steps.length === 0) return null;
+
+  const initialStepIndex = initialStepId ? Math.max(0, steps.findIndex((s) => s.id === initialStepId)) : undefined;
+
+  return (
+    <Joyride
+      run={run}
+      steps={steps}
+      initialStepIndex={initialStepIndex}
+      continuous
+      // Sem isso, o PRIMEIRO passo não rola a tela até o alvo (só os
+      // seguintes, ao clicar "Próximo") — supõe que o primeiro alvo já
+      // está visível no carregamento, o que quase nunca é verdade aqui
+      // (achado testando: o primeiro balão de cada tela saía desencaixado).
+      scrollToFirstStep
+      onEvent={handleEvent}
+      locale={{
+        back: 'Voltar',
+        close: 'Fechar',
+        last: 'Concluir',
+        next: 'Próximo',
+        nextWithProgress: 'Próximo ({current} de {total})',
+        skip: 'Pular',
+      }}
+      options={{
+        primaryColor: '#A85560',
+        textColor: '#2C1810',
+        backgroundColor: '#ffffff',
+        arrowColor: '#ffffff',
+        overlayColor: 'rgba(44, 24, 16, 0.55)',
+        // Tem que ficar por cima da barra flutuante inferior do editor
+        // (`#lm-editor-bottom-bar`, `z-index: 999990` em visual-editor.css)
+        // — com 10000 ela cobria o balão quando ele aparecia perto do fundo
+        // da tela (passo "Informações importantes"), tampando justamente o
+        // botão "Próximo"/"Concluir" e travando a pessoa no tour (achado
+        // relatado de verdade, 2026-10-28).
+        zIndex: 1000000,
+        showProgress: true,
+        buttons: ['back', 'skip', 'primary'],
+        skipBeacon: true,
+        spotlightRadius: 16,
+        spotlightPadding: 6,
+        // Distância extra ao rolar até o alvo — sem isso, a barra fixa do
+        // topo (`PageTitleBar`, 60px, `sticky top-0`) cobria a borda de
+        // cima do card em destaque, deixando o balão desalinhado (achado
+        // testando de verdade no Início e na Agenda). Configurável pra
+        // telas sem essa barra (prop `scrollOffset`, default 90).
+        scrollOffset,
+      }}
+      styles={{
+        tooltip: {
+          borderRadius: 20,
+          padding: '20px 20px 12px',
+          boxShadow: '0 12px 32px rgba(44, 24, 16, 0.18)',
+        },
+        tooltipTitle: {
+          fontFamily: "'Fraunces', Georgia, serif",
+          fontWeight: 700,
+          fontSize: 20,
+          color: '#2C1810',
+          marginBottom: 6,
+          textAlign: 'left',
+        },
+        tooltipContent: {
+          fontFamily: "'Jost', system-ui, -apple-system, sans-serif",
+          fontSize: 15,
+          lineHeight: 1.5,
+          color: '#6B5D53',
+          padding: '0 0 8px',
+          textAlign: 'left',
+        },
+        tooltipFooter: {
+          marginTop: 8,
+        },
+        buttonPrimary: {
+          fontFamily: "'Jost', system-ui, -apple-system, sans-serif",
+          backgroundColor: '#A85560',
+          color: '#ffffff',
+          borderRadius: 12,
+          fontWeight: 700,
+          fontSize: 15,
+          padding: '10px 18px',
+        },
+        buttonBack: {
+          fontFamily: "'Jost', system-ui, -apple-system, sans-serif",
+          color: '#6B5D53',
+          fontWeight: 700,
+          fontSize: 13,
+        },
+        buttonSkip: {
+          fontFamily: "'Jost', system-ui, -apple-system, sans-serif",
+          color: '#A8998C',
+          fontWeight: 600,
+          fontSize: 13,
+        },
+      }}
+    />
+  );
+};

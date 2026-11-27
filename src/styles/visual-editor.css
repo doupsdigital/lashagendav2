@@ -1,0 +1,1449 @@
+/* ==========================================================================
+   LASHMENU / STUDIOMENU — MOTOR DE EDIÇÃO VISUAL NO MOBILE (LIVE EDITOR)
+   ========================================================================== */
+
+/* ── BARRA FLUTUANTE DE AÇÕES MOBILE (INFERIOR) ── */
+#lm-editor-bottom-bar {
+  position: fixed;
+  bottom: 16px;
+  left: 12px;
+  right: 12px;
+  height: 56px;
+  background: rgba(20, 16, 15, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(229, 169, 184, 0.35);
+  border-radius: 100px;
+  z-index: 999990;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(192, 75, 107, 0.2);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body.has-lm-editor .hero__conteudo,
+body.has-lm-editor .secao-orientacoes__conteudo,
+body.has-lm-editor .secao-contato,
+body.has-lm-editor #contato {
+  padding-bottom: 85px !important;
+}
+
+/* `.mosaico-app` é o próprio contêiner de rolagem (não a `window`), com
+ * `scroll-snap-type: y mandatory` pra experiência de "deslizar entre
+ * seções" da leitura pública. Em modo edição isso atrapalha: o tour guiado
+ * (`ProductTour`/react-joyride, 2026-09-24) rola até o alvo calculando uma
+ * posição exata, mas o snap nativo do navegador "puxava" a rolagem pro
+ * próximo ponto de encaixe em vez de parar onde o Joyride pediu — o balão
+ * acabava desenhado numa posição que não batia mais com o elemento de
+ * verdade (achado testando o passo "Adicionar novo serviço"). Desligar o
+ * snap só durante a edição resolve, sem afetar a leitura pública do
+ * catálogo (só ativo quando `body.has-lm-editor`).
+ */
+body.has-lm-editor .mosaico-app {
+  scroll-snap-type: none;
+}
+
+/* Indicador Discreto de Status no Topo Direito */
+#lm-editor-top-status {
+  position: fixed !important;
+  top: 12px !important;
+  right: 12px !important;
+  z-index: 999980 !important;
+  background: rgba(18, 14, 13, 0.92) !important;
+  border: 1px solid rgba(229, 169, 184, 0.35) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  padding: 6px 14px !important;
+  border-radius: 100px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  color: #f5ede6 !important;
+  pointer-events: none !important;
+}
+
+.lm-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
+}
+
+.lm-status-dot.is-saved {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+}
+
+/* Toast discreto de feedback pra cada edição local (antes de "Salvar").
+   Verde esmeralda sólido -- mesma cor de "sucesso" já usada no modal
+   "Publicar Alterações" e nos toasts do /admin. Nem Rose (rosa) nem
+   Luxury (dourado/marrom) usam essa faixa de cor em nenhum lugar do
+   design, então sempre destaca da foto de capa por trás, nos dois temas. */
+/* Overlay centralizado com fundo desfocado (pedido real, 2026-10-22) —
+ *  antes era só o pill perto do topo, sem destaque de fundo nenhum, fácil
+ *  de passar despercebido com o conteúdo do catálogo atrás. `pointer-events:
+ *  none` de propósito — é um flash rápido (2.6s, ver `showToast` em
+ *  `CatalogLayout.tsx`), não deve travar nenhum toque por baixo. */
+.lm-inline-toast-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999995;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 14, 16, 0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: none;
+  animation: lmToastOverlayIn 0.2s ease-out;
+}
+
+.lm-inline-toast {
+  background: #10b981;
+  border: 1.5px solid #6ee7b7;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 15px 26px;
+  border-radius: 100px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 0 4px rgba(16, 185, 129, 0.18);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: lmToastIn 0.25s ease-out;
+  max-width: calc(100vw - 48px);
+  text-align: center;
+}
+
+@keyframes lmToastOverlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lmToastIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Botões da Barra Flutuante Mobile */
+.lm-mb-btn-group {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.lm-mb-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color: #f5ede6 !important;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  font-size: 0.85rem !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.95rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.lm-mb-btn:active:not(:disabled) {
+  transform: scale(0.92) !important;
+  background: rgba(229, 169, 184, 0.3) !important;
+}
+
+.lm-mb-btn:disabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed !important;
+}
+
+.lm-mb-btn-save,
+body[data-theme="luxury"] .lm-mb-btn-save,
+html[data-theme="luxury"] .lm-mb-btn-save {
+  background: linear-gradient(135deg, #c04b6b 0%, #d96583 100%) !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 0.76rem !important;
+  padding: 0 14px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  border-radius: 100px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  box-shadow: 0 4px 14px rgba(192, 75, 107, 0.5) !important;
+  cursor: pointer !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+}
+
+.lm-mb-btn-save:active {
+  transform: scale(0.95) !important;
+}
+
+/* Telas muito estreitas (iPhone SE, Android compacto ~320-375px): 6 botões
+   de ícone + o botão Salvar não cabiam nos ~280px úteis da barra, com risco
+   de cortar/espremer o botão mais importante (Salvar). */
+@media (max-width: 380px) {
+  #lm-editor-bottom-bar {
+    left: 8px;
+    right: 8px;
+    padding: 0 6px;
+  }
+
+  .lm-mb-btn-group {
+    gap: 2px !important;
+  }
+
+  .lm-mb-btn {
+    width: 29px !important;
+    height: 29px !important;
+    min-width: 29px !important;
+    min-height: 29px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .lm-mb-btn-save {
+    padding: 0 10px !important;
+    font-size: 0.68rem !important;
+    gap: 4px !important;
+  }
+}
+
+/* ── ESTILOS E OVERLAYS EDITÁVEIS DENTRO DO CATÁLOGO ── */
+[data-lm-editable] {
+  position: relative;
+  outline: none;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+[data-lm-editable]::after {
+  content: " ✏️";
+  font-size: 0.7em;
+  opacity: 0.85;
+  margin-left: 6px;
+  display: inline-block;
+  pointer-events: none;
+  vertical-align: middle;
+  font-weight: normal;
+  transition: opacity 0.2s ease;
+}
+
+[data-lm-editable]:focus::after {
+  opacity: 0.2;
+}
+
+[data-lm-editable]:focus,
+[data-lm-editable][contenteditable="true"]:focus {
+  outline: 2px solid #e5a9b8 !important;
+  background: rgba(229, 169, 184, 0.2) !important;
+  box-shadow: 0 0 12px rgba(229, 169, 184, 0.3) !important;
+  border-radius: 8px !important;
+}
+
+/* Botão Flutuante de Alterar Foto de Capa (Alinhado à direita, abaixo do SEJA BEM VINDA) */
+.lm-cover-edit-overlay {
+  position: absolute !important;
+  top: 108px !important;
+  right: 16px !important;
+  left: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  z-index: 99995 !important;
+  margin: 0 !important;
+  pointer-events: auto !important;
+}
+
+.lm-cover-edit-btn {
+  background: rgba(255, 243, 246, 0.95) !important;
+  border: 1.5px solid rgba(229, 169, 184, 0.8) !important;
+  color: #8c2b45 !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  padding: 8px 20px !important;
+  border-radius: 100px !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  box-shadow: 0 6px 20px rgba(192, 75, 107, 0.3) !important;
+  transition: all 0.22s ease !important;
+  white-space: nowrap !important;
+  touch-action: manipulation !important;
+}
+
+.lm-cover-edit-btn:hover,
+.lm-cover-edit-btn:active {
+  background: linear-gradient(135deg, #c04b6b 0%, #d96583 100%) !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+  transform: scale(1.04) !important;
+  box-shadow: 0 8px 24px rgba(192, 75, 107, 0.45) !important;
+}
+
+/* Tema Rosé Específico */
+html[data-theme="rose"] .lm-cover-edit-btn,
+body[data-theme="rose"] .lm-cover-edit-btn,
+.theme-rose .lm-cover-edit-btn {
+  background: rgba(255, 243, 246, 0.92) !important;
+  border: 1px solid rgba(229, 169, 184, 0.6) !important;
+  color: #8c2b45 !important;
+  box-shadow: 0 6px 20px rgba(192, 75, 107, 0.25) !important;
+}
+
+/* Tema Luxury (Escuro) Específico */
+html[data-theme="luxury"] .lm-cover-edit-btn,
+body[data-theme="luxury"] .lm-cover-edit-btn,
+.theme-luxury .lm-cover-edit-btn {
+  background: rgba(20, 16, 15, 0.88) !important;
+  border: 1px solid rgba(229, 169, 184, 0.45) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Botão Lápis de Edição para WhatsApp e Instagram da Seção de Contatos */
+.lm-social-wrapper {
+  position: relative !important;
+}
+
+.lm-social-edit-pencil {
+  position: absolute !important;
+  top: -6px !important;
+  right: -6px !important;
+  background: #181413 !important;
+  border: 1.5px solid #e5a9b8 !important;
+  color: #ffffff !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.75rem !important;
+  cursor: pointer !important;
+  z-index: 99 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6) !important;
+  transition: transform 0.2s ease !important;
+}
+
+.lm-social-edit-pencil:active {
+  transform: scale(0.9) !important;
+}
+
+/* Ações de Serviço (Card de Procedimento) */
+.lm-service-card-wrapper {
+  position: relative !important;
+}
+
+/* Wrapper de arrastar-pra-reordenar (dnd-kit) em volta de cada card de
+ * procedimento — precisa ser só o suficiente pra não quebrar o grid/lista
+ * de fora (que espera o card ocupando 100% da célula/linha). */
+.lm-sortable-proc {
+  position: relative;
+  width: 100%;
+}
+
+/* Alça de arrastar — isolada no canto inferior direito do card (perto do
+ * preço), longe da pill de Editar/Excluir no topo, pra não disputar espaço
+ * nem toque com elas. Cor sólida rosa própria pra se diferenciar
+ * visualmente das outras duas ações (Editar = branco translúcido, Excluir =
+ * vermelho) — é uma interação diferente (arrastar, não tocar). */
+.lm-proc-drag-handle {
+  position: absolute;
+  /* Acima da linha de preço/duração (`.tile__meta`), não em cima dela —
+   * 10px cobria o "1h30" no card do Mosaico. */
+  bottom: 42px;
+  right: 10px;
+  z-index: 89;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 100px;
+  background: #e0568a;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+  cursor: grab;
+  /* Só essa alça intercepta o toque pra arrastar — o resto do card
+   * continua rolando a página normalmente (`touch-action` fora daqui). */
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
+
+.lm-proc-drag-handle:active {
+  cursor: grabbing;
+}
+
+.lm-svc-actions-bar {
+  position: absolute !important;
+  top: 10px !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  z-index: 90 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: rgba(20, 16, 15, 0.92) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(229, 169, 184, 0.35) !important;
+  border-radius: 100px !important;
+  padding: 4px 8px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
+  margin: 0 !important;
+  width: auto !important;
+}
+
+.lm-svc-btn-action {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  padding: 6px 14px !important;
+  min-height: 34px !important;
+  border-radius: 100px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  white-space: nowrap !important;
+  touch-action: manipulation !important;
+}
+
+.lm-svc-btn-danger {
+  background: rgba(220, 38, 38, 0.35) !important;
+  color: #fca5a5 !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  width: 34px !important;
+  height: 34px !important;
+  font-size: 0.9rem !important;
+  padding: 0 !important;
+}
+
+/* Botão de Adicionar Serviço */
+.lm-add-service-container {
+  display: flex !important;
+  justify-content: center !important;
+  margin: 20px 0 30px 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.lm-btn-add-service {
+  background: #ffffff !important;
+  border: 2px dashed #c04b6b !important;
+  color: #c04b6b !important;
+  font-size: 0.92rem !important;
+  font-weight: 700 !important;
+  padding: 16px 20px !important;
+  border-radius: 16px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  box-shadow: 0 4px 16px rgba(192, 75, 107, 0.18) !important;
+  transition: transform 0.2s ease, background 0.2s ease !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Sem prefixo de elemento (mesmo motivo do fix em catalog-theme.css,
+   2026-09-22/23): casa com qualquer ancestral com o atributo, não só
+   html/body — o wrapper do catálogo (CatalogLayout.tsx) já carrega isso
+   desde o SSR. */
+[data-theme="luxury"] .lm-btn-add-service {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 2px dashed #e5a9b8 !important;
+  color: #e5a9b8 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Chip + Nova Categoria na Barra de Filtros */
+.lm-btn-add-category-chip {
+  background: rgba(255, 240, 243, 0.95) !important;
+  border: 1.5px dashed #c04b6b !important;
+  color: #c04b6b !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  padding: 8px 16px !important;
+  height: 38px !important;
+  border-radius: 100px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease !important;
+  user-select: none !important;
+  font-family: inherit !important;
+  box-shadow: 0 2px 8px rgba(192, 75, 107, 0.12) !important;
+}
+
+.lm-btn-add-category-chip:hover,
+.lm-btn-add-category-chip:active {
+  background: #ffe3e9 !important;
+  transform: scale(0.97) !important;
+}
+
+/* ── MODAIS E BOTTOM SHEETS (ALINHADOS AO BOTTOM - REFERÊNCIA PRINT 3 & 5) ── */
+.lm-modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(14, 10, 11, 0.65) !important;
+  backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  align-items: flex-end !important; /* Alinhado à parte inferior (Bottom Sheet) */
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.lm-modal-card {
+  width: 100% !important;
+  max-width: 500px !important;
+  background: #fff8f9 !important;
+  border: none !important;
+  border-top: 4px solid #c04b6b !important;
+  border-radius: 28px 28px 0 0 !important; /* Arredondamento apenas nas quinas superiores */
+  padding: 24px 20px 28px 20px !important;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4), 0 -2px 10px rgba(192, 75, 107, 0.2) !important;
+  max-height: 85vh !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  color: #2b141b !important;
+  /* Jost é a fonte de corpo do catálogo inteiro (ver `html, body` em
+   *  `catalog-theme.css`) — os modais do editor usavam uma pilha
+   *  genérica de sistema, destoando do resto do produto (pedido real,
+   *  2026-10-22). Mantém o fallback de sistema só como rede de segurança
+   *  caso a fonte não carregue a tempo. */
+  font-family: 'Jost', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  margin: 0 !important;
+  /* Barra de rolagem sempre visível (pedido real, 2026-10-22) — pista de
+   *  que dá pra rolar e tem mais campos abaixo (mobile costuma esconder a
+   *  barra padrão até o toque de rolagem). */
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(192, 75, 107, 0.4) transparent !important;
+}
+
+.lm-modal-card::-webkit-scrollbar {
+  width: 5px !important;
+}
+
+.lm-modal-card::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.lm-modal-card::-webkit-scrollbar-thumb {
+  background: rgba(192, 75, 107, 0.4) !important;
+  border-radius: 10px !important;
+}
+
+/* Correção mais robusta só pro modal de Procedimento (pedido real,
+ *  2026-10-22 — "vazou" por baixo dos botões fixos no celular real). Vira
+ *  um container flex de verdade: título fixo em cima, `.lm-modal-scroll`
+ *  é a ÚNICA parte que rola, `.lm-modal-actions` fica fora da área de
+ *  scroll (não depende de `position: sticky` dentro de `overflow:auto`,
+ *  que tem comportamento inconsistente em alguns navegadores mobile com
+ *  barra de endereço dinâmica). Os outros modais (mais curtos, raramente
+ *  rolam) continuam no padrão sticky acima, sem essa classe extra. */
+.lm-modal-card--procedure {
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* Envolve `.lm-modal-scroll` + o indicador de rolagem próprio — fica
+ *  parado (não rola), só pra servir de referência de posição pro track
+ *  do indicador ficar fixo visualmente enquanto o conteúdo rola por
+ *  dentro.
+ *
+ *  Bug real, 2026-10-22: a 1ª versão usava `position: absolute; inset: 0`
+ *  no `.lm-modal-scroll` — isso tira ele do fluxo normal, então o card
+ *  nunca "sentia" a altura real do conteúdo e encolhia pro mínimo (só
+ *  título + botões, sem nada no meio). Virou flex aninhado em vez disso:
+ *  `.lm-modal-scroll-wrap` TAMBÉM é um container flex de 1 filho só — o
+ *  conteúdo real continua contribuindo sua altura normalmente, e só
+ *  encolhe/ganha scroll quando o conjunto passa de `max-height` no card
+ *  de fora. */
+.lm-modal-scroll-wrap {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+
+.lm-modal-scroll {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  padding-right: 14px !important;
+  /* Esconde a barra NATIVA de vez (pedido real, 2026-10-22 — ela aparecia
+   *  junto com o indicador desenhado à mão durante o toque de rolagem,
+   *  misturando os dois visualmente). Só o indicador próprio fica. */
+  scrollbar-width: none !important;
+}
+
+.lm-modal-scroll::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+}
+
+/* Indicador de rolagem desenhado à mão (pedido real, 2026-10-22: "quero
+ *  que ela apareça sempre") — a barra nativa do navegador, mesmo com
+ *  `::-webkit-scrollbar` estilizado, some sozinha fora do toque de
+ *  rolagem na maioria dos navegadores mobile (comportamento do sistema).
+ *  Esse aqui é um `<div>` normal, sem depender de scrollbar nenhuma. */
+.lm-modal-scroll-track {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  right: 2px !important;
+  width: 5px !important;
+  border-radius: 10px !important;
+  z-index: 3 !important;
+  pointer-events: none !important;
+}
+
+.lm-modal-scroll-thumb {
+  position: absolute !important;
+  left: 0 !important;
+  width: 100% !important;
+  border-radius: 10px !important;
+  background: rgba(192, 75, 107, 0.45) !important;
+}
+
+.lm-modal-card--procedure .lm-modal-actions {
+  position: static !important;
+  flex-shrink: 0 !important;
+}
+
+.lm-modal-title {
+  font-size: 1.2rem !important;
+  font-weight: 700 !important;
+  color: #c04b6b !important;
+  margin: 0 0 6px 0 !important;
+  text-align: center !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+}
+
+/* Faixa de título com contraste de verdade (pedido real, 2026-10-22) — só
+ *  nos modais de EDIÇÃO de conteúdo (Procedimento, Informações, Capa,
+ *  Contatos, Categoria); os de CONFIRMAÇÃO (excluir, descartar) ficam de
+ *  fora de propósito, continuam com o título colorido (vermelho/rosa)
+ *  simples que já sinaliza "atenção" sem precisar de faixa. "Sangra" até
+ *  a borda do card (margens negativas cancelando o padding do
+ *  `.lm-modal-card`) pra cobrir a largura toda, com cantos arredondados
+ *  só em cima pra continuar o arredondado do card. Fonte Fraunces itálica
+ *  — mesma usada no título do modal de detalhes que a cliente final vê
+ *  (`.modal__titulo`), pra os modais do editor pararem de parecer um
+ *  formulário genérico. */
+.lm-modal-title--banner {
+  background: linear-gradient(135deg, #a93259 0%, #c4426e 100%) !important;
+  color: #ffffff !important;
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-style: italic !important;
+  font-weight: 500 !important;
+  font-size: 1.5rem !important;
+  margin: -24px -20px 20px -20px !important;
+  padding: 20px 20px 16px !important;
+  border-radius: 24px 24px 0 0 !important;
+}
+
+.lm-modal-desc {
+  font-size: 0.88rem !important;
+  color: #7a525f !important;
+  text-align: center !important;
+  margin: 0 0 18px 0 !important;
+  line-height: 1.5 !important;
+}
+
+.lm-form-group {
+  margin-bottom: 14px !important;
+}
+
+.lm-form-group label {
+  display: block !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  color: #b03e5e !important;
+  margin-bottom: 7px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+}
+
+/* Pedido real, 2026-10-22: "+ Nova Categoria" e "+ Adicionar mais fotos"
+ *  eram só texto sublinhado, sem diferença nenhuma dos títulos dos campos
+ *  (mesma cor/tamanho) — ninguém percebia que eram botões clicáveis.
+ *  Viram um chip pequeno com fundo e borda (mesma linguagem visual do
+ *  "ESCOLHER FOTO" ao lado), só menor/mais discreto por ser uma ação
+ *  secundária. */
+.lm-btn-add-cat-inline {
+  display: inline-flex !important;
+  align-items: center !important;
+  background: #fff0f3 !important;
+  border: 1.5px solid #f2bdc9 !important;
+  border-radius: 100px !important;
+  color: #c04b6b !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  padding: 7px 14px !important;
+  margin: 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.lm-btn-add-cat-inline:hover {
+  background: #ffe3e9 !important;
+  border-color: #c04b6b !important;
+}
+
+.lm-form-group input:not([type="file"]),
+.lm-form-group textarea,
+.lm-form-select {
+  width: 100% !important;
+  background: #fff0f3 !important;
+  border: 1.5px solid #f2bdc9 !important;
+  border-radius: 14px !important;
+  padding: 13px 14px !important;
+  /* 16px (1rem) de propósito, não só por legibilidade — abaixo disso o
+   *  Safari do iPhone dá zoom automático ao focar o campo (comportamento
+   *  do navegador, não dá pra desativar por CSS). */
+  font-size: 1rem !important;
+  color: #2b141b !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  transition: all 0.2s ease !important;
+  font-family: inherit !important;
+}
+
+.lm-form-group input:not([type="file"]):focus,
+.lm-form-group textarea:focus,
+.lm-form-select:focus {
+  border-color: #c04b6b !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(192, 75, 107, 0.15) !important;
+}
+
+.lm-form-group input::placeholder,
+.lm-form-group textarea::placeholder {
+  color: #bfa0a8 !important;
+  font-weight: 400 !important;
+}
+
+/* Row Foto do Serviço */
+.lm-svc-photo-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+}
+
+.lm-svc-photo-preview-wrap {
+  width: 80px !important;
+  height: 80px !important;
+  border-radius: 14px !important;
+  border: 2px dashed #f2bdc9 !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+  background: #fff0f3 !important;
+  position: relative !important;
+}
+
+.lm-svc-photo-preview-wrap img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* Spinner de upload (pedido real, 2026-10-22) — centralizado no quadrado,
+ *  pra deixar claro que a foto está carregando (sem isso parecia travado).
+ *  Quando já tem foto por baixo, ganha um fundo escuro translúcido pra ficar
+ *  visível em cima de qualquer imagem. */
+.lm-svc-photo-spinner {
+  position: absolute !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.lm-svc-photo-preview-wrap img ~ .lm-svc-photo-spinner {
+  background: rgba(0, 0, 0, 0.35) !important;
+}
+
+.lm-svc-photo-spinner::after {
+  content: '' !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  border: 3px solid rgba(255, 255, 255, 0.5) !important;
+  border-top-color: #ffffff !important;
+  animation: lm-svc-photo-spin 0.7s linear infinite !important;
+}
+
+.lm-svc-photo-preview-wrap--empty .lm-svc-photo-spinner::after {
+  border: 3px solid rgba(192, 75, 107, 0.25) !important;
+  border-top-color: #c04b6b !important;
+}
+
+@keyframes lm-svc-photo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lm-svc-photo-upload-btn {
+  background: #fff0f3 !important;
+  border: 2px dashed #c04b6b !important;
+  color: #c04b6b !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  padding: 10px 16px !important;
+  border-radius: 100px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  transition: all 0.2s ease !important;
+  user-select: none !important;
+}
+
+.lm-svc-photo-upload-btn:hover {
+  background: #ffe3e9 !important;
+}
+
+/* Fotos extras do procedimento (pedido real, 2026-10-22) — continua mais
+ *  discreto que o botão principal "ESCOLHER FOTO" (a maioria das
+ *  profissionais só usa 1 foto), mas agora com cara de botão de verdade
+ *  (chip com fundo/borda) — sem isso ficava indistinguível dos títulos
+ *  dos campos (mesma cor/tamanho, sem nenhum contorno). */
+.lm-svc-photo-extra-add-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  background: #fff0f3 !important;
+  border: 1.5px solid #f2bdc9 !important;
+  border-radius: 100px !important;
+  color: #c04b6b !important;
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  padding: 9px 16px !important;
+  margin-top: 10px !important;
+  transition: all 0.2s ease !important;
+}
+
+.lm-svc-photo-extra-add-link:hover {
+  background: #ffe3e9 !important;
+  border-color: #c04b6b !important;
+}
+
+/* Linha de foto extra — reaproveita `.lm-svc-photo-row` (quadrado + botão
+ *  "ESCOLHER FOTO"), igual à linha principal, só com espaço acima pra
+ *  separar visualmente (pedido real, 2026-10-22: uma linha por clique em
+ *  "+ Adicionar mais fotos", não quadradinhos lado a lado). */
+.lm-svc-photo-row--extra {
+  margin-top: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+/* Seletor com um pouco mais de especificidade que `.lm-form-group label`
+ *  (que força `display:block` em qualquer `<label>` do form) — sem isso o
+ *  `display:flex` abaixo perde e o "+" fica desalinhado no canto. */
+.lm-svc-photo-row label.lm-svc-photo-preview-wrap--empty {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease !important;
+}
+
+.lm-svc-photo-preview-wrap--empty:hover {
+  background: #ffe3e9 !important;
+  border-color: #c04b6b !important;
+}
+
+/* Badge redondo rosa com o "+" branco (pedido real, 2026-10-22), em vez do
+ *  ícone solto na cor vinho. */
+.lm-svc-photo-add-badge {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: #c04b6b !important;
+  color: #ffffff !important;
+}
+
+.lm-svc-photo-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 7px !important;
+}
+
+.lm-svc-photo-remove-link {
+  background: none !important;
+  border: none !important;
+  color: #9c6b78 !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  text-decoration: underline !important;
+  cursor: pointer !important;
+  padding: 0 2px !important;
+}
+
+.lm-svc-photo-remove-link:hover {
+  color: #c04b6b !important;
+}
+
+/* Botão "−" pra recolher a última linha de foto extra revelada (pedido
+ *  real, 2026-10-22) — fica no final da linha (`margin-left: auto`
+ *  empurra pro fim, já que a linha tem `flex-wrap`). Só aparece na última
+ *  linha — recolher sempre a partir do fim, simétrico ao "+" que adiciona. */
+.lm-svc-photo-extra-retract {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  border: 1.5px solid #f2bdc9 !important;
+  background: #ffffff !important;
+  color: #c04b6b !important;
+  cursor: pointer !important;
+  margin-left: auto !important;
+  padding: 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.lm-svc-photo-extra-retract:hover {
+  background: #fff0f3 !important;
+  border-color: #c04b6b !important;
+}
+
+/* Dicas de fallback pro seletor de arquivo (achado real, 2026-10-02) —
+ *  discretas de propósito: só aparecem quando detectadas (in-app browser)
+ *  ou quando o clique não abriu o seletor de verdade (stuck hint), nunca
+ *  pra quem já usa normal. */
+.lm-filepicker-inapp-hint {
+  font-size: 0.72rem !important;
+  color: #7a525f !important;
+  background: #fdf0f3 !important;
+  border: 1px dashed #f2bdc9 !important;
+  border-radius: 10px !important;
+  padding: 8px 10px !important;
+  margin: 0 0 10px 0 !important;
+  line-height: 1.4 !important;
+  text-align: center !important;
+}
+
+.lm-filepicker-stuck-hint {
+  font-size: 0.74rem !important;
+  color: #8a5a3d !important;
+  background: #fff6e8 !important;
+  border: 1px solid #f0d8b0 !important;
+  border-radius: 10px !important;
+  padding: 8px 10px !important;
+  margin: 8px 0 0 0 !important;
+  line-height: 1.4 !important;
+  text-align: center !important;
+}
+
+.lm-filepicker-stuck-hint button {
+  background: none !important;
+  border: none !important;
+  color: #b0753d !important;
+  font-weight: 700 !important;
+  text-decoration: underline !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+}
+
+/* Modal Action Buttons (Footer) */
+/* Fixo embaixo do modal ao rolar (pedido real, 2026-10-22) — `.lm-modal-card`
+ *  já é o próprio container com scroll (`overflow-y: auto`), então um filho
+ *  `position: sticky` gruda nele sem precisar reestruturar o JSX de nenhum
+ *  modal. Fundo opaco igual ao do card, senão o conteúdo rolando por baixo
+ *  apareceria atrás dos botões. Vale pra todos os modais que usam essa
+ *  classe (Procedimento, Capa, Categoria, etc.) — em modais curtos que não
+ *  rolam, fica idêntico a antes. */
+.lm-modal-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin-top: 22px !important;
+  position: sticky !important;
+  bottom: 0 !important;
+  padding-top: 14px !important;
+  background: #fff8f9 !important;
+  box-shadow: 0 -8px 12px -6px rgba(0, 0, 0, 0.12) !important;
+  z-index: 2 !important;
+}
+
+.lm-modal-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 48px !important;
+  border-radius: 100px !important;
+  font-size: 0.98rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+  text-decoration: none !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  /* `<button>` não herda `font-family` do ancestral por padrão em alguns
+   *  navegadores (usa a fonte nativa do sistema/SO) — sem isso, os botões
+   *  ficavam na fonte genérica mesmo depois de trocar `.lm-modal-card`
+   *  pra Jost (pedido real, 2026-10-22). */
+  font-family: inherit !important;
+}
+
+.lm-modal-btn-cancel {
+  flex: 1 1 0% !important;
+  background: #f4e6e9 !important;
+  color: #6b4c55 !important;
+}
+
+.lm-modal-btn-cancel:hover {
+  background: #ebd8dc !important;
+}
+
+.lm-modal-btn-confirm {
+  flex: 1.4 1 0% !important;
+  background: linear-gradient(135deg, #d85b7c 0%, #c04b6b 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(192, 75, 107, 0.4) !important;
+}
+
+.lm-modal-btn-confirm:hover {
+  opacity: 0.95 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 8px 22px rgba(192, 75, 107, 0.5) !important;
+}
+
+.lm-modal-btn:active {
+  transform: scale(0.97) !important;
+}
+
+/* Resumo de Alterações no Modal de Publicação (Publicar Alterações) */
+.lm-save-summary-container {
+  background: #fff0f3 !important;
+  border: 1.5px solid #f2bdc9 !important;
+  border-radius: 14px !important;
+  padding: 12px 16px !important;
+  margin-bottom: 18px !important;
+  max-height: 180px !important;
+  overflow-y: auto !important;
+  text-align: left !important;
+  box-sizing: border-box !important;
+}
+
+.lm-save-summary-item {
+  font-size: 0.82rem !important;
+  color: #2b141b !important;
+  font-weight: 600 !important;
+  padding: 6px 0 !important;
+  border-bottom: 1px dashed rgba(242, 189, 201, 0.7) !important;
+  line-height: 1.4 !important;
+}
+
+.lm-save-summary-item:last-child {
+  border-bottom: none !important;
+}
+
+/* Ícone 'X' de Remoção nos Chips de Filtro de Categoria */
+.lm-chip-trash-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-left: 6px !important;
+  width: 18px !important;
+  height: 18px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  border-radius: 50% !important;
+  background: rgba(169, 50, 89, 0.14) !important;
+  color: #a93259 !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+}
+
+.lm-chip-trash-icon:hover {
+  background: #c04b6b !important;
+  color: #ffffff !important;
+  transform: scale(1.12) !important;
+}
+
+/* Ícones ‹ › de Mover Categoria (reordenar) nos Chips de Filtro */
+.lm-chip-move-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  background: rgba(169, 50, 89, 0.14) !important;
+  color: #a93259 !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+}
+
+.lm-chip-move-icon:hover {
+  background: #a93259 !important;
+  color: #ffffff !important;
+  transform: scale(1.12) !important;
+}
+
+.lm-chip-move-icon.is-disabled {
+  opacity: 0.3 !important;
+  cursor: default !important;
+  pointer-events: none !important;
+}
+
+/* ── OVERLAY DE BOAS-VINDAS DE CATÁLOGO RECÉM-CRIADO (PRIMEIRO ACESSO) ── */
+.lm-new-catalog-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(14, 10, 11, 0.72) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  z-index: 9999999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+}
+
+.lm-new-catalog-card {
+  width: 100% !important;
+  max-width: 400px !important;
+  background: #fff8f9 !important;
+  border-radius: 28px !important;
+  padding: 28px 22px 22px 22px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+  text-align: center !important;
+  color: #2b141b !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.lm-new-catalog-icon {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #d85b7c 0%, #c04b6b 100%) !important;
+  color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 auto 14px auto !important;
+  box-shadow: 0 8px 20px rgba(192, 75, 107, 0.4) !important;
+}
+
+.lm-new-catalog-card h2 {
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  color: #c04b6b !important;
+  margin: 0 0 8px 0 !important;
+}
+
+.lm-new-catalog-card p {
+  font-size: 0.82rem !important;
+  color: #7a525f !important;
+  line-height: 1.5 !important;
+  margin: 0 0 18px 0 !important;
+}
+
+.lm-new-catalog-link {
+  background: #fff0f3 !important;
+  border: 1.5px solid #f2bdc9 !important;
+  border-radius: 14px !important;
+  padding: 12px 14px !important;
+  margin-bottom: 18px !important;
+  text-align: left !important;
+}
+
+.lm-new-catalog-link-label {
+  display: block !important;
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  color: #b03e5e !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+  margin-bottom: 6px !important;
+}
+
+.lm-new-catalog-link-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.lm-new-catalog-link-text {
+  flex: 1 1 0% !important;
+  font-size: 0.68rem !important;
+  font-family: monospace !important;
+  color: #2b141b !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.lm-new-catalog-copy-btn {
+  flex-shrink: 0 !important;
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 50% !important;
+  background: #c04b6b !important;
+  color: #ffffff !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+}
+
+.lm-new-catalog-start-btn {
+  width: 100% !important;
+  height: 48px !important;
+  border-radius: 100px !important;
+  border: none !important;
+  background: linear-gradient(135deg, #d85b7c 0%, #c04b6b 100%) !important;
+  color: #ffffff !important;
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  box-shadow: 0 6px 18px rgba(192, 75, 107, 0.4) !important;
+  transition: all 0.2s ease !important;
+}
+
+.lm-new-catalog-start-btn:active {
+  transform: scale(0.97) !important;
+}
+
+/* Preview ao vivo do catálogo com algum painel/CTA fixo por cima (Criar com IA,
+   Passo 3 do onboarding) — esconde o botão flutuante de WhatsApp, que colide
+   visualmente com esses elementos fixos. */
+.lm-preview-no-wsp-float .wsp-float-btn {
+  display: none !important;
+}
+
+
+
+/* ==========================================================================
+   F3.3 — duração, opções (variações) e chaves do editor de serviço
+   ========================================================================== */
+.lm-duration-select {
+  display: flex !important;
+  gap: 10px !important;
+}
+
+.lm-field-hint {
+  font-size: 0.82rem !important;
+  color: #7a525f !important;
+  line-height: 1.45 !important;
+  margin: -2px 0 10px 0 !important;
+}
+
+.lm-variation {
+  border: 1.5px solid #f2bdc9 !important;
+  border-radius: 16px !important;
+  padding: 10px !important;
+  margin-bottom: 10px !important;
+  background: #ffffff !important;
+}
+
+.lm-variation__top,
+.lm-variation__bottom {
+  display: flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+.lm-variation__bottom {
+  margin-top: 8px !important;
+}
+
+.lm-variation__top input {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.lm-variation__bottom .lm-duration-select {
+  flex: 1.3 !important;
+  min-width: 0 !important;
+  gap: 6px !important;
+}
+
+.lm-variation__bottom input {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.lm-variation__actions {
+  display: flex !important;
+  gap: 4px !important;
+  flex-shrink: 0 !important;
+}
+
+.lm-variation__actions button {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 10px !important;
+  border: 1.5px solid #f2bdc9 !important;
+  background: #fff0f3 !important;
+  color: #c04b6b !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+}
+
+.lm-variation__actions button:disabled {
+  opacity: 0.35 !important;
+  cursor: default !important;
+}
+
+.lm-variation__actions .lm-variation__remove {
+  color: #dc2626 !important;
+}
+
+.lm-switch-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  width: 100% !important;
+  padding: 10px 2px !important;
+  margin-top: 6px !important;
+  background: transparent !important;
+  border: none !important;
+  text-align: left !important;
+  cursor: pointer !important;
+}
+
+.lm-switch-row:disabled {
+  cursor: default !important;
+  opacity: 0.55 !important;
+}
+
+.lm-switch-row__text {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+}
+
+.lm-switch-row__label {
+  font-size: 0.92rem !important;
+  font-weight: 700 !important;
+  color: #2b141b !important;
+}
+
+.lm-switch-row__hint {
+  font-size: 0.8rem !important;
+  color: #7a525f !important;
+  line-height: 1.4 !important;
+}
+
+.lm-switch {
+  position: relative !important;
+  flex-shrink: 0 !important;
+  width: 44px !important;
+  height: 26px !important;
+  border-radius: 100px !important;
+  background: #e8cbd3 !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.lm-switch__knob {
+  position: absolute !important;
+  top: 3px !important;
+  left: 3px !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  transition: transform 0.2s ease !important;
+}
+
+.lm-switch-row.is-on .lm-switch {
+  background: #c04b6b !important;
+}
+
+.lm-switch-row.is-on .lm-switch__knob {
+  transform: translateX(18px) !important;
+}
+
+/* Serviço escondido do catálogo (só aparece assim no editor). */
+.lm-svc-inactive {
+  opacity: 0.5;
+}
+
+.lm-svc-inactive-tag {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 3;
+  padding: 3px 9px;
+  border-radius: 100px;
+  background: rgba(36, 20, 26, 0.85);
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

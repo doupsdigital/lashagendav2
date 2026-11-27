@@ -1,0 +1,399 @@
+-- ==========================================================================
+-- STUDIOMENU — SCHEMA DO BANCO DE DADOS SUPABASE (ESTRUTURA OFICIAL V2)
+-- Execute este script no SQL Editor do seu projeto Supabase (spcbbxwnbqaeyhhygyew —
+-- projeto oficial na conta profissional desde 2026-09-16; o antigo, orrfslursoielebvdhbf,
+-- era um provisório na conta pessoal)
+-- ==========================================================================
+
+-- 1. TABELA DE PEDIDOS / CATÁLOGOS (`orders`)
+CREATE TABLE IF NOT EXISTS public.orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    slug TEXT UNIQUE NOT NULL,
+    client_name TEXT NOT NULL,
+    studio_name TEXT,
+    studio_label TEXT,
+    niche TEXT DEFAULT 'lash',
+    layout_model TEXT DEFAULT 'mosaico',
+    theme_variant TEXT DEFAULT 'rose',
+    whatsapp_number TEXT,
+    instagram_handle TEXT,
+    hero_phrase TEXT,
+    bio_description TEXT,
+    cover_media_url TEXT,
+    avatar_url TEXT,
+    instructions_bg_url TEXT,
+    final_screen_bg_url TEXT,
+    cta_bg_url TEXT,
+    address TEXT,
+    maps_url TEXT,
+    tolerances TEXT DEFAULT 'Tolerância máxima de 15 minutos de atraso.',
+    pre_care JSONB DEFAULT '[]'::jsonb,
+    post_care JSONB DEFAULT '[]'::jsonb,
+    -- Lista livre de itens (título + descrição) da tela de Orientações
+    -- (pedido real, 2026-10-09) — substitui os 4 bullets fixos. NULL/vazio
+    -- cai no fallback montado a partir de tolerances/pre_care (ver
+    -- getCatalogBySlug em catalog-service.ts) — por isso as 3 colunas
+    -- acima continuam existindo, mesmo não sendo mais editadas por nenhuma
+    -- tela nova.
+    instructions_items JSONB DEFAULT NULL,
+    procedures JSONB DEFAULT '[]'::jsonb,
+    edit_token TEXT UNIQUE DEFAULT encode(gen_random_bytes(16), 'hex'),
+    status TEXT DEFAULT 'active',
+    -- Categorias autônomas do catálogo (Visual Editor) — coluna adicionada
+    -- manualmente em produção há tempos (handoff 2026-09-09) mas nunca tinha
+    -- sido registrada aqui; drift achado só agora, na migração de banco.
+    categories TEXT[] DEFAULT '{}'::text[],
+    -- Agendamento + StudioMenu+ (docs/PLANO_AGENDAMENTO_STUDIOMENU_PLUS.md, Fase 0)
+    booking_enabled BOOLEAN DEFAULT false,
+    -- IMPORTANTE (modelo novo, 2026-10-06): 'catalog' aqui significa "catálogo
+    -- grátis, nunca pagou nada" (valor padrão, sempre existiu) — NÃO é o
+    -- mesmo que o produto "Plano Catálogo" vendido hoje (pagamento único),
+    -- que por baixo dos panos continua sendo 'basico'. 'plus' é o "Plano
+    -- Agenda" (assinatura recorrente). Só a camada de apresentação (copy)
+    -- foi renomeada; os 3 valores do enum não mudaram, de propósito.
+    plan_tier TEXT DEFAULT 'catalog' CHECK (plan_tier IN ('catalog', 'basico', 'plus')),
+    subscription_status TEXT DEFAULT 'none' CHECK (subscription_status IN ('none', 'ativo', 'suspenso', 'cancelado')),
+    asaas_customer_id TEXT,
+    asaas_subscription_id TEXT,
+    -- Tier que uma assinatura Asaas recém-criada/atualizada representa —
+    -- setado no checkout, consumido por activateSubscription() quando o
+    -- pagamento é confirmado (Fase 19, docs/migrations/2026-09-18_fase19_plano_basico.sql)
+    pending_plan_tier TEXT CHECK (pending_plan_tier IN ('basico', 'plus')),
+    -- Forma de pagamento da assinatura atual (Fase 21, docs/migrations/2026-09-21_fase21_cartao.sql)
+    payment_method TEXT CHECK (payment_method IN ('pix', 'card')),
+    -- Preço customizado por catálogo (Fase 21, docs/migrations/2026-09-21_fase21_preco_teste.sql
+    -- — originalmente só pra teste real em produção). Desde 2026-10-06 também
+    -- é o campo de preço livre do admin pro Plano Catálogo (pagamento único)
+    -- de uma cliente específica, editável em /admin/catalogos — sem teto, só
+    -- o piso de R$5 (mínimo do Asaas). Ver `resolveCatalogPrice` em
+    -- src/lib/pricing.ts.
+    billing_price_override NUMERIC(10,2) CHECK (billing_price_override IS NULL OR billing_price_override >= 5),
+    -- Define, ANTES do pagamento, se o Plano Catálogo dessa cliente é vendido
+    -- avulso (padrão) ou como assinatura mensal (Fase 27,
+    -- docs/migrations/2026-10-07_catalogo_recorrente.sql) — escolha do admin,
+    -- pra casos que preferem recorrência (ex: cliente legada mantida por
+    -- assinatura). Depois que ela paga, a tela "Plano" não usa mais essa
+    -- coluna pra decidir o que mostrar — usa `asaas_subscription_id` (ver
+    -- `SubscriptionSection.tsx`).
+    -- 'anual' (2026-10-15, docs/migrations/2026-10-15_catalogo_anual.sql):
+    -- mesma ideia de 'recorrente', só que a assinatura Asaas nasce com
+    -- cycle=YEARLY em vez de MONTHLY (ver createSubscription, src/lib/asaas.ts).
+    catalog_billing_mode TEXT NOT NULL DEFAULT 'avulso' CHECK (catalog_billing_mode IN ('avulso', 'recorrente', 'anual')),
+    -- Mesma ideia da coluna acima, só que pro Plano Agenda (2026-10-15,
+    -- docs/migrations/2026-10-15_agenda_anual_e_troca_ciclo.sql) — sem 'avulso'
+    -- (Agenda nunca foi pagamento único). Ver `resolveBillingCycle` em
+    -- src/lib/pricing.ts.
+    agenda_billing_mode TEXT NOT NULL DEFAULT 'recorrente' CHECK (agenda_billing_mode IN ('recorrente', 'anual')),
+    -- Preço customizado do Plano Agenda — campo PRÓPRIO, separado de
+    -- `billing_price_override` (2026-10-15, docs/migrations/2026-10-15_agenda_price_override.sql).
+    -- Achado real testando: compartilhar o mesmo campo do Catálogo cobrava o
+    -- valor customizado do Catálogo no Agenda por engano, sempre que fosse
+    -- menor que o preço de tabela do Agenda. Ver `resolveAgendaPrice` em
+    -- src/lib/pricing.ts.
+    agenda_price_override NUMERIC(10,2) CHECK (agenda_price_override IS NULL OR agenda_price_override >= 5),
+    -- Trava de idempotência pra troca de ciclo de cobrança
+    -- (`switchSubscriptionCycle`, src/lib/billing-service.ts) — evita
+    -- duplo-clique/retry criando 2 assinaturas novas órfãs. Liberada (volta
+    -- a NULL) no fim da operação, com ou sem erro.
+    plan_switch_lock_at TIMESTAMPTZ DEFAULT NULL,
+    -- Autoatendimento pra converter Catálogo recorrente em vitalício (Fase 28,
+    -- docs/migrations/2026-10-07_catalogo_vitalicio.sql) — id do pagamento
+    -- avulso da Asaas enquanto aguarda confirmação (evita duplicar cobrança
+    -- se ela recarregar a página antes de pagar). Limpo depois que
+    -- activateSubscription() processa a confirmação.
+    pending_lifetime_payment_id TEXT,
+    -- Preço customizado dessa conversão, por cliente — admin negocia caso a
+    -- caso. Valor PRÓPRIO, separado de `billing_price_override` (que é o
+    -- preço do Catálogo em si). Ver `resolveLifetimePrice` em src/lib/pricing.ts.
+    lifetime_price_override NUMERIC(10,2) CHECK (lifetime_price_override IS NULL OR lifetime_price_override >= 5),
+    billing_email TEXT,
+    billing_cpf_cnpj TEXT,
+    cancellation_notice_hours INTEGER DEFAULT 24,
+    -- Qual plano aparece em destaque na tela de primeiro contato (Fase 22,
+    -- docs/migrations/2026-09-22_fase22_oferta_plus.sql) — venda focada em
+    -- agendamento, sem forçar passar pelo Básico primeiro.
+    first_offer_tier TEXT NOT NULL DEFAULT 'basico' CHECK (first_offer_tier IN ('basico', 'plus')),
+    -- Pausa do agendamento automático pela própria profissional (Fase 23,
+    -- docs/migrations/2026-09-22_fase23_pausar_agenda.sql) — só afeta o que a
+    -- cliente final vê no catálogo público, nunca o acesso dela à Agenda.
+    agenda_paused BOOLEAN NOT NULL DEFAULT false,
+    -- Desativação do catálogo pelo admin (Fase 24,
+    -- docs/historico/migrations/2026-09-28_fase24_desativar_catalogo.sql) —
+    -- bloqueia o link público E o link mágico de edição (mensagem amigável
+    -- pra ela e pra cliente dela); acesso ao app continua normal.
+    catalog_disabled BOOLEAN NOT NULL DEFAULT false,
+    -- Código curto do link do app (Fase 25,
+    -- docs/historico/migrations/2026-09-28_fase25_link_curto_app.sql) —
+    -- alias público em /a/[code], gerado sob demanda pela listagem do
+    -- admin pra catálogos que ainda não têm um.
+    app_short_code TEXT UNIQUE,
+    -- Plano concedido manualmente pelo admin, fora do Asaas (Fase 26,
+    -- docs/historico/migrations/2026-09-29_fase26_plano_manual.sql) — caso
+    -- de borda (ex: cliente pagando uma vez só, fora do sistema). Só muda
+    -- o que a tela "Minha assinatura" mostra; plan_tier/subscription_status
+    -- continuam sendo a fonte de verdade pra liberar o app/agenda.
+    manual_plan BOOLEAN NOT NULL DEFAULT false,
+    -- Login real da profissional (docs/PLANO_PRODUCAO_V1.md, Fase 17): vínculo
+    -- 1:1 opcional com uma conta do Supabase Auth. NULL até ela "reivindicar"
+    -- o login (continua entrando só pelo link mágico até lá).
+    auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE SET NULL,
+    -- Flags de visibilidade por pedido (produto "Catálogo apenas", pedido real
+    -- 2026-10-27) — permitem vender só o Catálogo pra clientes com menos
+    -- intimidade com tecnologia ou pra fugir da comparação direta com apps de
+    -- agendamento do mercado, reservando o "site completo" como oferta à
+    -- parte. DEFAULT true em todos pra não mudar nada nos catálogos já
+    -- existentes; só pedidos novos criados pelo admin nascem com `false`.
+    -- Valem em qualquer modo, inclusive edição (ver CatalogLayout.tsx).
+    show_cover BOOLEAN NOT NULL DEFAULT true,
+    show_instructions BOOLEAN NOT NULL DEFAULT true,
+    show_contact_cta BOOLEAN NOT NULL DEFAULT true,
+    -- Controla o app da profissional (não o catálogo público): false = só a
+    -- aba Início, Agenda e Config ficam inacessíveis (ver
+    -- src/app/app/[slug]/layout.tsx e BottomNav.tsx).
+    show_full_app BOOLEAN NOT NULL DEFAULT true,
+    -- Oferta automática de upsell "Catálogo Completo" (pedido real,
+    -- 2026-10-28) — liga de volta as 3 telas públicas acima (Capa/
+    -- Orientações/Contato) pra clientes vendidas no produto "Catálogo
+    -- apenas", escolhido caso a caso pelo admin. Preço depende de ela já ter
+    -- pago o Catálogo simples ou não (ver resolveFullCatalogPrice/
+    -- resolveFullCatalogUpgradePrice em src/lib/pricing.ts). Religar
+    -- `full_catalog_offer_enabled` depois de desligado SEMPRE volta
+    -- `full_catalog_offer_decision` pra 'pending' (ver admin/catalogos) —
+    -- é como o admin "reseta" a oferta pra ela decidir de novo.
+    full_catalog_offer_enabled BOOLEAN NOT NULL DEFAULT false,
+    full_catalog_offer_decision TEXT NOT NULL DEFAULT 'pending'
+        CHECK (full_catalog_offer_decision IN ('pending', 'accepted', 'declined')),
+    full_catalog_price_override NUMERIC(10,2)
+        CHECK (full_catalog_price_override IS NULL OR full_catalog_price_override >= 5),
+    full_catalog_upgrade_price_override NUMERIC(10,2)
+        CHECK (full_catalog_upgrade_price_override IS NULL OR full_catalog_upgrade_price_override >= 5),
+    -- Trava de idempotência da cobrança avulsa do upgrade (mesmo padrão de
+    -- `pending_lifetime_payment_id`) — comparada com o `payment.id`
+    -- confirmado dentro de `activateSubscription` antes de destravar as
+    -- telas, pra não processar a mesma confirmação duas vezes.
+    pending_full_catalog_payment_id TEXT,
+    -- Funil de autosserviço Lash + checkout Cakto (2026-11-17, ver
+    -- docs/migrations/20261117_cakto_autosservico.sql). Tudo aditivo:
+    -- catálogos antigos continuam 'asaas' e nunca leem as colunas abaixo.
+    billing_provider TEXT NOT NULL DEFAULT 'asaas'
+        CONSTRAINT orders_billing_provider_check CHECK (billing_provider IN ('asaas', 'cakto')),
+    preview_expires_at TIMESTAMPTZ,
+    preview_code TEXT,
+    cakto_order_id TEXT,
+    cakto_subscription_ref TEXT,
+    cakto_plan TEXT CONSTRAINT orders_cakto_plan_check CHECK (cakto_plan IS NULL OR cakto_plan IN ('mensal', 'anual')),
+    paid_until TIMESTAMPTZ,
+    acquisition_source TEXT,
+    onboarding_steps JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_preview_code ON public.orders(preview_code) WHERE preview_code IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_orders_cakto_subscription_ref ON public.orders(cakto_subscription_ref) WHERE cakto_subscription_ref IS NOT NULL;
+
+-- Log de todo evento do webhook da Cakto (ela não reenvia em caso de erro).
+CREATE TABLE IF NOT EXISTS public.cakto_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    event TEXT,
+    cakto_order_id TEXT,
+    dedupe_key TEXT,
+    slug TEXT,
+    result TEXT NOT NULL CHECK (result IN ('processed', 'ignored', 'rejected', 'error')),
+    message TEXT,
+    payload JSONB
+);
+CREATE INDEX IF NOT EXISTS idx_cakto_events_dedupe ON public.cakto_events(dedupe_key);
+CREATE INDEX IF NOT EXISTS idx_cakto_events_received ON public.cakto_events(received_at DESC);
+ALTER TABLE public.cakto_events ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.cakto_events FROM anon;
+
+-- Index para buscas ultrarrápidas por slug e edit_token
+CREATE INDEX IF NOT EXISTS idx_orders_slug ON public.orders(slug);
+CREATE INDEX IF NOT EXISTS idx_orders_edit_token ON public.orders(edit_token);
+
+-- 2. TABELA DE PROCEDIMENTOS / SERVIÇOS (`order_services`)
+CREATE TABLE IF NOT EXISTS public.order_services (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    order_index INT DEFAULT 0,
+    title TEXT NOT NULL,
+    description TEXT,
+    price TEXT DEFAULT 'Sob Consulta',
+    duration TEXT,
+    category TEXT DEFAULT 'Geral',
+    image_url TEXT,
+    badge TEXT,
+    is_highlight BOOLEAN DEFAULT false,
+    specs JSONB DEFAULT '[]'::jsonb,
+    extra_photos JSONB DEFAULT '[]'::jsonb,
+    -- Agendamento (docs/PLANO_AGENDAMENTO_STUDIOMENU_PLUS.md, Fase 0): duração
+    -- estruturada em minutos, usada pelo motor de disponibilidade. O campo
+    -- `duration` (texto livre, ex. "1h30min") continua existindo só pra exibição.
+    duration_minutes INTEGER,
+    bookable BOOLEAN DEFAULT true
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_services_order_id ON public.order_services(order_id);
+
+-- 2.1 TABELAS DE AGENDAMENTO (docs/PLANO_AGENDAMENTO_STUDIOMENU_PLUS.md, Fase 0)
+--
+-- Mesma postura de segurança das tabelas acima: RLS ligado, zero policies
+-- pra `anon`, acesso só via supabaseAdmin (service_role) nas rotas de servidor.
+
+-- Grade semanal de horário de atendimento (uma linha por dia da semana ativo).
+CREATE TABLE IF NOT EXISTS public.business_hours (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
+    weekday INT NOT NULL CHECK (weekday BETWEEN 0 AND 6),
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    UNIQUE (order_id, weekday)
+);
+ALTER TABLE public.business_hours ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.business_hours FROM anon;
+
+-- Bloqueios de agenda: folga/férias (intervalo de dias) ou bloqueio parcial
+-- num dia específico (ex. almoço), via a mesma tabela com `all_day`.
+CREATE TABLE IF NOT EXISTS public.schedule_blocks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    all_day BOOLEAN DEFAULT true,
+    start_time TIME,
+    end_time TIME,
+    reason TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_schedule_blocks_order_id ON public.schedule_blocks(order_id);
+ALTER TABLE public.schedule_blocks ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.schedule_blocks FROM anon;
+
+-- Agendamentos em si. Guarda uma cópia (snapshot) do serviço no momento da
+-- marcação (`service_title`/`duration_minutes`/`price_snapshot`) pra que
+-- renomear/apagar um serviço depois não corrompa o histórico de agendamentos.
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+CREATE TABLE IF NOT EXISTS public.appointments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
+    service_id UUID REFERENCES public.order_services(id) ON DELETE SET NULL,
+    service_title TEXT NOT NULL,
+    duration_minutes INTEGER NOT NULL,
+    price_snapshot TEXT,
+    client_name TEXT NOT NULL,
+    client_whatsapp TEXT NOT NULL,
+    client_notes TEXT,
+    starts_at TIMESTAMPTZ NOT NULL,
+    -- Calculado e gravado pela aplicação no momento do insert (starts_at +
+    -- duration_minutes), não pelo banco: `timestamptz + interval` não é
+    -- IMMUTABLE no Postgres (por causa de DST em geral), então não pode
+    -- aparecer dentro da expressão de um índice/exclusion constraint.
+    ends_at TIMESTAMPTZ NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'confirmed', 'cancelled', 'completed', 'no_show')),
+    origin TEXT NOT NULL DEFAULT 'catalog' CHECK (origin IN ('catalog', 'professional')),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    -- Trava de banco (não só checagem de aplicação) contra choque de horário:
+    -- dois agendamentos não-cancelados do mesmo catálogo não podem se sobrepor.
+    EXCLUDE USING gist (
+        order_id WITH =,
+        tstzrange(starts_at, ends_at) WITH &&
+    ) WHERE (status <> 'cancelled')
+);
+CREATE INDEX IF NOT EXISTS idx_appointments_order_id ON public.appointments(order_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_starts_at ON public.appointments(starts_at);
+ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.appointments FROM anon;
+
+-- Push notifications (docs/PLANO_PRODUCAO_V1.md, Fase 18): uma linha por
+-- dispositivo/navegador inscrito nas notificações de um catálogo.
+CREATE TABLE IF NOT EXISTS public.push_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
+    endpoint TEXT NOT NULL,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (order_id, endpoint)
+);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_order_id ON public.push_subscriptions(order_id);
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.push_subscriptions FROM anon;
+
+-- 3. PERMISSÕES DE LEITURA E GRAVAÇÃO (ROW LEVEL SECURITY - RLS)
+--
+-- ATUALIZADO (auditoria de segurança, item C1): `orders` e `order_services` não têm
+-- MAIS nenhuma política pública. Toda leitura e escrita passa exclusivamente pelas
+-- rotas server-side do Next.js (src/app/api/**), que usam a service_role key — nunca
+-- exposta ao navegador (ver src/lib/supabase-admin.ts). O papel "anon" (chave pública
+-- usada no front) não tem mais nenhum privilégio nessas duas tabelas.
+--
+-- Antes disso, as policies eram todas `USING (true)`/`WITH CHECK (true)`, o que permitia
+-- que qualquer pessoa com a anon key (pública, embutida no bundle) lesse, editasse ou
+-- apagasse qualquer catálogo direto pela REST API do Supabase, e lesse o `edit_token`
+-- de qualquer linha — ignorando por completo o modelo de "link mágico" de edição.
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_services ENABLE ROW LEVEL SECURITY;
+
+-- Nenhuma policy pública: sem policy + RLS habilitado = acesso negado por padrão
+-- para qualquer papel sem BYPASSRLS (a service_role usada pelo backend sempre ignora RLS).
+REVOKE ALL ON public.orders FROM anon;
+REVOKE ALL ON public.order_services FROM anon;
+
+-- 4. BUCKET DE ARMAZENAMENTO PARA FOTOS DOS CATÁLOGOS (`catalog-assets`)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('catalog-assets', 'catalog-assets', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Upload agora só acontece via rotas server-side (service_role) — sem policy de INSERT
+-- anônima. A leitura pública permanece (as imagens dos catálogos continuam públicas).
+CREATE POLICY "Permitir Leitura Pública no Bucket catalog-assets" ON storage.objects
+FOR SELECT USING (bucket_id = 'catalog-assets');
+
+-- 5. RATE LIMITING (auditoria de segurança, item C5)
+--
+-- Contador simples por chave (ex: "admin-login:1.2.3.4"), usado pelas rotas que
+-- custam dinheiro (extract-catalog, chama a API da Anthropic), são alvo de força
+-- bruta (admin/login) ou de spam (notify-telegram, onboarding/create-catalog).
+-- Chamado via src/lib/rate-limit.ts, sempre a partir do client privilegiado
+-- (service_role), nunca diretamente pelo navegador.
+CREATE TABLE IF NOT EXISTS public.rate_limits (
+    key TEXT PRIMARY KEY,
+    count INT NOT NULL DEFAULT 1,
+    window_start TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.rate_limits FROM anon;
+
+CREATE OR REPLACE FUNCTION public.check_rate_limit(p_key TEXT, p_max_hits INT, p_window_seconds INT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_count INT;
+BEGIN
+    INSERT INTO public.rate_limits (key, count, window_start)
+    VALUES (p_key, 1, now())
+    ON CONFLICT (key) DO UPDATE SET
+        count = CASE
+            WHEN public.rate_limits.window_start < now() - (p_window_seconds || ' seconds')::interval
+                THEN 1
+            ELSE public.rate_limits.count + 1
+        END,
+        window_start = CASE
+            WHEN public.rate_limits.window_start < now() - (p_window_seconds || ' seconds')::interval
+                THEN now()
+            ELSE public.rate_limits.window_start
+        END
+    RETURNING count INTO v_count;
+
+    RETURN v_count <= p_max_hits;
+END;
+$$;

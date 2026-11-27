@@ -1,0 +1,486 @@
+/* ==========================================================================
+   WIZARD DE AGENDAMENTO (BookingModal) — Fase 2
+   Reaproveita a moldura (.modal-detalhe*, .modal__*) de catalog-theme.css.
+   Variáveis novas seguem o mesmo padrão de tema do projeto: valores rose
+   aqui em :root, mesmos nomes redeclarados em [data-theme="luxury"] — a
+   estrutura (layout/padding/radius) mora só nas regras base, nunca duplicada
+   por tema.
+   ========================================================================== */
+
+:root {
+  /* Contraste (legibilidade no celular): o cinza-rosado antigo das labels
+     (--modal-spec-k-color, #7a5c67) dava ~3,9:1 sobre o fundo rosa da sheet —
+     abaixo do mínimo de 4,5:1. Aqui as labels usam o tom escuro do texto
+     (--modal-desc-color, #553d46, ~6,7:1). Só o wizard — a paleta do resto do
+     catálogo não muda. */
+  --wizard-input-bg: rgba(255, 255, 255, 0.78);
+  --wizard-input-border: rgba(169, 50, 89, 0.32);
+  --wizard-input-color: var(--modal-title-color);
+  --wizard-input-placeholder: #86636f;
+  --wizard-input-focus-border: var(--modal-cta-bg);
+  --wizard-label-color: var(--modal-desc-color);
+  --wizard-step-dot-bg: var(--modal-spec-border);
+  --wizard-step-dot-active-bg: var(--modal-cta-bg);
+  --wizard-back-color: var(--modal-desc-color);
+  --wizard-error-color: #c0392b;
+  --wizard-error-bg: rgba(192, 57, 43, 0.08);
+  --wizard-summary-border: var(--modal-spec-border);
+  --wizard-success-color: #1f8a55;
+  --wizard-success-bg: rgba(31, 138, 85, 0.12);
+}
+
+[data-theme="luxury"] {
+  --wizard-input-bg: rgba(255, 255, 255, 0.06);
+  --wizard-input-border: rgba(201, 163, 137, 0.32);
+  --wizard-input-color: var(--modal-title-color);
+  --wizard-input-placeholder: rgba(243, 239, 233, 0.6);
+  --wizard-input-focus-border: var(--modal-cta-bg);
+  --wizard-label-color: rgba(243, 239, 233, 0.82);
+  --wizard-step-dot-bg: var(--modal-spec-border);
+  --wizard-step-dot-active-bg: var(--modal-cta-bg);
+  --wizard-back-color: var(--modal-desc-color);
+  --wizard-error-color: #e07a68;
+  --wizard-error-bg: rgba(224, 122, 104, 0.12);
+  --wizard-summary-border: var(--modal-spec-border);
+  --wizard-success-color: #4ade80;
+  --wizard-success-bg: rgba(74, 222, 128, 0.14);
+}
+
+/* Indicador de passo (1/2/3) */
+.wizard__steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+.wizard__step-dot {
+  flex: 1;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--wizard-step-dot-bg);
+  transition: background-color 0.25s ease;
+}
+.wizard__step-dot.is-active,
+.wizard__step-dot.is-done {
+  background: var(--wizard-step-dot-active-bg);
+}
+
+.wizard__voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  padding: 0 0 14px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--wizard-back-color);
+  cursor: pointer;
+}
+
+.wizard__label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--wizard-label-color);
+  margin-bottom: 10px;
+}
+
+/* Passo 1: dias + horários */
+.wizard__dias {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 14px;
+  margin-bottom: 6px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.wizard__dias::-webkit-scrollbar { display: none; }
+
+.wizard__dia-chip {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 56px;
+  padding: 10px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--chip-color);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
+  border-radius: 14px;
+  box-shadow: var(--chip-shadow);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.wizard__dia-chip strong {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 19px;
+  font-weight: 500;
+}
+.wizard__dia-chip.is-ativo {
+  color: var(--chip-active-color);
+  background: var(--chip-active-bg);
+  border-color: var(--chip-active-border);
+  box-shadow: var(--chip-active-shadow);
+}
+
+.wizard__slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 8px;
+  min-height: 44px;
+}
+
+.wizard__slot {
+  padding: 12px 6px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--chip-color);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.wizard__slot.is-ativo {
+  color: var(--chip-active-color);
+  background: var(--chip-active-bg);
+  border-color: var(--chip-active-border);
+  box-shadow: var(--chip-active-shadow);
+}
+
+.wizard__vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--wizard-label-color);
+  background: var(--wizard-input-bg);
+  border: 1px dashed var(--wizard-input-border);
+  border-radius: 14px;
+  padding: 26px 16px;
+  text-align: center;
+}
+.wizard__vazio svg {
+  color: var(--wizard-back-color);
+  opacity: 0.7;
+}
+
+/* Passo 2: formulário */
+.wizard__campo { margin-bottom: 16px; }
+
+.wizard__input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  font-size: 16px; /* 16px também evita o zoom automático do iOS ao focar o campo */
+  font-family: inherit;
+  color: var(--wizard-input-color);
+  background: var(--wizard-input-bg);
+  border: 1.5px solid var(--wizard-input-border);
+  border-radius: 12px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.wizard__input::placeholder { color: var(--wizard-input-placeholder); opacity: 1; }
+.wizard__input:focus { border-color: var(--wizard-input-focus-border); }
+
+textarea.wizard__input {
+  height: auto;
+  min-height: 72px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+/* Resumo (passo 3) */
+.wizard__resumo {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 22px;
+}
+.wizard__resumo-linha {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 0;
+  border-top: 1px solid var(--wizard-summary-border);
+}
+.wizard__resumo-k {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--wizard-label-color);
+}
+.wizard__resumo-v {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 17px;
+  color: var(--modal-spec-v-color);
+  text-align: right;
+}
+
+.wizard__erro {
+  font-size: 14.5px;
+  color: var(--wizard-error-color);
+  background: var(--wizard-error-bg);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.wizard__cta[disabled] {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Tela de sucesso (F5.4): recado da profissional, dica do link e ações. */
+.wizard-success__recado {
+  text-align: left;
+  border: 1px solid var(--wizard-summary-border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin: 0 0 14px;
+}
+.wizard-success__recado p {
+  margin: 6px 0 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  white-space: pre-line;
+  color: var(--modal-spec-v-color);
+}
+.wizard-success__dica {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--wizard-label-color);
+  margin: 0 0 14px;
+}
+.wizard-success__acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wizard-success__acoes .modal__cta {
+  flex: none;
+  text-decoration: none;
+}
+.wizard-success__acao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid var(--wizard-input-border);
+  background: var(--wizard-input-bg);
+  color: var(--modal-spec-v-color);
+  font-size: 14.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.wizard-success__fechar {
+  height: 40px;
+  border: none;
+  background: none;
+  color: var(--wizard-label-color);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Serviços do agendamento (F5.1) — lista no topo do passo 1, com
+ *  "+ Adicionar outro serviço" e o total quando há mais de um. */
+.wizard__servicos {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+.wizard__servico,
+.wizard__servico-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--wizard-summary-border);
+}
+.wizard__servico-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.wizard__servico-nome {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--modal-spec-v-color);
+}
+.wizard__servico-meta {
+  font-size: 13px;
+  color: var(--wizard-label-color);
+}
+.wizard__servico-total {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--modal-spec-v-color);
+}
+.wizard__servico-remover {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--wizard-input-border);
+  background: var(--wizard-input-bg);
+  color: var(--wizard-label-color);
+  cursor: pointer;
+}
+.wizard__adicionar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 18px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px dashed var(--wizard-input-focus-border);
+  background: transparent;
+  color: var(--wizard-input-focus-border);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wizard__picker {
+  border: 1px solid var(--wizard-input-border);
+  background: var(--wizard-input-bg);
+  border-radius: 14px;
+  padding: 10px 12px 4px;
+  margin-bottom: 18px;
+}
+.wizard__picker-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.wizard__picker-item {
+  border-top: 1px solid var(--wizard-summary-border);
+}
+.wizard__picker-servico,
+.wizard__picker-opcao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 0;
+  border: none;
+  background: none;
+  text-align: left;
+  color: var(--modal-spec-v-color);
+  cursor: pointer;
+}
+.wizard__picker-opcoes {
+  padding: 0 0 6px 14px;
+}
+.wizard__picker-opcao {
+  padding: 9px 0;
+  font-size: 14.5px;
+  border-top: 1px dashed var(--wizard-summary-border);
+}
+.wizard__dia-mes {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+}
+
+@media (max-width: 480px) {
+  .wizard__dia-chip { min-width: 50px; padding: 8px 4px; }
+  .wizard__slots { grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); }
+}
+
+/* ==========================================================================
+   MODAL DE SUCESSO (passo 3, centralizado) — separado do bottom sheet do
+   wizard de propósito: escolher dia/horário/dados é uma ação em andamento
+   (sheet), mas "agendamento reservado" é um evento concluído, por isso vira
+   um modal centralizado — mesmo padrão do modal de sucesso do app da
+   profissional, adaptado pro sistema de variáveis de tema do catálogo
+   público (Rose/Luxury).
+   ========================================================================== */
+.wizard-success {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.wizard-success__backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--modal-backdrop-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.wizard-success__card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 380px;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--modal-sheet-bg);
+  border: 1px solid var(--modal-sheet-border);
+  border-radius: 22px;
+  box-shadow: var(--modal-sheet-shadow);
+  padding: 34px 24px 24px;
+  text-align: center;
+}
+
+.wizard-success__icon {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: var(--wizard-success-bg);
+  color: var(--wizard-success-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wizard-success__titulo {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 500;
+  font-style: italic;
+  font-size: 26px;
+  line-height: 1.15;
+  color: var(--modal-title-color);
+  margin: 0 0 8px;
+}
+
+.wizard-success__subtitulo {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--modal-desc-color);
+  margin: 0 0 22px;
+}
