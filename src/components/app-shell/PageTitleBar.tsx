@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Bell, Download } from 'lucide-react';
 import { useInstallPrompt } from './InstallPromptProvider';
-import { IosInstallSheet } from './IosInstallSheet';
+import { InstallHelpSheet, type InstallHelpPlatform } from './InstallHelpSheet';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { NotificationCenterSheet } from '@/components/push/NotificationCenterSheet';
 
@@ -29,10 +29,19 @@ interface PageTitleBarProps {
  *  em vez do mini-banner automático dele); depois de instalado, vira um
  *  sino que abre a Central de notificações. */
 export const PageTitleBar: React.FC<PageTitleBarProps> = ({ title, icon, slug }) => {
-  const { canInstall, isInstalled, isIOS, promptInstall } = useInstallPrompt();
+  const { canInstall, isInstalled, isIOS, isAndroid, inAppBrowser, promptInstall } = useInstallPrompt();
   const { permission, subscribed } = usePushNotifications(slug);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [iosSheetOpen, setIosSheetOpen] = useState(false);
+  const [helpPlatform, setHelpPlatform] = useState<InstallHelpPlatform | null>(null);
+  // F12.2: o botão aparece sempre que dá para instalar de algum jeito — com o
+  // diálogo do Chrome quando ele existe; senão, o passo a passo do aparelho
+  // (iPhone, Android sem o diálogo, ou navegador de dentro de outro app).
+  const showInstall = !isInstalled && (canInstall || isIOS || isAndroid);
+  const onInstall = () => {
+    if (inAppBrowser) setHelpPlatform('in-app');
+    else if (canInstall) void promptInstall();
+    else setHelpPlatform(isIOS ? 'ios' : 'android');
+  };
   // Só chama atenção pro sino enquanto a notificação ainda não foi decidida
   // (nem ativada, nem recusada) — some assim que a profissional resolver.
   // Também quando a permissão continua concedida mas a inscrição sumiu (ex:
@@ -55,22 +64,11 @@ export const PageTitleBar: React.FC<PageTitleBarProps> = ({ title, icon, slug })
                 </span>
               )}
             </button>
-          ) : canInstall ? (
+          ) : showInstall ? (
             <button
               type="button"
-              onClick={promptInstall}
-              className="flex items-center gap-1.5 h-8 pl-2.5 pr-3 rounded-full bg-rose-50 text-rose-700 text-[13px] font-bold"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Instalar
-            </button>
-          ) : isIOS ? (
-            // Sem diálogo nativo de instalação no iOS (a Apple não oferece
-            // esse evento) — o botão abre o passo a passo manual em vez de
-            // disparar `promptInstall`, que só funciona no Chrome/Android.
-            <button
-              type="button"
-              onClick={() => setIosSheetOpen(true)}
+              onClick={onInstall}
+              data-install-button
               className="flex items-center gap-1.5 h-8 pl-2.5 pr-3 rounded-full bg-rose-50 text-rose-700 text-[13px] font-bold"
             >
               <Download className="w-3.5 h-3.5" />
@@ -82,7 +80,7 @@ export const PageTitleBar: React.FC<PageTitleBarProps> = ({ title, icon, slug })
       </header>
 
       {notificationsOpen && <NotificationCenterSheet slug={slug} onClose={() => setNotificationsOpen(false)} />}
-      {iosSheetOpen && <IosInstallSheet onClose={() => setIosSheetOpen(false)} />}
+      {helpPlatform && <InstallHelpSheet platform={helpPlatform} onClose={() => setHelpPlatform(null)} />}
     </>
   );
 };

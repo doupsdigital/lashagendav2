@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-27 — F12.1 concluída (admin).**
+> Última atualização: **2026-11-27 — F12.2 concluída (PWA).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F12 — Admin + PWA + notificações** |
-| **Próxima etapa** | **F12.2 — PWA** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F12.3 — Push** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11 (F11: teste do marco M3 pela usuária ainda a fazer — precisa da `desenv` publicada na Vercel, produtos de teste e webhook da Cakto, `RESEND_API_KEY`; F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -219,6 +219,13 @@
   login criado, plano, origem, avisos da Cakto). Excluir estúdio apaga também o login (Auth).
   Sessão do admin assinada com a senha: trocar `ADMIN_PASSWORD` derruba as sessões. Admin com
   `noindex`.
+- PWA (F12.2): manifest por estúdio (`/app/[slug]/manifest.webmanifest`, `id` fixo, só com
+  sessão), ícones/splash do LashAgenda, `public/sw.js`. Botão "Instalar" do `PageTitleBar`:
+  diálogo do Chrome quando existe; senão `InstallHelpSheet` (iPhone com iOS 26, Android pelo
+  menu ⋮, navegador de dentro do Instagram/Facebook → abrir no navegador + copiar endereço).
+  Detecção em `src/lib/pwa/platform.ts` (puro, com teste). Sem sessão em `/app/[slug]`: tela
+  "Entre para abrir o app" com botão para `/entrar` (antes era "Link inválido", beco sem saída
+  no app instalado). Instalar de verdade no celular só nos testes finais (precisa do app no ar).
 - Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
   `rate_limits` do banco dev antes de rodar os de agendamento.
 - Páginas do app sem sessão: Início, Agenda, Clientes, Relatórios e Config conferem a sessão na própria página e não leem

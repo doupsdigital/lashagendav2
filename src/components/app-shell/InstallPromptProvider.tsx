@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { detectInstallPlatform } from '@/lib/pwa/platform';
 
 /** Evento não-padrão do Chrome/Android — a lib DOM do TS não declara ele. */
 interface BeforeInstallPromptEvent extends Event {
@@ -18,8 +19,13 @@ interface InstallPromptContextValue {
    *  fica sempre falso. O botão "Instalar" usa essa flag pra saber que deve
    *  mostrar o passo a passo manual em vez do diálogo nativo (que não existe
    *  no iOS — decisão de mercado, não falta de implementação, ver
-   *  `IosInstallSheet.tsx`). */
+   *  `InstallHelpSheet.tsx`). */
   isIOS: boolean;
+  /** Android sem o diálogo do Chrome (outro navegador, ou o Chrome ainda não
+   *  ofereceu): o botão mostra o passo a passo pelo menu ⋮ (F12.2). */
+  isAndroid: boolean;
+  /** Aberto dentro do Instagram/Facebook/etc.: ali não instala (F12.2). */
+  inAppBrowser: boolean;
   /** Dispara o diálogo nativo do Chrome — só funciona quando `canInstall`. */
   promptInstall: () => Promise<void>;
 }
@@ -28,6 +34,8 @@ const InstallPromptContext = createContext<InstallPromptContextValue>({
   canInstall: false,
   isInstalled: false,
   isIOS: false,
+  isAndroid: false,
+  inAppBrowser: false,
   promptInstall: async () => {},
 });
 
@@ -42,6 +50,8 @@ export const InstallPromptProvider: React.FC<{ children: React.ReactNode }> = ({
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
+  const [inAppBrowser, setInAppBrowser] = useState(false);
 
   useEffect(() => {
     // `display-mode: standalone` cobre a maioria dos navegadores, mas o
@@ -55,9 +65,10 @@ export const InstallPromptProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // iPad moderno (iPadOS 13+) se identifica como Mac no user agent, mas com
     // tela sensível ao toque — só um Mac de verdade não tem `ontouchend`.
-    const ua = window.navigator.userAgent;
-    const isAppleTouchDevice = /iPhone|iPad|iPod/.test(ua) || (ua.includes('Mac') && 'ontouchend' in document);
-    setIsIOS(isAppleTouchDevice);
+    const platform = detectInstallPlatform(window.navigator.userAgent, 'ontouchend' in document);
+    setIsIOS(platform.isIOS);
+    setIsAndroid(platform.isAndroid);
+    setInAppBrowser(platform.inAppBrowser);
 
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
@@ -86,7 +97,7 @@ export const InstallPromptProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [deferredPrompt]);
 
   return (
-    <InstallPromptContext.Provider value={{ canInstall: Boolean(deferredPrompt), isInstalled, isIOS, promptInstall }}>
+    <InstallPromptContext.Provider value={{ canInstall: Boolean(deferredPrompt), isInstalled, isIOS, isAndroid, inAppBrowser, promptInstall }}>
       {children}
     </InstallPromptContext.Provider>
   );

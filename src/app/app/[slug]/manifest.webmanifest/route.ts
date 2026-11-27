@@ -16,12 +16,17 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
   return NextResponse.json(
     {
+      // `id` fixo (= o start_url de sempre): o celular reconhece o mesmo app
+      // instalado mesmo se o start_url mudar um dia (F12.2).
+      id: `/app/${slug}`,
       name: 'LashAgenda',
       short_name: 'LashAgenda',
       description: 'App da profissional pra gerenciar catálogo e agendamentos.',
       start_url: `/app/${slug}`,
       scope: `/app/${slug}/`,
       display: 'standalone',
+      orientation: 'portrait',
+      lang: 'pt-BR',
       // Cor média das bordas do ícone (icon-512.png) — não o cinza-claro do
       // app em si. É essa cor que aparece atrás do ícone na splash screen
       // que o Android monta sozinho ao abrir o app instalado; com o cinza

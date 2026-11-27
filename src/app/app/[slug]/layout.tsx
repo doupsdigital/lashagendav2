@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getProfessionalSessionSlug, isProfessionalRequestAuthorized } from '@/lib/professional-session';
 import { getStudioBySlug, getStudioForProfessionalApp } from '@/lib/studio-service';
@@ -77,12 +78,25 @@ export default async function ProfessionalAppLayout({ children, params }: AppLay
       const [requested, current] = await Promise.all([getStudioBySlug(slug), getStudioBySlug(sessionSlug)]);
       if (!requested && current) redirect(`/app/${sessionSlug}/inicio`);
     }
+    // Sem sessão (F12.2): o app instalado cai aqui quando o acesso do
+    // aparelho vence (90 dias) ou quando o iPhone guarda o app separado do
+    // Safari. Leva para o login em vez de um beco sem saída. Não diz se o
+    // endereço existe.
     return (
       <main className="pro-app-shell min-h-screen flex items-center justify-center p-6 bg-cream text-ink text-center">
-        <div className="max-w-sm w-full p-8 rounded-3xl bg-surface border border-linen shadow-sm">
-          <h1 className="font-serif-pro text-2xl font-bold mb-2">Link inválido ou expirado</h1>
-          <p className="text-[13px] text-ink-soft leading-relaxed">
-            Peça um novo link de acesso pra quem te enviou o catálogo.
+        <div className="max-w-sm w-full p-8 rounded-3xl bg-surface border border-linen shadow-sm" data-app-signed-out>
+          <h1 className="font-serif-pro text-2xl font-bold mb-2">Entre para abrir o app</h1>
+          <p className="text-[13px] text-ink-soft leading-relaxed mb-5">
+            Por segurança, de tempos em tempos o LashAgenda pede para você entrar de novo neste aparelho.
+          </p>
+          <Link
+            href="/entrar"
+            className="flex items-center justify-center w-full h-11 rounded-xl bg-rose-600 text-white text-[15px] font-bold"
+          >
+            Entrar com e-mail e senha
+          </Link>
+          <p className="text-xs text-ink-soft leading-relaxed mt-4">
+            Ainda não criou seu e-mail e senha? Abra o link de acesso que chegou no seu e-mail.
           </p>
         </div>
       </main>
