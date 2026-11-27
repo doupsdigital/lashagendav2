@@ -12,8 +12,8 @@
 | | |
 |---|---|
 | **Fase atual** | **F13 — Produção e domínio** |
-| **Próxima etapa** | **Tarefas manuais guiadas (F13: banco prod, domínio, Resend, Cakto, variáveis na Vercel, Telegram, VAPID, Google OAuth, migração `preview_log`), uma por vez; depois F14 (testes finais)** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
-| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12 (F12: teste da usuária — instalar no celular, push de agendamento, +1 mês pelo admin — fica para os testes do fim; precisa de VAPID e Telegram na Vercel; F11: teste do marco M3 pela usuária ainda a fazer — precisa da `desenv` publicada na Vercel, produtos de teste e webhook da Cakto, `RESEND_API_KEY`; F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
+| **Próxima etapa** | **Tarefas manuais guiadas que faltam (F13): juntar `desenv` → `main` (a dona faz), conferir o v2 no endereço de produção da Vercel, mover `lashagenda.com` + `www` + curinga `*.lashagenda.com` do projeto `lashagenda-v0` para o `lashagendav2`, webhook de produção da Cakto, Google OAuth; depois F14 (testes finais)**. Já feitas em 2026-11-27: migração `preview_log` no dev, bot do Telegram, variáveis do Preview, Resend (domínio verificado), Cakto de teste, banco de produção, DNS na Vercel, produtos reais da Cakto, variáveis de produção (ver "Ambientes") |
+| **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12 (F12: teste da usuária — instalar no celular, push de agendamento, +1 mês pelo admin — fica para os testes do fim; F11: teste do marco M3 pela usuária ainda a fazer — Vercel, Cakto de teste e Resend já configurados; F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
 ## 2. O que existe no repositório
@@ -171,9 +171,14 @@
   no Pix (pagamento único). Links do checkout vêm de `NEXT_PUBLIC_CAKTO_CHECKOUT_MENSAL`/`_ANUAL`
   (sem eles, os botões de assinar não levam a lugar nenhum). Local: `.env.development.local` tem
   `CAKTO_WEBHOOK_SECRET` inventado e `CAKTO_PRODUCT_MAP=teste-mensal:mensal,teste-anual:anual`.
-  **Pendente (usuária, um passo por vez):** criar os 2 produtos de teste na Cakto, webhook
-  apontando para a Vercel da `desenv`, variáveis na Vercel (`CAKTO_WEBHOOK_SECRET`,
-  `CAKTO_PRODUCT_MAP`, os dois `NEXT_PUBLIC_CAKTO_CHECKOUT_*`). Compra de teste real = teste do M3.
+  **Feito em 2026-11-27:** produtos de teste "LashAgenda Mensal (teste)" e "LashAgenda Anual
+  (teste)" na Cakto, webhook "LashAgenda teste" apontando para a Vercel da `desenv` com
+  `?x-vercel-protection-bypass=` (chave "cakto-webhook" em Deployment Protection → Protection
+  Bypass for Automation), 6 eventos, só os 2 produtos de teste; variáveis no Preview. Evento de
+  teste da Cakto chegou (`ignored`, produto de mentira). Produtos reais "LashAgenda Mensal" e
+  "LashAgenda Anual" criados — **preços provisórios para a compra de teste (Mensal R$ 5,00);
+  no fim dos testes a dona ajusta para R$ 22,90 e R$ 197 e cancela as assinaturas de teste**.
+  Compra de teste real = teste do M3.
   `singleAnnualPlanTest` (R$ 127) em `data/landing-niche-content.tsx` não é usado — ver na landing.
 - `/ativando` (F11.3): `ActivationScreen` + `api/preview/activation-status` já vinham do StudioMenu;
   testado o caminho prévia → aviso de pagamento simulado → sessão gravada → `/primeiros-passos`.
@@ -185,8 +190,10 @@
   (renovação não reenvia; falha não derruba a ativação, fica anotada no `cakto_events`).
   Remetente: `EMAIL_FROM`, ou `LashAgenda <acesso@lashagenda.com>` em produção, ou o de teste
   `onboarding@resend.dev` (só entrega para o dono da conta Resend). Links seguem `APP_ORIGIN`
-  (padrão `https://lashagenda.com`). Pendente: chave `RESEND_API_KEY` para envio real e
-  verificar o domínio `lashagenda.com` no Resend (F13).
+  (padrão `https://lashagenda.com`; no Preview, `APP_ORIGIN` = endereço fixo da `desenv`).
+  **Feito em 2026-11-27:** domínio `lashagenda.com` verificado no Resend (São Paulo; DKIM, `send`,
+  `rsend`, DMARC no DNS da Vercel); chave `lashagenda-teste` no `.env.local` e no Preview, chave
+  `lashagenda-prod` (só o domínio) na produção. Envio pelo `acesso@lashagenda.com` conferido.
 - Primeiros passos (F11.5): 5 passos em `self-serve-onboarding.ts` (puro, testado em
   `scripts/test-self-serve-onboarding.mjs`; mesma ordem do e-mail). Marcam sozinhos: WhatsApp
   (na tela ou ao salvar o negócio na Config), serviços (algum `services.updated_at` mais de 2 min
@@ -232,14 +239,14 @@
   endpoint de outros estúdios). Sair da conta manda o endpoint e apaga a inscrição (só a do
   estúdio da sessão). `PushActivationFlow`: sem chave pública → "sendo preparadas"; iPhone sem
   app instalado → "Ver como instalar". Clique na notificação navega a janela do app já aberta.
-  **Chaves VAPID só no `.env.local` (geradas para dev); faltam na Vercel** (Preview com as de
-  dev; produção com chaves novas) — tarefa manual do fim.
+  Chaves VAPID: as de dev no `.env.local` e no Preview; produção com chaves novas (2026-11-27).
 - Telegram (F12.4): textos em `src/lib/telegram-messages.ts` (puro, com teste; nada de saúde).
   Avisos: prévia (resumido), nova assinatura, renovação recusada, cancelamento, reembolso/
   chargeback, **erro no webhook** (todo `result: error`) e segredo errado (1/h por rate limit).
   Fora da produção (`VERCEL_ENV`) sai marcado "🧪 [teste]"; timeout de 5 s. `TELEGRAM_API_BASE`
-  só para teste local (ignorado em produção). **`TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` ainda não
-  configurados** — tarefa manual do fim.
+  só para teste local (ignorado em produção). Bot próprio **@LashAgendaAvisosBot** (2026-11-27),
+  mesmo bot e chat no `.env.local`, no Preview e na produção; aviso de prévia conferido no local
+  e na Vercel.
 - Segurança (F13, código): revisadas as 45 rotas (sessão/admin/segredo/rate limit), nenhum
   segredo no navegador, RLS conferido no banco dev com a chave pública (13 tabelas, storage e
   RPC fechados), ficha de saúde só sai do servidor na tela da ficha, isolamento entre estúdios
@@ -248,8 +255,8 @@
   conferir de novo contra o DNS real na F13.2. Subdomínio de catálogo redireciona `/app`,
   `/entrar`, `/ativando`, `/lash`, `/a`, `/e` para o `www` (308). `X-Frame-Options: DENY` em
   `/app`, `/entrar`, `/ativando` (além de `/admin`); `Permissions-Policy` bloqueia câmera,
-  microfone, localização. **Pendente de decisão da dona:** o link mágico (`edit_token`) nunca
-  vence, nem depois de criar e-mail e senha. **Produção:** `ADMIN_PASSWORD` forte e
+  microfone, localização. Link mágico (`edit_token`) nunca vence, nem depois de criar e-mail e
+  senha — **mantido assim por decisão da dona (2026-11-27)**. **Produção:** `ADMIN_PASSWORD` forte e
   `CRON_SECRET` definido (senão as limpezas diárias não rodam).
 - Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
   `rate_limits` do banco dev antes de rodar os de agendamento.
@@ -280,8 +287,10 @@
 |---|---|
 | **Node** | 22 (o `@supabase/supabase-js` atual quebra no Node 20). |
 | **Banco dev** | Supabase `lashagendav2-dev` (ref `psixalpmgcuydqfxlrto`), **schema v2** (`docs/schema.sql`, aplicado em 2026-11-24). |
-| **Local** | `.env.development.local` (3 chaves do Supabase dev) + `.env.local` (segredos de sessão e senha do admin). Ambos fora do Git. |
-| **Vercel** | Projeto `lashagendav2` (time "doupsdigital's projects", Hobby), Node 22.x, Vercel Authentication ligado. Variáveis só no **Preview** (as 6 do local, apontando para o dev; as secretas como Secret). A `main` ainda não tem o app, então o deploy de produção falha — esperado até a F13. |
+| **Banco prod** | Supabase `lashagendav2-prod` (ref `hqwiqdvbnbvzvebshkmv`, São Paulo, plano Free), `docs/schema.sql` aplicado em 2026-11-27; conferido por fora: 13 tabelas fechadas para a chave pública, RPC e envio de fotos barrados, bucket `catalog-assets` certo. A chave `service_role` apareceu num print no chat; **a dona decidiu não trocar (2026-11-27)**. |
+| **Local** | `.env.development.local` (3 chaves do Supabase dev) + `.env.local` (segredos de sessão, senha do admin, VAPID, Telegram, Resend de teste). `.env.prod` (só na máquina da dona): as 17 variáveis de produção. Todos fora do Git. |
+| **Vercel** | Projeto `lashagendav2` (time "doupsdigital's projects", Hobby), Node 22.x, Vercel Authentication ligado. **Preview:** variáveis do dev + Telegram, VAPID de dev, `RESEND_API_KEY`, Cakto de teste, `APP_ORIGIN`. **Production:** as 17 do `.env.prod` (banco prod, segredos novos, `ADMIN_PASSWORD` forte, `CRON_SECRET`, VAPID novas, Resend prod, Cakto real). A `main` ainda não tem o app. |
+| **DNS** | `lashagenda.com` com nameservers da Vercel desde 2026-11-27 (antes: Hostinger). Domínio e `www` ainda ligados ao projeto `lashagenda-v0` (v1 no ar). Registros manuais: os 4 do Resend; CAA automáticos. |
 | **Preview fixo da `desenv`** | `https://lashagendav2-git-desenv-doupsdigital-s-projects.vercel.app` — catálogo em `/c/teste-lash`; app pelo link mágico `/api/professional/login?slug=teste-lash&token=…` (token impresso pelo script). No celular, logar na Vercel **antes** de abrir o link mágico (o redirect do login perde os parâmetros). |
 
 ## 3. O produto (resumo — detalhes em `docs/plano/DECISOES_DE_PRODUTO.md`)
