@@ -11,10 +11,23 @@ const nextConfig: NextConfig = {
         headers: [{ key: 'X-Frame-Options', value: 'DENY' }],
       },
       {
+        // App da profissional, login e ativação também não abrem dentro de
+        // outro site (F13). O catálogo `/c/` fica de fora: a prévia o mostra
+        // num iframe do próprio site.
+        source: '/(app|entrar|ativando)/:path*',
+        headers: [{ key: 'X-Frame-Options', value: 'DENY' }],
+      },
+      {
+        source: '/(entrar|ativando)',
+        headers: [{ key: 'X-Frame-Options', value: 'DENY' }],
+      },
+      {
         source: '/:path*',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          // Recursos que o LashAgenda não usa ficam bloqueados (F13).
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()' },
         ],
       },
       {

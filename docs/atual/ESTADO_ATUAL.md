@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-27 — F12.4 concluída; F12 fechada no código.**
+> Última atualização: **2026-11-27 — F13: partes de código concluídas (revisão de segurança + endereços reservados).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F13 — Produção e domínio** |
-| **Próxima etapa** | **F13 — partes de código (revisão de segurança da F13.5 e `RESERVED_SLUGS` da F13.2); o resto da F13 é tarefa manual guiada, no fim** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **Tarefas manuais guiadas (F13: banco prod, domínio, Resend, Cakto, variáveis na Vercel, Telegram, VAPID, Google OAuth, migração `preview_log`), uma por vez; depois F14 (testes finais)** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12 (F12: teste da usuária — instalar no celular, push de agendamento, +1 mês pelo admin — fica para os testes do fim; precisa de VAPID e Telegram na Vercel; F11: teste do marco M3 pela usuária ainda a fazer — precisa da `desenv` publicada na Vercel, produtos de teste e webhook da Cakto, `RESEND_API_KEY`; F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -240,6 +240,17 @@
   Fora da produção (`VERCEL_ENV`) sai marcado "🧪 [teste]"; timeout de 5 s. `TELEGRAM_API_BASE`
   só para teste local (ignorado em produção). **`TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` ainda não
   configurados** — tarefa manual do fim.
+- Segurança (F13, código): revisadas as 45 rotas (sessão/admin/segredo/rate limit), nenhum
+  segredo no navegador, RLS conferido no banco dev com a chave pública (13 tabelas, storage e
+  RPC fechados), ficha de saúde só sai do servidor na tela da ficha, isolamento entre estúdios
+  testado (10 ações cruzadas barradas). `RESERVED_SLUGS` ampliado (55 nomes) com
+  `scripts/test-reserved-slugs.mjs` (toda pasta de `src/app` e `public/` tem que estar lá);
+  conferir de novo contra o DNS real na F13.2. Subdomínio de catálogo redireciona `/app`,
+  `/entrar`, `/ativando`, `/lash`, `/a`, `/e` para o `www` (308). `X-Frame-Options: DENY` em
+  `/app`, `/entrar`, `/ativando` (além de `/admin`); `Permissions-Policy` bloqueia câmera,
+  microfone, localização. **Pendente de decisão da dona:** o link mágico (`edit_token`) nunca
+  vence, nem depois de criar e-mail e senha. **Produção:** `ADMIN_PASSWORD` forte e
+  `CRON_SECRET` definido (senão as limpezas diárias não rodam).
 - Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
   `rate_limits` do banco dev antes de rodar os de agendamento.
 - Páginas do app sem sessão: Início, Agenda, Clientes, Relatórios e Config conferem a sessão na própria página e não leem

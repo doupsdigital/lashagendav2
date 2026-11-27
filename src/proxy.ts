@@ -42,6 +42,14 @@ export default function middleware(request: NextRequest) {
       return new NextResponse('Not Found', { status: 404 });
     }
 
+    // App, login e ativação moram no endereço principal (F13): no subdomínio
+    // do catálogo, o login criaria uma sessão presa a esse subdomínio e o app
+    // instalado dali abriria no lugar errado. Leva para o `www`.
+    if (/^\/(app|entrar|ativando|lash|a|e)(\/|$)/.test(url.pathname)) {
+      const target = new URL(`${url.pathname}${url.search}`, `https://www.${parts.slice(1).join('.')}`);
+      return NextResponse.redirect(target, 308);
+    }
+
     // Se acessar a raiz do subdomínio, reencaminha internamente para /c/[slug]
     if (url.pathname === '/' || url.pathname === '') {
       url.pathname = `/c/${slug}`;
