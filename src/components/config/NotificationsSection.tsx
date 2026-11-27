@@ -21,7 +21,7 @@ export const NotificationsSection: React.FC<NotificationsSectionProps> = ({ slug
           <Bell className="w-6 h-6" />
         </div>
         <p className="font-serif-pro font-bold text-lg text-ink">Notificações push</p>
-        <p className="text-[15px] text-ink-soft mt-0.5">Receba um aviso nesse dispositivo quando uma cliente agendar.</p>
+        <p className="text-[15px] text-ink-soft mt-0.5">Receba um aviso neste aparelho quando uma cliente agendar ou cancelar.</p>
       </div>
 
       <PushActivationFlow

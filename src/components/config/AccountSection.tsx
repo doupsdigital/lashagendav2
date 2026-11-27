@@ -38,7 +38,23 @@ export const AccountSection: React.FC<AccountSectionProps> = ({ slug, hasAccount
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
-      await fetch('/api/professional/logout', { method: 'POST' });
+      // A notificação deste aparelho sai junto (F12.3).
+      let endpoint = '';
+      try {
+        const registration = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined;
+        const subscription = await registration?.pushManager.getSubscription();
+        if (subscription) {
+          endpoint = subscription.endpoint;
+          await subscription.unsubscribe().catch(() => false);
+        }
+      } catch {
+        // sem push neste navegador
+      }
+      await fetch('/api/professional/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint }),
+      });
       await supabaseBrowser.auth.signOut().catch(() => {});
     } finally {
       router.push('/entrar');

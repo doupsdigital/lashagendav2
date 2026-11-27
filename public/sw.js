@@ -47,6 +47,12 @@ self.addEventListener('notificationclick', (event) => {
       for (const client of clientList) {
         if (client.url.includes(url) && 'focus' in client) return client.focus();
       }
+      // App já aberto em outra tela (F12.3): leva essa mesma janela até a
+      // agenda em vez de abrir uma segunda.
+      const appWindow = clientList.find((client) => new URL(client.url).pathname.startsWith('/app/') && 'navigate' in client);
+      if (appWindow) {
+        return appWindow.navigate(url).then((client) => (client || appWindow).focus()).catch(() => self.clients.openWindow(url));
+      }
       if (self.clients.openWindow) return self.clients.openWindow(url);
     })
   );

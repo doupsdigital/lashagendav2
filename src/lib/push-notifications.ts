@@ -17,14 +17,29 @@ interface PushPayload {
   url?: string;
 }
 
+export interface PushResult {
+  /** Chaves VAPID configuradas no servidor. */
+  configured: boolean;
+  /** Aparelhos inscritos do estúdio. */
+  devices: number;
+  /** Entregues ao serviço de push do navegador (aceito, não "lido"). */
+  sent: number;
+}
+
+/** Push ligado no servidor? (F12.3 — a tela avisa em vez de falhar calada.) */
+export function isPushConfigured(): boolean {
+  return Boolean(publicKey && privateKey && subject);
+}
+
 /** Notifica todos os dispositivos inscritos de um estúdio — nunca lança,
  *  só loga erro (mesmo padrão non-blocking de `src/lib/telegram.ts`, usada
  *  num caminho crítico — `/api/scheduling/book` — que não pode falhar por
  *  causa de uma notificação secundária). */
-export async function sendPushToStudio(studioId: string, payload: PushPayload): Promise<void> {
-  if (!publicKey || !privateKey || !subject) {
+export async function sendPushToStudio(studioId: string, payload: PushPayload): Promise<PushResult> {
+  const result: PushResult = { configured: isPushConfigured(), devices: 0, sent: 0 };
+  if (!result.configured) {
     console.warn('[Push] VAPID keys não configuradas — notificação ignorada.');
-    return;
+    return result;
   }
 
   try {
@@ -33,20 +48,25 @@ export async function sendPushToStudio(studioId: string, payload: PushPayload): 
       .select('id, endpoint, p256dh, auth')
       .eq('studio_id', studioId);
 
-    if (error || !subscriptions || subscriptions.length === 0) return;
+    if (error || !subscriptions || subscriptions.length === 0) return result;
+    result.devices = subscriptions.length;
 
     await Promise.all(
       subscriptions.map(async (sub) => {
         try {
           await webpush.sendNotification(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-            JSON.stringify(payload)
+            JSON.stringify(payload),
+            // Aviso de agendamento perde o sentido depois de um dia (F12.3).
+            { TTL: 24 * 60 * 60, urgency: 'high' }
           );
+          result.sent += 1;
         } catch (err) {
           const statusCode = (err as { statusCode?: number })?.statusCode;
           if (statusCode === 404 || statusCode === 410) {
             // Inscrição expirada/revogada pelo navegador — limpa do banco.
             await supabaseAdmin.from('push_subscriptions').delete().eq('id', sub.id);
+            result.devices -= 1;
           } else {
             console.error('[Push] Falha ao enviar notificação:', err);
           }
@@ -56,4 +76,5 @@ export async function sendPushToStudio(studioId: string, payload: PushPayload): 
   } catch (error) {
     console.error('[Push] Exceção ao enviar notificações:', error);
   }
+  return result;
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { isProfessionalRequestAuthorized } from '@/lib/professional-session';
 import { sendPushToStudio } from '@/lib/push-notifications';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 /** POST /api/professional/push-test
  *  Manda uma notificação de teste pros dispositivos inscritos do catálogo.
@@ -27,13 +28,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Catálogo não encontrado.' }, { status: 404 });
     }
 
-    await sendPushToStudio(order.id, {
+    // Teste manda para todos os aparelhos dela: limite curto contra toques
+    // repetidos (F12.3).
+    if (!(await checkRateLimit(`push-test:${order.id}`, 6, 10 * 60))) {
+      return NextResponse.json({ success: false, message: 'Muitos testes seguidos. Espere alguns minutos.' }, { status: 429 });
+    }
+
+    const result = await sendPushToStudio(order.id, {
       title: 'Notificação de teste',
-      body: 'Se você recebeu isso, as notificações do LashAgenda estão funcionando neste dispositivo.',
+      body: 'Se você recebeu isso, as notificações do LashAgenda estão funcionando neste aparelho.',
       url: `/app/${slug}/config`,
     });
 
-    return NextResponse.json({ success: true });
+    // `configured`/`devices`/`sent` deixam a tela dizer o motivo quando não
+    // chega (F12.3) em vez de só perguntar "recebeu?".
+    return NextResponse.json({ success: result.sent > 0, ...result });
   } catch (error) {
     console.error('[Push Test Exception]:', error);
     return NextResponse.json({ success: false, message: 'Erro interno.' }, { status: 500 });

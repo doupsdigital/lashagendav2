@@ -38,6 +38,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Erro ao salvar inscrição.' }, { status: 500 });
     }
 
+    // Um aparelho avisa um estúdio só: o último que ativou (F12.3). Sem isso,
+    // um celular que já foi usado por outro estúdio continuava recebendo os
+    // agendamentos dele.
+    await supabaseAdmin.from('push_subscriptions').delete().eq('endpoint', endpoint).neq('studio_id', order.id);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[Push Subscribe Exception]:', error);

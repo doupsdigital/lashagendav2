@@ -4,6 +4,19 @@ import { useCallback, useEffect, useState } from 'react';
 
 export type PushPermissionState = 'default' | 'granted' | 'denied' | 'unsupported';
 
+/** Resultado do teste (F12.3): a tela explica o motivo quando não chega. */
+export interface PushTestResult {
+  ok: boolean;
+  /** false = servidor sem as chaves de notificação. */
+  configured: boolean;
+  /** Aparelhos inscritos do estúdio. */
+  devices: number;
+  message?: string;
+}
+
+/** Chave pública das notificações (vem do build). Sem ela, não há o que ativar. */
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+
 /** Converte a VAPID public key (base64url) pro formato `Uint8Array` que a
  *  Push API pede em `applicationServerKey`. */
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
@@ -70,7 +83,7 @@ export function usePushNotifications(slug: string) {
   }, [refresh]);
 
   const subscribe = useCallback(async (): Promise<boolean> => {
-    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const publicKey = VAPID_PUBLIC_KEY;
     if (!publicKey || permission === 'unsupported') return false;
 
     setSubscribing(true);
@@ -101,7 +114,7 @@ export function usePushNotifications(slug: string) {
     }
   }, [slug, permission]);
 
-  const sendTest = useCallback(async (): Promise<boolean> => {
+  const sendTest = useCallback(async (): Promise<PushTestResult> => {
     try {
       const res = await fetch('/api/professional/push-test', {
         method: 'POST',
@@ -109,12 +122,17 @@ export function usePushNotifications(slug: string) {
         body: JSON.stringify({ slug }),
       });
       const json = await res.json();
-      return Boolean(json.success);
+      return {
+        ok: Boolean(json.success),
+        configured: json.configured !== false,
+        devices: Number(json.devices ?? 1),
+        message: typeof json.message === 'string' ? json.message : undefined,
+      };
     } catch (error) {
       console.error('[usePushNotifications] Falha ao enviar teste:', error);
-      return false;
+      return { ok: false, configured: true, devices: 1, message: 'Sem conexão. Tente de novo.' };
     }
   }, [slug]);
 
-  return { permission, ready, subscribed, subscribing, subscribe, sendTest };
+  return { permission, ready, subscribed, subscribing, subscribe, sendTest, available: Boolean(VAPID_PUBLIC_KEY) };
 }
