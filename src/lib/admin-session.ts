@@ -13,8 +13,12 @@ function getSecret(): string {
   return secret;
 }
 
+/** A senha entra na assinatura (F12.1): trocar `ADMIN_PASSWORD` derruba
+ *  todas as sessões abertas do admin. */
 function sign(expiresAt: number): string {
-  return createHmac('sha256', getSecret()).update(String(expiresAt)).digest('hex');
+  return createHmac('sha256', getSecret())
+    .update(`${expiresAt}:${process.env.ADMIN_PASSWORD || ''}`)
+    .digest('hex');
 }
 
 /** Gera o valor do cookie de sessão do admin (expiresAt.assinatura). */

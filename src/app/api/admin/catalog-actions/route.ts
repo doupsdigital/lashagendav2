@@ -55,10 +55,17 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, message: 'id é obrigatório.' }, { status: 400 });
     }
 
+    const { data: studio } = await supabaseAdmin.from('studios').select('auth_user_id').eq('id', id).maybeSingle();
     const { error } = await supabaseAdmin.from('studios').delete().eq('id', id);
     if (error) {
       console.error('[Admin Catalog Actions] Erro ao excluir estúdio:', error);
       return NextResponse.json({ success: false, message: 'Erro ao excluir o estúdio.' }, { status: 500 });
+    }
+    // O login dela (Supabase Auth) sai junto — sem estúdio, ele não serve
+    // para nada e guardaria o e-mail à toa (F12.1).
+    if (studio?.auth_user_id) {
+      const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(studio.auth_user_id);
+      if (authError) console.error('[Admin Catalog Actions] login não apagado:', authError.message);
     }
 
     return NextResponse.json({ success: true });

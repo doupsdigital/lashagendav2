@@ -364,6 +364,17 @@ END;
 $$;
 
 -- --------------------------------------------------------------------------
+-- 12b. PREVIEW_LOG — instante de cada prévia criada (números do admin, F12.1)
+--      As prévias vencidas são apagadas todo dia; este registro fica. Sem
+--      dado da lead. Migração: docs/migrations/20261127_preview_log.sql
+-- --------------------------------------------------------------------------
+CREATE TABLE public.preview_log (
+    id          BIGSERIAL PRIMARY KEY,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX preview_log_created_idx ON public.preview_log(created_at DESC);
+
+-- --------------------------------------------------------------------------
 -- 13. SEGURANÇA — RLS ligado sem policies + REVOKE de anon/authenticated
 -- --------------------------------------------------------------------------
 DO $$
@@ -373,7 +384,7 @@ BEGIN
     FOREACH t IN ARRAY ARRAY[
         'studios', 'services', 'service_variations', 'clients', 'client_records',
         'appointments', 'appointment_items', 'business_hours', 'schedule_blocks',
-        'push_subscriptions', 'cakto_events', 'rate_limits'
+        'push_subscriptions', 'cakto_events', 'rate_limits', 'preview_log'
     ] LOOP
         EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
         EXECUTE format('REVOKE ALL ON public.%I FROM anon, authenticated', t);

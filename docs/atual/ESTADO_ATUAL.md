@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-27 — F11.7 concluída; F11 (marco M3) fechada no código.**
+> Última atualização: **2026-11-27 — F12.1 concluída (admin).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F12 — Admin + PWA + notificações** |
-| **Próxima etapa** | **F12.1 — Admin** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F12.2 — PWA** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11 (F11: teste do marco M3 pela usuária ainda a fazer — precisa da `desenv` publicada na Vercel, produtos de teste e webhook da Cakto, `RESEND_API_KEY`; F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -210,6 +210,15 @@
   as rotas que gravam (403 `access_lapsed`); liberados entrar/sair, criar acesso, notificações,
   apagar cliente e retirar a autorização da ficha (LGPD). Faixa `LapsedBanner` em todas as telas
   (layout). Catálogo vencido/desativado: "Página em pausa" (sem falar de pagamento).
+- Admin (F12.1): hub com Estúdios, Números, Avisos da Cakto e Showroom. `/admin/numeros`
+  (`src/lib/admin/metrics.ts` puro + `metrics-service.ts`): pagantes, receita mensal estimada,
+  prévias no ar, vencidos, liberados à mão, conversão 30 dias, tabela 7/30 dias e 14 dias.
+  Prévias contadas pela tabela `preview_log` (só data/hora, sem dado da lead) — **migração
+  `docs/migrations/20261127_preview_log.sql` ainda não rodada** (até lá a tela avisa "contagem
+  parcial"). Lista de estúdios: filtro Vencidos, "Entrar no app", Detalhe (e-mail da compra,
+  login criado, plano, origem, avisos da Cakto). Excluir estúdio apaga também o login (Auth).
+  Sessão do admin assinada com a senha: trocar `ADMIN_PASSWORD` derruba as sessões. Admin com
+  `noindex`.
 - Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
   `rate_limits` do banco dev antes de rodar os de agendamento.
 - Páginas do app sem sessão: Início, Agenda, Clientes, Relatórios e Config conferem a sessão na própria página e não leem

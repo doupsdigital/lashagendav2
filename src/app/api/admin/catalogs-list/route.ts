@@ -5,7 +5,7 @@ import { assignAppShortCode } from '@/lib/short-link';
 
 /** Colunas que a listagem do admin mostra (`/admin/catalogos`). */
 const ADMIN_STUDIO_COLUMNS =
-  'id, slug, owner_name, studio_name, whatsapp, billing_email, plan_status, cakto_plan, paid_until, manual_plan, disabled, agenda_paused, preview_expires_at, app_short_code, edit_token, created_at';
+  'id, slug, owner_name, studio_name, whatsapp, billing_email, plan_status, cakto_plan, paid_until, manual_plan, disabled, agenda_paused, preview_expires_at, app_short_code, edit_token, created_at, acquisition_source, auth_user_id';
 
 export async function GET() {
   if (!(await isAdminRequestAuthorized())) {
@@ -33,7 +33,19 @@ export async function GET() {
         })
     );
 
-    return NextResponse.json({ success: true, catalogs: studios });
+    // E-mail do login de cada uma (F12.1, detalhe do estúdio). O `auth_user_id`
+    // em si não vai para a tela.
+    const linked = studios.filter((s) => s.auth_user_id);
+    const emails = new Map<string, string>();
+    await Promise.all(
+      linked.map(async (s) => {
+        const { data } = await supabaseAdmin.auth.admin.getUserById(s.auth_user_id as string);
+        if (data?.user?.email) emails.set(s.id as string, data.user.email);
+      })
+    );
+    const catalogs = studios.map(({ auth_user_id: _authUserId, ...s }) => ({ ...s, account_email: emails.get(s.id as string) ?? null }));
+
+    return NextResponse.json({ success: true, catalogs });
   } catch (error: unknown) {
     console.error('[Admin Catalogs List Exception]:', error);
     return NextResponse.json({ success: false, message: error instanceof Error ? error.message : 'Erro interno.' }, { status: 500 });

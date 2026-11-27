@@ -108,6 +108,11 @@ export async function POST(request: Request) {
     // a resposta sai. Não pesa — ela está olhando a animação de ~3s.
     await sendTelegramMessage(`✨ Nova prévia (/lash): ${name}\n🔗 https://${created.slug}.${PRODUCTION_DOMAIN}`);
 
+    // Números do admin (F12.1): só o instante. Falhar aqui (ex.: migração
+    // ainda não rodada) não atrapalha a prévia.
+    const { error: logError } = await supabaseAdmin.from('preview_log').insert({});
+    if (logError) console.warn('[Preview Create] preview_log:', logError.message);
+
     return respond(created.slug, created.previewCode, created.previewExpiresAt as string, false);
   } catch (error) {
     console.error('[Preview Create Exception]:', error);

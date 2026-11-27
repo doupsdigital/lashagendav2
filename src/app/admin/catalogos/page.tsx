@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink, RefreshCw, Search, Smartphone, Pencil, MessageCircle, Trash2, Webhook } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ExternalLink, RefreshCw, Search, Smartphone, Pencil, MessageCircle, Trash2, Webhook } from 'lucide-react';
 import { usesSubdomainRouting, PRODUCTION_DOMAIN } from '@/lib/public-url';
 import { normalizeWhatsappBR } from '@/lib/format';
 import { hasPaidAccess, isAccessLapsed, isPreviewExpired } from '@/lib/studio-access';
@@ -28,9 +28,23 @@ interface AdminStudio {
   app_short_code: string | null;
   edit_token: string;
   created_at: string;
+  acquisition_source: string | null;
+  /** E-mail do login vinculado (Supabase Auth), quando há. */
+  account_email: string | null;
 }
 
-type ListFilter = 'pagantes' | 'previas' | 'todos';
+type ListFilter = 'pagantes' | 'vencidos' | 'previas' | 'todos';
+
+const FILTER_LABEL: Record<ListFilter, string> = { pagantes: 'Clientes', vencidos: 'Vencidos', previas: 'Prévias', todos: 'Todos' };
+
+const SOURCE_LABEL: Record<string, string> = {
+  lp_preview: 'Prévia da página de venda',
+  cakto_sem_previa: 'Compra sem prévia',
+  cakto_previa_nao_encontrada: 'Compra com prévia não encontrada',
+};
+
+/** Pagou e venceu (sem liberação manual). */
+const isLapsedPayer = (s: AdminStudio) => s.plan_status !== 'preview' && !s.manual_plan && isAccessLapsed(s);
 
 const STATUS_LABEL: Record<PlanStatus, string> = {
   preview: 'Prévia',
@@ -83,6 +97,7 @@ export default function AdminCatalogosPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -168,6 +183,7 @@ export default function AdminCatalogosPage() {
   const counts = useMemo(
     () => ({
       pagantes: studios.filter((s) => s.plan_status !== 'preview' || s.manual_plan).length,
+      vencidos: studios.filter(isLapsedPayer).length,
       previas: studios.filter((s) => s.plan_status === 'preview' && !s.manual_plan).length,
       todos: studios.length,
     }),
@@ -178,6 +194,7 @@ export default function AdminCatalogosPage() {
     const isPreview = s.plan_status === 'preview' && !s.manual_plan;
     if (filter === 'pagantes' && isPreview) return false;
     if (filter === 'previas' && !isPreview) return false;
+    if (filter === 'vencidos' && !isLapsedPayer(s)) return false;
     const q = query.trim().toLowerCase();
     if (!q) return true;
     return [s.owner_name, s.studio_name, s.slug, s.billing_email, s.whatsapp].some((v) => (v || '').toLowerCase().includes(q));
@@ -210,7 +227,7 @@ export default function AdminCatalogosPage() {
         <h1 className="font-serif text-2xl font-bold mb-4">Estúdios</h1>
 
         <div className="flex flex-wrap gap-2 mb-3">
-          {(['pagantes', 'previas', 'todos'] as ListFilter[]).map((f) => (
+          {(['pagantes', 'vencidos', 'previas', 'todos'] as ListFilter[]).map((f) => (
             <button
               key={f}
               type="button"
@@ -219,7 +236,7 @@ export default function AdminCatalogosPage() {
                 filter === f ? 'bg-rose-500 border-rose-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-400'
               }`}
             >
-              {f === 'pagantes' ? 'Clientes' : f === 'previas' ? 'Prévias' : 'Todos'} ({counts[f]})
+              {FILTER_LABEL[f]} ({counts[f]})
             </button>
           ))}
         </div>
@@ -269,8 +286,8 @@ export default function AdminCatalogosPage() {
                     <a href={links.official} target="_blank" rel="noopener noreferrer" className="admin-chip">
                       <ExternalLink className="w-3.5 h-3.5" /> Catálogo
                     </a>
-                    <a href={links.app} target="_blank" rel="noopener noreferrer" className="admin-chip">
-                      <Smartphone className="w-3.5 h-3.5" /> App
+                    <a href={links.app} target="_blank" rel="noopener noreferrer" className="admin-chip" title="Abre o app logado como ela, para suporte">
+                      <Smartphone className="w-3.5 h-3.5" /> Entrar no app
                     </a>
                     <a href={links.edit} target="_blank" rel="noopener noreferrer" className="admin-chip">
                       <Pencil className="w-3.5 h-3.5" /> Editar
@@ -281,6 +298,41 @@ export default function AdminCatalogosPage() {
                       </a>
                     )}
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(openId === item.id ? null : item.id)}
+                    aria-expanded={openId === item.id}
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-white"
+                  >
+                    Detalhe <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openId === item.id ? 'rotate-180' : ''}`} />
+                  </button>
+                  {openId === item.id && (
+                    <dl className="mt-2 grid grid-cols-[auto,1fr] gap-x-4 gap-y-1 text-xs" data-admin-detail>
+                      <dt className="text-slate-500">Estúdio</dt>
+                      <dd className="text-slate-300">{item.studio_name || '-'}</dd>
+                      <dt className="text-slate-500">WhatsApp</dt>
+                      <dd className="text-slate-300">{item.whatsapp || '-'}</dd>
+                      <dt className="text-slate-500">E-mail da compra</dt>
+                      <dd className="text-slate-300 break-all">{item.billing_email || '-'}</dd>
+                      <dt className="text-slate-500">Login criado</dt>
+                      <dd className="text-slate-300 break-all">{item.account_email || 'ainda não'}</dd>
+                      <dt className="text-slate-500">Plano</dt>
+                      <dd className="text-slate-300">
+                        {item.cakto_plan === 'anual' ? 'Anual (Pix)' : item.cakto_plan === 'mensal' ? 'Mensal (cartão)' : '-'} · {STATUS_LABEL[item.plan_status]}
+                      </dd>
+                      <dt className="text-slate-500">Pago até</dt>
+                      <dd className="text-slate-300">{formatDate(item.paid_until)}</dd>
+                      <dt className="text-slate-500">Origem</dt>
+                      <dd className="text-slate-300">{SOURCE_LABEL[item.acquisition_source || ''] || item.acquisition_source || '-'}</dd>
+                      <dt className="text-slate-500">Pagamentos</dt>
+                      <dd>
+                        <Link href={`/admin/cakto?slug=${encodeURIComponent(item.slug)}`} className="text-rose-300 font-bold hover:text-rose-200">
+                          Ver avisos da Cakto deste estúdio
+                        </Link>
+                      </dd>
+                    </dl>
+                  )}
 
                   <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-800">
                     <button type="button" disabled={busy} onClick={() => activateCakto(item, 'mensal')} className="admin-chip">

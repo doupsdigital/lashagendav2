@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LayoutGrid, ArrowRight, Palette, LogOut } from 'lucide-react';
+import { LayoutGrid, ArrowRight, Palette, LogOut, BarChart3, Webhook } from 'lucide-react';
 
 export default function AdminHubPage() {
   const router = useRouter();
@@ -43,11 +43,45 @@ export default function AdminHubPage() {
             <div>
               <div className="flex items-center gap-2 text-rose-400 text-xs font-bold uppercase tracking-wider mb-2">
                 <LayoutGrid className="w-4 h-4" />
-                <span>Catálogos & Pedidos</span>
+                <span>Assinantes & Prévias</span>
               </div>
-              <h2 className="font-bold text-white text-xl">Catálogos</h2>
+              <h2 className="font-bold text-white text-xl">Estúdios</h2>
               <p className="text-sm text-slate-400 mt-1 leading-relaxed">
-                Administração, criação e edição dos catálogos das clientes.
+                Lista com filtros, plano e vencimento, +1 mês/+1 ano, desativar, entrar no app dela.
+              </p>
+            </div>
+            <ArrowRight className="w-5 h-5 text-slate-500 group-hover:text-rose-400 group-hover:translate-x-1 transition-all flex-shrink-0" />
+          </Link>
+
+          <Link
+            href="/admin/numeros"
+            className="group p-6 rounded-2xl bg-slate-900 border border-slate-800 hover:border-rose-500/50 transition-all flex items-center justify-between gap-3"
+          >
+            <div>
+              <div className="flex items-center gap-2 text-rose-400 text-xs font-bold uppercase tracking-wider mb-2">
+                <BarChart3 className="w-4 h-4" />
+                <span>Visão geral</span>
+              </div>
+              <h2 className="font-bold text-white text-xl">Números</h2>
+              <p className="text-sm text-slate-400 mt-1 leading-relaxed">
+                Pagantes, receita estimada, prévias por dia, compras, cancelamentos.
+              </p>
+            </div>
+            <ArrowRight className="w-5 h-5 text-slate-500 group-hover:text-rose-400 group-hover:translate-x-1 transition-all flex-shrink-0" />
+          </Link>
+
+          <Link
+            href="/admin/cakto"
+            className="group p-6 rounded-2xl bg-slate-900 border border-slate-800 hover:border-rose-500/50 transition-all flex items-center justify-between gap-3"
+          >
+            <div>
+              <div className="flex items-center gap-2 text-rose-400 text-xs font-bold uppercase tracking-wider mb-2">
+                <Webhook className="w-4 h-4" />
+                <span>Pagamentos</span>
+              </div>
+              <h2 className="font-bold text-white text-xl">Avisos da Cakto</h2>
+              <p className="text-sm text-slate-400 mt-1 leading-relaxed">
+                Cada aviso de pagamento recebido, o que aconteceu e o conteúdo completo.
               </p>
             </div>
             <ArrowRight className="w-5 h-5 text-slate-500 group-hover:text-rose-400 group-hover:translate-x-1 transition-all flex-shrink-0" />
