@@ -17,6 +17,7 @@ import { PageTitleBar } from '@/components/app-shell/PageTitleBar';
 import { OnboardingCardStack } from '@/components/app-shell/OnboardingCardStack';
 import { InicioTour } from '@/components/tour/InicioTour';
 import { countSelfServeStepsDone, SELF_SERVE_STEP_ORDER } from '@/lib/self-serve-onboarding';
+import { getSelfServeFacts } from '@/lib/self-serve-progress';
 import Link from 'next/link';
 import { CaktoPlanCard } from '@/components/billing/CaktoPlanCard';
 import { CalendarDays, Share2, Home, ListChecks, ChevronRight, Wallet, TrendingUp, UserPlus, BarChart3 } from 'lucide-react';
@@ -55,7 +56,8 @@ export default async function InicioPage({ params }: InicioPageProps) {
   // Agendamento de fato funcionando para a cliente final (`isBookingLive`).
   const schedulingLive = order.booking_live;
   const todayStr = todayInSaoPaulo();
-  const [todayAppointments, pendingAppointments, businessHours, clientActivity, numbers] = await Promise.all([
+  const isSelfServe = order.plan_status !== 'preview';
+  const [todayAppointments, pendingAppointments, businessHours, clientActivity, numbers, selfServeFacts] = await Promise.all([
     getAppointmentsForDay(order.id, todayStr),
     getPendingAppointments(order.id),
     // Só o checklist de "próximos passos" usa isso (item de horários).
@@ -65,14 +67,16 @@ export default async function InicioPage({ params }: InicioPageProps) {
     hasPaidAccess ? getRecentClientActivity(order.id) : Promise.resolve([]),
     // Números do painel (F9.1): faturado hoje/mês e clientes novas no mês.
     hasPaidAccess ? getInicioNumbers(order.id, todayStr) : Promise.resolve(null),
+    // Checklist "Primeiros passos" (F11.5): o que já foi feito, pelo banco.
+    isSelfServe ? getSelfServeFacts(order) : Promise.resolve(null),
   ]);
   const hoursDone = businessHours.length > 0;
 
   // Enquanto o checklist "Primeiros passos" (pós-compra) não termina, um
   // card no topo leva ela de volta pra lá.
   const selfServeTotal = SELF_SERVE_STEP_ORDER.length;
-  const selfServeDone = countSelfServeStepsDone(order.onboarding_steps, Boolean(order.auth_user_id));
-  const showSelfServeContinue = order.plan_status !== 'preview' && selfServeDone < selfServeTotal;
+  const selfServeDone = selfServeFacts ? countSelfServeStepsDone(order.onboarding_steps, selfServeFacts) : 0;
+  const showSelfServeContinue = isSelfServe && selfServeDone < selfServeTotal;
 
   // Card "Meu plano" (assinatura Cakto; não aparece para liberação manual do
   // admin): no topo quando precisa de ação (fora do ar, renovação recusada,
@@ -180,13 +184,20 @@ export default async function InicioPage({ params }: InicioPageProps) {
 
       {isCakto && !caktoNeedsAttention && caktoPlanCard}
 
-      <OnboardingCardStack slug={slug} hasPaidAccess={hasPaidAccess} hasAccount={Boolean(order.auth_user_id)} hoursDone={hoursDone} />
+      <OnboardingCardStack
+        slug={slug}
+        hasPaidAccess={hasPaidAccess}
+        hasAccount={Boolean(order.auth_user_id)}
+        hoursDone={hoursDone}
+        selfServePending={showSelfServeContinue}
+      />
 
       <InicioTour
         slug={slug}
         hasPaidAccess={hasPaidAccess}
         hasAccount={Boolean(order.auth_user_id)}
         hoursDone={hoursDone}
+        selfServePending={showSelfServeContinue}
         hasPending={pendingAppointments.length > 0}
       />
       </main>

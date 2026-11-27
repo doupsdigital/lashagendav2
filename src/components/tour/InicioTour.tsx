@@ -10,6 +10,7 @@ interface InicioTourProps {
   hasPaidAccess: boolean;
   hasAccount: boolean;
   hoursDone: boolean;
+  selfServePending: boolean;
   /** Card de pendentes na tela (F9.1: só aparece quando há algum). */
   hasPending: boolean;
 }
@@ -25,7 +26,7 @@ interface InicioTourProps {
  *  qualquer motivo, aqui ou numa mudança futura) recria os objetos e o
  *  Joyride mostra o balão duplicado (achado de verdade na Config, corrigido
  *  lá — aplicado aqui também de forma preventiva). */
-export const InicioTour: React.FC<InicioTourProps> = ({ slug, hasPaidAccess, hasAccount, hoursDone, hasPending }) => {
+export const InicioTour: React.FC<InicioTourProps> = ({ slug, hasPaidAccess, hasAccount, hoursDone, selfServePending, hasPending }) => {
   const steps = useMemo<Step[]>(() => {
     const list: Step[] = [];
 
@@ -49,7 +50,7 @@ export const InicioTour: React.FC<InicioTourProps> = ({ slug, hasPaidAccess, has
     // pendente que o servidor sabe (o "conhecer a agenda" só o aparelho sabe,
     // então não conta aqui — melhor sem balão do que apontar pra um card que
     // pode não estar na tela).
-    const items = getOnboardingChecklistItems({ slug, hasPaidAccess, hasAccount, hoursDone });
+    const items = getOnboardingChecklistItems({ slug, hasPaidAccess, hasAccount, hoursDone, selfServePending });
     if (items.some((item) => !item.done && !item.clientTracked)) {
       list.push({
         target: '[data-tour="onboarding-checklist"]',
@@ -59,7 +60,7 @@ export const InicioTour: React.FC<InicioTourProps> = ({ slug, hasPaidAccess, has
     }
 
     return list;
-  }, [slug, hasPaidAccess, hasAccount, hoursDone, hasPending]);
+  }, [slug, hasPaidAccess, hasAccount, hoursDone, selfServePending, hasPending]);
 
   return <ProductTour tourId="inicio" slug={slug} steps={steps} enabled={hasPaidAccess} />;
 };

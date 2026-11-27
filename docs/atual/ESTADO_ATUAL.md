@@ -3,7 +3,7 @@
 > **Fonte de verdade sobre o presente.** Atualizado ao fim de cada fase (e sempre que algo
 > importante mudar).
 >
-> Última atualização: **2026-11-27 — F11.4 concluída (e-mail de acesso).**
+> Última atualização: **2026-11-27 — F11.5 concluída (primeiros passos).**
 
 ---
 
@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F11 — Venda e acesso (marco M3)** |
-| **Próxima etapa** | **F11.5 — Primeiros passos** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
+| **Próxima etapa** | **F11.6 — Criar acesso + login** (ver `docs/plano/PLANO_LASHAGENDA_V2.md`) |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10 (F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -187,6 +187,13 @@
   `onboarding@resend.dev` (só entrega para o dono da conta Resend). Links seguem `APP_ORIGIN`
   (padrão `https://lashagenda.com`). Pendente: chave `RESEND_API_KEY` para envio real e
   verificar o domínio `lashagenda.com` no Resend (F13).
+- Primeiros passos (F11.5): 5 passos em `self-serve-onboarding.ts` (puro, testado em
+  `scripts/test-self-serve-onboarding.mjs`; mesma ordem do e-mail). Marcam sozinhos: WhatsApp
+  (na tela ou ao salvar o negócio na Config), serviços (algum `services.updated_at` mais de 2 min
+  depois da criação do estúdio, ou "os de exemplo já servem"), horários (`business_hours`), acesso
+  (`auth_user_id`), compartilhar (copiar/enviar). Fatos do banco em `self-serve-progress.ts`.
+  Vídeos: `SELF_SERVE_STEP_VIDEOS` (vazio = sem vídeo). O card "Deixe seu studio pronto" do
+  Início só aparece depois que os primeiros passos terminam.
 - Testes E2E em sequência estouram o limite de `scheduling-book` (f52 falha por isso): limpar
   `rate_limits` do banco dev antes de rodar os de agendamento.
 - Páginas do app sem sessão: Início, Agenda, Clientes, Relatórios e Config conferem a sessão na própria página e não leem

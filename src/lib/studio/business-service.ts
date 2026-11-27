@@ -2,6 +2,7 @@ import 'server-only';
 import { supabaseAdmin } from '../supabase-admin';
 import { isValidClientWhatsapp, normalizeClientWhatsapp } from '../scheduling/client-phone';
 import { cleanBusinessProfile, type BusinessProfileInput, type CleanBusinessProfile } from './business-profile';
+import { parseOnboardingSteps } from '../self-serve-onboarding';
 
 /** O que a seção "Meu negócio" mostra (F10.1). WhatsApp sem o 55. */
 export interface BusinessProfile {
@@ -47,7 +48,12 @@ export async function saveBusinessProfile(studioId: string, input: BusinessProfi
   if (!phone) return { ok: false, field: 'whatsapp', message: 'Escreva o seu WhatsApp, com DDD.', status: 400 };
   if (!isValidClientWhatsapp(phone)) return { ok: false, field: 'whatsapp', message: 'Esse WhatsApp não parece certo. Confira o DDD e o número.', status: 400 };
 
-  const row = { ...clean.data, whatsapp: `55${phone}` };
+  // Salvar o WhatsApp aqui também conta como o passo "Confirme seu WhatsApp"
+  // dos Primeiros passos (F11.5).
+  const { data: current } = await supabaseAdmin.from('studios').select('onboarding_steps').eq('id', studioId).maybeSingle();
+  const steps = parseOnboardingSteps(current?.onboarding_steps);
+  const row: Record<string, unknown> = { ...clean.data, whatsapp: `55${phone}` };
+  if (!steps.whatsapp) row.onboarding_steps = { ...steps, whatsapp: new Date().toISOString() };
   const { error } = await supabaseAdmin.from('studios').update(row).eq('id', studioId);
   if (error) {
     console.error('[business-service] gravação:', error.message);

@@ -10,6 +10,7 @@ interface OnboardingCardStackProps {
   hasPaidAccess: boolean;
   hasAccount: boolean;
   hoursDone: boolean;
+  selfServePending: boolean;
 }
 
 const doneSeenKey = (slug: string) => `sm_onboarding_done_seen_${slug}`;
@@ -26,10 +27,10 @@ interface ClientState {
  *  marca no aparelho (`localStorage`, sem dado no banco pra isso). Quando tudo
  *  está marcado, mostra "Tudo pronto" numa única visita e depois some. A lista
  *  vem de `getOnboardingChecklistItems`, a mesma fonte do tour do Início. */
-export const OnboardingCardStack: React.FC<OnboardingCardStackProps> = ({ slug, hasPaidAccess, hasAccount, hoursDone }) => {
+export const OnboardingCardStack: React.FC<OnboardingCardStackProps> = ({ slug, hasPaidAccess, hasAccount, hoursDone, selfServePending }) => {
   const [client, setClient] = useState<ClientState | null>(null);
 
-  const items = getOnboardingChecklistItems({ slug, hasPaidAccess, hasAccount, hoursDone });
+  const items = getOnboardingChecklistItems({ slug, hasPaidAccess, hasAccount, hoursDone, selfServePending });
   const signature = items.map((i) => `${i.id}:${i.done}`).join('|');
 
   useEffect(() => {
