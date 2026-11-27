@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | **Fase atual** | **F13 — Produção e domínio** |
-| **Próxima etapa** | **Tarefas manuais guiadas que faltam (F13): juntar `desenv` → `main` (a dona faz), conferir o v2 no endereço de produção da Vercel, mover `lashagenda.com` + `www` + curinga `*.lashagenda.com` do projeto `lashagenda-v0` para o `lashagendav2`, webhook de produção da Cakto, Google OAuth; depois F14 (testes finais)**. Já feitas em 2026-11-27: migração `preview_log` no dev, bot do Telegram, variáveis do Preview, Resend (domínio verificado), Cakto de teste, banco de produção, DNS na Vercel, produtos reais da Cakto, variáveis de produção (ver "Ambientes") |
+| **Próxima etapa** | **Falta da F13: Google OAuth (Google Cloud + Supabase prod: provedor Google, Site URL e Redirect URLs `https://www.lashagenda.com/**`) — a dona faz de outra estação; teste da F13 (estúdio criado no admin de produção, abrir `<slug>.lashagenda.com` no celular); pixel novo nos produtos da Cakto, se ela quiser. Depois F14 (roteiro de testes + testes em produção). No fim: preços reais na Cakto (R$ 22,90 / R$ 197) e cancelar as assinaturas de teste; decidir o destino do projeto `lashagenda-v0` (v1, sem domínio).** Feito em 2026-11-27: migração `preview_log` no dev, bot do Telegram, variáveis do Preview, Resend (domínio verificado), Cakto de teste e real (webhooks e página de obrigado), banco de produção, DNS na Vercel, variáveis de produção, PR #1 `desenv` → `main` (merge da dona), domínio movido para o v2 (ver "Ambientes") |
 | **Fases concluídas** | F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12 (F12: teste da usuária — instalar no celular, push de agendamento, +1 mês pelo admin — fica para os testes do fim; F11: teste do marco M3 pela usuária ainda a fazer — Vercel, Cakto de teste e Resend já configurados; F10: teste do marco M2 pela usuária ainda a fazer — "dia de trabalho" simulado; F9: teste da usuária da F9 ainda a fazer; F8: teste da usuária da F8 ainda a fazer; F7: teste da usuária da F7 ainda a fazer; F6: teste do marco M1 pela usuária ainda a fazer; F2: teste superficial da usuária ok em 2026-11-24; teste a fundo fica para a fase de testes) |
 | **Bloqueios** | Nenhum |
 
@@ -178,7 +178,12 @@
   teste da Cakto chegou (`ignored`, produto de mentira). Produtos reais "LashAgenda Mensal" e
   "LashAgenda Anual" criados — **preços provisórios para a compra de teste (Mensal R$ 5,00);
   no fim dos testes a dona ajusta para R$ 22,90 e R$ 197 e cancela as assinaturas de teste**.
-  Compra de teste real = teste do M3.
+  Webhook "LashAgenda produção" → `https://www.lashagenda.com/api/billing/cakto-webhook`, só os 2
+  produtos reais, 6 eventos; a chave secreta é **gerada pela Cakto** (não dá para escolher) e está
+  no `.env.prod` e na Vercel (Production). Evento de teste conferido no banco de produção
+  (`ignored`); ficaram 2 registros de teste em `cakto_events` da produção (inofensivos).
+  Página de obrigado ("Upsell e Downsell") nos 4 produtos: reais → `https://www.lashagenda.com/ativando`,
+  teste → endereço fixo da `desenv` + `/ativando`. Compra de teste real = teste do M3.
   `singleAnnualPlanTest` (R$ 127) em `data/landing-niche-content.tsx` não é usado — ver na landing.
 - `/ativando` (F11.3): `ActivationScreen` + `api/preview/activation-status` já vinham do StudioMenu;
   testado o caminho prévia → aviso de pagamento simulado → sessão gravada → `/primeiros-passos`.
@@ -289,8 +294,8 @@
 | **Banco dev** | Supabase `lashagendav2-dev` (ref `psixalpmgcuydqfxlrto`), **schema v2** (`docs/schema.sql`, aplicado em 2026-11-24). |
 | **Banco prod** | Supabase `lashagendav2-prod` (ref `hqwiqdvbnbvzvebshkmv`, São Paulo, plano Free), `docs/schema.sql` aplicado em 2026-11-27; conferido por fora: 13 tabelas fechadas para a chave pública, RPC e envio de fotos barrados, bucket `catalog-assets` certo. A chave `service_role` apareceu num print no chat; **a dona decidiu não trocar (2026-11-27)**. |
 | **Local** | `.env.development.local` (3 chaves do Supabase dev) + `.env.local` (segredos de sessão, senha do admin, VAPID, Telegram, Resend de teste). `.env.prod` (só na máquina da dona): as 17 variáveis de produção. Todos fora do Git. |
-| **Vercel** | Projeto `lashagendav2` (time "doupsdigital's projects", Hobby), Node 22.x, Vercel Authentication ligado. **Preview:** variáveis do dev + Telegram, VAPID de dev, `RESEND_API_KEY`, Cakto de teste, `APP_ORIGIN`. **Production:** as 17 do `.env.prod` (banco prod, segredos novos, `ADMIN_PASSWORD` forte, `CRON_SECRET`, VAPID novas, Resend prod, Cakto real). A `main` ainda não tem o app. |
-| **DNS** | `lashagenda.com` com nameservers da Vercel desde 2026-11-27 (antes: Hostinger). Domínio e `www` ainda ligados ao projeto `lashagenda-v0` (v1 no ar). Registros manuais: os 4 do Resend; CAA automáticos. |
+| **Vercel** | Projeto `lashagendav2` (time "doupsdigital's projects", Hobby), Node 22.x, Vercel Authentication ligado. **Preview:** variáveis do dev + Telegram, VAPID de dev, `RESEND_API_KEY`, Cakto de teste, `APP_ORIGIN`. **Production:** as 17 do `.env.prod` (banco prod, segredos novos, `ADMIN_PASSWORD` forte, `CRON_SECRET`, VAPID novas, Resend prod, Cakto real). **Produção no ar desde 2026-11-27** (PR #1, merge da dona): `www.lashagenda.com` (raiz → 308 → `www`), curinga `*.lashagenda.com` e `lashagendav2.vercel.app`, todos no projeto `lashagendav2`. Conferido por fora: páginas, cabeçalhos, admin com a senha de produção, robôs diários com `CRON_SECRET`, links reais da Cakto, prévia no banco de produção, subdomínio de catálogo (`/app` e `/entrar` → `www`, `/admin` 404). |
+| **DNS** | `lashagenda.com` com nameservers da Vercel desde 2026-11-27 (antes: Hostinger; a propagação pode levar até 1–2 dias). O projeto `lashagenda-v0` (v1) ficou sem domínio. Registros manuais: os 4 do Resend (`send` e `rsend` já em `RESERVED_SLUGS`); CAA automáticos. |
 | **Preview fixo da `desenv`** | `https://lashagendav2-git-desenv-doupsdigital-s-projects.vercel.app` — catálogo em `/c/teste-lash`; app pelo link mágico `/api/professional/login?slug=teste-lash&token=…` (token impresso pelo script). No celular, logar na Vercel **antes** de abrir o link mágico (o redirect do login perde os parâmetros). |
 
 ## 3. O produto (resumo — detalhes em `docs/plano/DECISOES_DE_PRODUTO.md`)
