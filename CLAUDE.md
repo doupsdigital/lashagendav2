@@ -9,6 +9,9 @@
 3. **`docs/plano/PLANO_LASHAGENDA_V2.md`** — o plano em fases. Trabalhe sempre na fase/etapa
    marcada como atual em `ESTADO_ATUAL.md`, uma etapa por vez.
 
+Estação nova ou chat novo: leia antes **`docs/atual/CONTINUAR_EM_OUTRA_ESTACAO.md`** (chaves que
+não vão pelo Git, como a dona trabalha, fase de testes, aprendizados de produção).
+
 # Regras críticas (resumo — detalhes no playbook)
 
 - Trabalho sempre na branch **`desenv`**. **Nunca** dar push/merge na `main` sem autorização

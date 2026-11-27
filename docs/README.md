@@ -7,6 +7,8 @@
 
 - **[`atual/`](atual/)** — o presente: estado do projeto e regras de trabalho. Curado e sempre
   conferido contra o código.
+  - [`CONTINUAR_EM_OUTRA_ESTACAO.md`](atual/CONTINUAR_EM_OUTRA_ESTACAO.md) — o que não vai pelo
+    Git (chaves), como a dona trabalha e aprendizados de produção. Ler primeiro numa estação nova.
 - **[`plano/`](plano/)** — para onde vamos:
   - [`PLANO_LASHAGENDA_V2.md`](plano/PLANO_LASHAGENDA_V2.md) — plano mestre em 16 fases;
   - [`DECISOES_DE_PRODUTO.md`](plano/DECISOES_DE_PRODUTO.md) — o que foi decidido e por quê
