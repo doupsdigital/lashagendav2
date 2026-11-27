@@ -12,6 +12,8 @@
   - [`DECISOES_DE_PRODUTO.md`](plano/DECISOES_DE_PRODUTO.md) — o que foi decidido e por quê
     (inclui a lista das funcionalidades do v1, item a item);
   - [`BACKLOG_FUTURO.md`](plano/BACKLOG_FUTURO.md) — ideias para depois do lançamento.
+- **[`testes/`](testes/)** — roteiros de teste da dona:
+  - [`ROTEIRO_TESTES_F14.md`](testes/ROTEIRO_TESTES_F14.md) — testes finais em produção (M4).
 - **`schema.sql`** (a partir da F2) — schema atual do banco.
 - **`migrations/`** (a partir da F2) — migrações individuais, uma por mudança de banco.
 
